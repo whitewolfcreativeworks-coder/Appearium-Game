@@ -252,11 +252,11 @@ export function stall(b, x, z, color) {
 }
 
 // pedestal for artifact display; returns the top position
-export function pedestal(b, x, z, ry = 0) {
-  b.box(M.stone, 0.62, 0.9, 0.62, x, 0.45, z, { ts: 1.4, ry });
-  b.box(M.planks, 0.72, 0.06, 0.72, x, 0.93, z, { ry });
+export function pedestal(b, x, z, ry = 0, base = 0) {
+  b.box(M.stone, 0.62, 0.9, 0.62, x, base + 0.45, z, { ts: 1.4, ry });
+  b.box(M.planks, 0.72, 0.06, 0.72, x, base + 0.93, z, { ry });
   b.colliders.push({ x, z, r: 0.42 });
-  return new THREE.Vector3(x, 0.96, z);
+  return new THREE.Vector3(x, base + 0.96, z);
 }
 
 // The rock-model kinds are defined in vegetation.js; structures sometimes reuse them as meshes

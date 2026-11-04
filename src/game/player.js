@@ -39,7 +39,7 @@ export class Input {
       if (e.pointerType === 'mouse') return;
       this.isTouchEvent = true;
       if (!this.enabled) return;
-      layer.setPointerCapture(e.pointerId);
+      try { layer.setPointerCapture(e.pointerId); } catch (_) { /* synthetic or already-released pointers */ }
       if (e.clientX < window.innerWidth * 0.42 && this.joyPtr === null) {
         this.joyPtr = e.pointerId; this.joyOrigin = { x: e.clientX, y: e.clientY };
         joyEl.style.left = (e.clientX - 70) + 'px'; joyEl.style.top = (e.clientY - 70) + 'px'; joyEl.classList.add('on');

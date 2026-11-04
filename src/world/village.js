@@ -160,7 +160,7 @@ export class Village extends World {
     const cols = big ? 6 : 4, rows = big ? 3 : 2;
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
       const px = hx - (W - 2.4) / 2 + c * (W - 2.4) / (cols - 1), pz = hz - D / 2 + 1.5 + r * (D - 2.6) / Math.max(1, rows - 1);
-      slots.push(pedestal(b, px, pz).add(new THREE.Vector3(0, 0.38, 0)));
+      slots.push(pedestal(b, px, pz, 0, 0.39));
     }
     // sign board
     b.box(M.darkwood, 2.6, 0.5, 0.08, hx, 3.1, hz + D / 2 - 0.1);
@@ -216,7 +216,7 @@ export class Village extends World {
     const arts = save.artifacts.slice().reverse().slice(0, slots.length);
     arts.forEach((a, i) => {
       const m = buildArtifactMesh(a);
-      m.scale.multiplyScalar(1.5);
+      m.scale.multiplyScalar(1.9);
       m.position.copy(slots[i]).setY(h0 + slots[i].y);
       m.rotation.y = this.hall.ry + Math.PI;
       dyn.add(m);

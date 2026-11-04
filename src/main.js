@@ -563,7 +563,11 @@ class Game {
   // ------------------------------------------------------------------ frame
   loop() {
     requestAnimationFrame(() => this.loop());
-    const dt = Math.min(0.05, this.clock.getDelta());
+    this.frame(Math.min(0.05, this.clock.getDelta()));
+  }
+
+  // one simulation + render step (also driven directly by automated tests)
+  frame(dt, render = true) {
     this.fps = this.fps * 0.95 + (1 / Math.max(dt, 1e-3)) * 0.05;
     this.adaptResolution(dt);
     const input = this.input;
@@ -616,7 +620,7 @@ class Game {
       if (this.state === 'title') { this.player.yaw += dt * 0.03; this.player.syncCamera(); }
     }
     input.endFrame();
-    this.renderer.render(this.scene, this.camera);
+    if (render) this.renderer.render(this.scene, this.camera);
     if (this.debug) this.debugHud();
   }
 
