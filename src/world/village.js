@@ -6,18 +6,19 @@ import { World } from './world.js';
 import { Builder, M, cabin, postsAndRoof, palisade, lanternPost, well, pedestal, prop, cloth } from './structures.js';
 import { InstanceList } from './pools.js';
 import { campfire, chimneySmoke } from './effects.js';
+import { Ambience } from './critters.js';
 import { buildArtifactMesh } from '../game/artifacts3d.js';
 import { tex } from '../core/assets.js';
 import { KIND_INFO } from './vegetation.js';
 import { ITEMS } from '../game/items.js';
 
-const HOME_ECO = { treeDensity: 0.026, conifer: 0.55, broad: 0.45, snag: 0.02, fern: 0.5, shrub: 'bilberry', grass: 1.1, flowers: 0.6, rocks: 0.3, logs: 0.3, mushrooms: ['chanterelle'], minerals: [], herbs: ['dandelion', 'celandine', 'nettle'] };
+const HOME_ECO = { treeDensity: 0.026, conifer: 0.55, broad: 0.45, snag: 0.02, fern: 0.5, grass: 1.1, flowers: 0.6, rocks: 0.3, logs: 0.3, minerals: [], fungi: 0.6, flora: 0.8 };
 
 export class Village extends World {
   constructor(game) {
     super(game, {
       seed: 'appearium-home-v1',
-      terrain: { base: 6, hills: 11, rivers: 0.75, riverWidth: 0.026, lakes: 0.2, forest: 0.12, moisture: 0.05 },
+      terrain: { base: 6, hills: 11, rivers: 0.75, riverWidth: 0.026, lakes: 0.2, forest: 0.12, moisture: 0.05, streams: 0.5, ponds: 0.3 },
       layers: { grass: 'rocky_terrain_02', forest: 'forest_leaves_03', rock: 'aerial_rocks_02', shore: 'coast_sand_rocks_02', extra: 'forrest_ground_01' },
       extraMode: 3, eco: HOME_ECO,
     });
@@ -73,6 +74,15 @@ export class Village extends World {
     b.colliders.push({ x: wsP.x, z: wsP.z - 0.9, hw: 1.4, hd: 0.5, rot: 0 }, { x: wsP.x + 1.8, z: wsP.z + 0.6, r: 0.4 });
     this.noGrass.push({ x: wsP.x, z: wsP.z, r: 3.5 });
     // noticeboard
+    // herbalist's hut, south side of the yard, herbs drying under the eaves
+    const hbP = { x: 0, z: 22 };
+    const herb = cabin(b, { x: hbP.x, z: hbP.z, ry: Math.PI, w: 5, d: 4.2, h: 2.5, wall: M.plaster, roof: M.thatch, windows: [1.4], sideWindows: [] });
+    const herbMats = [cloth(0x6a7a3a), cloth(0x8a7a40)];
+    for (let i = 0; i < 7; i++) { const hx = -1.9 + i * 0.62; b.cyl(herbMats[i % 2], 0.07, 0.01, 0.38, hbP.x - hx, 2.55, hbP.z - 2.55, { seg: 6 }); }
+    b.box(M.planks, 1.6, 0.08, 0.6, hbP.x + 1.6, 0.85, hbP.z - 2.7); for (const sx of [-0.7, 0.7]) b.box(M.darkwood, 0.08, 0.85, 0.5, hbP.x + 1.6 + sx, 0.42, hbP.z - 2.7);
+    b.colliders.push({ x: hbP.x + 1.6, z: hbP.z - 2.7, hw: 0.8, hd: 0.3, rot: 0 });
+    this.noGrass.push({ x: hbP.x, z: hbP.z, r: 3.8 });
+    this.herbDoor = herb.door; this.herbChimney = herb.chimney;
     const nbP = { x: 5.5, z: -10 };
     for (const s of [-0.8, 0.8]) b.box(M.darkwood, 0.12, 2.2, 0.12, nbP.x + s, 1.1, nbP.z);
     b.box(M.planks, 1.9, 1.1, 0.08, nbP.x, 1.5, nbP.z);
@@ -105,7 +115,7 @@ export class Village extends World {
       const m = new THREE.Mesh(geo, gravel); m.receiveShadow = true; m.userData.disposable = true; this.add(m);
       const n = Math.ceil(L / 3); for (let i = 0; i <= n; i++) this.noGrass.push({ x: x0 + (x1 - x0) * i / n, z: z0 + (z1 - z0) * i / n, r: w * 0.6 });
     };
-    path(0, -7, 0, -this.R + 0.5, 2.6); path(-6, 2.5, homeP.x + 3, homeP.z - 1); path(6, 2.5, stP.x - 2.6, stP.z - 1); path(-5, -4.5, wsP.x + 2, wsP.z + 1.5); path(5, -4.5, 12, -8.5);
+    path(0, -7, 0, -this.R + 0.5, 2.6); path(-6, 2.5, homeP.x + 3, homeP.z - 1); path(6, 2.5, stP.x - 2.6, stP.z - 1); path(-5, -4.5, wsP.x + 2, wsP.z + 1.5); path(5, -4.5, 12, -8.5); path(0, 7, 0, 19.2, 2);
 
     // ------------------------------------------------ trees inside the yard (hand placed)
     const trees = new Map();
@@ -123,6 +133,8 @@ export class Village extends World {
     this.addStatic({ type: 'rest', pos: new THREE.Vector3(home.door.x, h0 + 1, home.door.z), radius: 2.2, label: 'Rest at home' });
     this.addStatic({ type: 'journal', pos: P(nbP.x, nbP.z + 0.6), radius: 2.4, label: 'Read the expedition journal' });
     this.addStatic({ type: 'well', pos: P(0, 0), radius: 2.0, label: 'Draw water from the well' });
+    this.addStatic({ type: 'herbalist', pos: new THREE.Vector3(this.herbDoor.x, h0 + 1, this.herbDoor.z), radius: 2.6, label: 'Visit Maren the herbalist' });
+    for (const [x, z] of [[1.6, 19.3]]) this.addStatic({ type: 'herbalist', pos: P(x, z), radius: 1.6, label: 'Ask Maren to check your basket' });
 
     // smoke & hearth
     this.emitters.add(chimneySmoke(home.chimney.clone().setY(home.chimney.y + h0), 1));
@@ -138,6 +150,8 @@ export class Village extends World {
     this.store = { x: stP.x, z: stP.z, ry: stRy };
     this.buildDynamic();
     this.initStreaming();
+    this.emitters.add(chimneySmoke(this.herbChimney.clone().setY(this.herbChimney.y + h0), 0.8));
+    this.ambience = new Ambience(this.game, this);
   }
 
   // parts that depend on the save: Hall pedestals + artifacts, store piles, upgrades

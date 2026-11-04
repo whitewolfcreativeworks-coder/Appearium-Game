@@ -1,0 +1,21 @@
+<!doctype html>
+<!-- Dev helper: renders the procedural animals and fish for visual checking. -->
+<html><head><meta charset="utf-8"><title>Critters</title><style>body{margin:0;background:#202420}</style>
+<script type="importmap">{ "imports": { "three": "../vendor/three/three.module.min.js", "three/addons/": "../vendor/three/addons/" } }</script></head>
+<body><script type="module">
+import * as THREE from 'three';
+import { Ambience } from '../src/world/critters.js';
+import { buildFish, FISH_SHAPES } from '../src/world/fishModel.js';
+const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(innerWidth, innerHeight); r.toneMapping = THREE.ACESFilmicToneMapping; r.outputColorSpace = THREE.SRGBColorSpace; document.body.appendChild(r.domElement);
+const sc = new THREE.Scene(); sc.background = new THREE.Color(0x56604f);
+sc.add(new THREE.HemisphereLight(0xdde8ff, 0x403020, 1.4)); const d = new THREE.DirectionalLight(0xffffff, 2.4); d.position.set(2, 4, 3); sc.add(d);
+const fake = { scene: sc, quality: {}, audio: {}, sky: { time: 12 } };
+const world = { autumn: 0, heightAt: () => 0, depthAt: () => -1, gen: { p: { water: -5 }, sample: () => ({ forest: 0.5, h: 0 }), height: () => 0 } };
+const A = new Ambience(fake, world);
+const add = (geo, x, y, z, s = 1, ry = 0.6) => { const m = new THREE.Mesh(geo, A.animalMat); m.position.set(x, y, z); m.scale.setScalar(s); m.rotation.y = ry; sc.add(m); };
+A.birdKinds.forEach((k, i) => { add(k.body, -0.9 + i * 0.6, 0.9, 0, 3); add(k.wings, -0.9 + i * 0.6, 0.9 + 0.075 * 0.4 * 3, 0, 3); });
+add(A.hareGeo, -0.7, 0, 0, 1.6, 1.1); add(A.squirrelGeo, 0.2, 0, 0, 3, 0.9); add(A.duckGeos[0], 0.8, 0.05, 0, 2.2, 0.8); add(A.duckGeos[1], 1.4, 0.05, 0, 2.2, 0.5);
+Object.keys(FISH_SHAPES).forEach((id, i) => { const f = buildFish(id); f.scale.setScalar(0.42); f.position.set(-1.35 + (i % 7) * 0.45, -0.55 - Math.floor(i / 7) * 0.32, 0.2); f.rotation.y = -0.2; sc.add(f); });
+const cam = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.01, 50); cam.position.set(0, 0.35, 5); cam.lookAt(0, 0.1, 0);
+r.render(sc, cam); window.done = true;
+</script></body></html>

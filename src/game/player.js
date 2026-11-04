@@ -103,13 +103,15 @@ export class Player {
     this.pitch -= input.look.y * sens * (settings.invertY ? -1 : 1);
     this.pitch = clamp(this.pitch, -1.45, 1.45);
     const mv = this.frozen ? { x: 0, y: 0 } : input.moveVector();
-    this.running = input.running && mv.y > 0.3 && !this.frozen;
+    const body = this.body;
+    this.running = input.running && mv.y > 0.3 && !this.frozen && (!body || body.canRun());
     const water = world.gen.p.water;
     const ground = world.heightAt(this.pos.x, this.pos.z);
     const depth = water - ground;
     this.inWater = Math.max(0, depth);
     let target = (this.running ? 5.6 : 2.9) * Math.hypot(mv.x, mv.y);
     if (depth > 0) target *= Math.max(0.35, 1 - depth * 0.55);
+    if (body) target *= body.speedMul();
     this.speed += (target - this.speed) * Math.min(1, dt * 8);
     const sy = Math.sin(this.yaw), cy = Math.cos(this.yaw);
     const fx = -sy, fz = -cy, rx = cy, rz = -sy;

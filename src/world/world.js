@@ -67,9 +67,10 @@ export class World {
     if (i.id) this.collected.add(i.id);
   }
 
-  update(dt, ctx) { this.emitters.update(dt, ctx); }
+  update(dt, ctx) { this.emitters.update(dt, ctx); this.ambience?.update(dt, ctx); }
 
   dispose() {
+    this.ambience?.dispose();
     this.chunks?.dispose(); this.grass?.clear(); this.game.pools.clearAll();
     this.emitters.clear();
     for (const o of this.objects) {

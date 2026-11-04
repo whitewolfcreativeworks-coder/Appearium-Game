@@ -1,0 +1,28 @@
+<!doctype html>
+<!-- Dev helper: renders every procedural mushroom & plant for visual checking. Open via a local server: /tools/gallery.html?set=mush|plant|cut -->
+<html><head><meta charset="utf-8"><title>Flora gallery</title>
+<style>body{margin:0;background:#202420;color:#ddd;font:12px sans-serif}#l{position:fixed;inset:0;pointer-events:none}.lb{position:absolute;transform:translateX(-50%);white-space:nowrap}</style>
+<script type="importmap">{ "imports": { "three": "../vendor/three/three.module.min.js", "three/addons/": "../vendor/three/addons/" } }</script></head>
+<body><div id="l"></div><script type="module">
+import * as THREE from 'three';
+import { buildMushroom, buildPlant, MUSHROOM_SPECS, PROCEDURAL_PLANTS } from '../src/world/flora.js';
+const set = new URLSearchParams(location.search).get('set') || 'mush';
+const under = new URLSearchParams(location.search).has('under');
+const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(innerWidth, innerHeight); r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 0.9; document.body.appendChild(r.domElement);
+const sc = new THREE.Scene(); sc.background = new THREE.Color(0x3a4038);
+sc.add(new THREE.HemisphereLight(0xdde8ff, 0x403020, 1.2)); const d = new THREE.DirectionalLight(0xffffff, 2.5); d.position.set(2, 4, 3); sc.add(d);
+const ids = set === 'plant' ? PROCEDURAL_PLANTS : Object.keys(MUSHROOM_SPECS);
+const cols = 4, items = [];
+ids.forEach((id, i) => {
+  const res = set === 'plant' ? buildPlant(id, 3) : buildMushroom(id, 7, { single: set !== 'patch', cut: set === 'cut' });
+  const g = new THREE.Group(); for (const p of res.parts) g.add(new THREE.Mesh(p.geometry, p.material));
+  const box = new THREE.Box3().setFromObject(g); const size = box.getSize(new THREE.Vector3()); const s = 0.8 / Math.max(size.x, size.y, size.z);
+  g.scale.setScalar(s); g.position.set((i % cols) * 1.1 - 1.65, -Math.floor(i / cols) * 1.1 + 1.6 - box.min.y * s, 0);
+  if (under) g.rotation.x = 1.2;
+  sc.add(g); items.push([id, g]);
+});
+const cam = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.01, 50); cam.position.set(0, 0.2, 8.2); cam.lookAt(0, 0.1, 0);
+r.render(sc, cam);
+for (const [id, g] of items) { const v = g.position.clone(); v.y -= 0.08; v.project(cam); const e = document.createElement('div'); e.className = 'lb'; e.textContent = id; e.style.left = ((v.x + 1) / 2 * innerWidth) + 'px'; e.style.top = ((-v.y + 1) / 2 * innerHeight) + 'px'; document.getElementById('l').appendChild(e); }
+window.done = true;
+</script></body></html>

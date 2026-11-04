@@ -5,6 +5,10 @@ import * as THREE from 'three';
 import * as BGU from 'three/addons/utils/BufferGeometryUtils.js';
 import { RNG } from '../core/rng.js';
 import { tex, modelParts, splitVariants } from '../core/assets.js';
+import { buildMushroom, buildPlant, MUSHROOM_SPECS, PROCEDURAL_PLANTS, floraMaterials } from './flora.js';
+import { definePrintKinds } from './trails.js';
+
+export const MUSHROOM_WORLD_SCALE = 1.3; // slightly enlarged so finds read at a glance; still close to life size
 
 export const windUniforms = { uTime: { value: 0 }, uWind: { value: 1 } };
 
@@ -29,7 +33,9 @@ attribute float aSway; uniform float uTime; uniform float uWind;`)
   #endif
   float ph = dot(ip.xz, vec2(0.137, 0.173));
   float s = aSway * uWind;
-  float gust = 0.65 + 0.35 * sin(uTime * 0.37 + ip.x * 0.011);
+  // rolling gusts: waves of wind travelling across the land (also used by the wind sound)
+  float wave = 0.5 + 0.5 * sin(dot(ip.xz, vec2(0.045, 0.026)) - uTime * 0.85);
+  float gust = 0.45 + 0.35 * sin(uTime * 0.37 + ip.x * 0.011) + 0.9 * wave * wave * wave;
   transformed.x += (sin(uTime * 1.25 + ph) * ${amp.toFixed(3)} * gust + sin(uTime * 6.3 + ph * 3.0 + position.y * 2.1) * ${flutter.toFixed(3)}) * s;
   transformed.z += (cos(uTime * 1.05 + ph * 1.3) * ${(amp * 0.7).toFixed(3)} * gust + cos(uTime * 5.7 + ph * 2.0 + position.x * 2.3) * ${flutter.toFixed(3)}) * s;
   ${fadeDist ? `
@@ -235,39 +241,52 @@ function colorize(g, c) {
   if (g.attributes.uv) g.deleteAttribute('uv');
   return g;
 }
-function lathe(profile, seg = 12) {
-  return new THREE.LatheGeometry(profile.map(([x, y]) => new THREE.Vector2(x, y)), seg);
-}
 
-export function buildMushroom(type, seed) {
+export function buildReeds(seed) {
   const rng = new RNG(seed);
-  const parts = [];
-  const n = rng.int(2, 4);
-  for (let i = 0; i < n; i++) {
-    const s = rng.range(0.6, 1.2);
-    const ox = rng.range(-0.12, 0.12), oz = rng.range(-0.12, 0.12);
-    let stem, cap;
-    if (type === 'chanterelle') {
-      cap = lathe([[0.012, 0], [0.018, 0.03], [0.03, 0.055], [0.055, 0.07], [0.06, 0.075], [0.045, 0.072], [0.01, 0.06]], 14);
-      cap = colorize(cap, new THREE.Color(0.95, 0.62, 0.12).offsetHSL(rng.range(-0.02, 0.02), 0, rng.range(-0.05, 0.05)));
-      parts.push(cap.scale(s, s, s).translate(ox, 0, oz));
-      continue;
+  const pos = [], col = [], sway = [], idx = [];
+  const c0 = new THREE.Color(), c1 = new THREE.Color();
+  for (let b = 0; b < 26; b++) {
+    const a = rng.next() * 6.28, r = Math.sqrt(rng.next()) * 0.5, ox = Math.cos(a) * r, oz = Math.sin(a) * r;
+    const h = rng.range(1.1, 1.9), w = rng.range(0.012, 0.022), lean = rng.range(0.05, 0.3), dir = rng.next() * 6.28;
+    const dx = Math.cos(dir), dz = Math.sin(dir), sx = -dz, sz = dx;
+    c0.setRGB(0.18, 0.24, 0.1); c1.setRGB(0.46, 0.5, 0.26).offsetHSL(rng.range(-0.02, 0.02), 0, rng.range(-0.05, 0.05));
+    const v0 = pos.length / 3;
+    for (let k = 0; k <= 3; k++) {
+      const t = k / 3, off = lean * t * t * h, ww = w * (1 - t * 0.9);
+      const cx = ox + dx * off, cz = oz + dz * off, cy = h * t;
+      pos.push(cx - sx * ww, cy, cz - sz * ww, cx + sx * ww, cy, cz + sz * ww);
+      const c = c0.clone().lerp(c1, t); col.push(c.r, c.g, c.b, c.r, c.g, c.b); sway.push(t * t, t * t);
     }
-    if (type === 'porcini') {
-      stem = lathe([[0.0, 0], [0.032, 0.0], [0.04, 0.03], [0.032, 0.07], [0.022, 0.085], [0, 0.085]], 12);
-      cap = lathe([[0, 0.12], [0.03, 0.118], [0.06, 0.1], [0.07, 0.08], [0.062, 0.072], [0.02, 0.075], [0, 0.076]], 14);
-      parts.push(colorize(stem, new THREE.Color(0.86, 0.8, 0.66)).scale(s, s, s).translate(ox, 0, oz));
-      parts.push(colorize(cap, new THREE.Color(0.42, 0.25, 0.12).offsetHSL(0, 0, rng.range(-0.05, 0.05))).scale(s, s, s).translate(ox, 0, oz));
-      continue;
-    }
-    if (type === 'ghostcap') {
-      stem = lathe([[0, 0], [0.008, 0], [0.006, 0.07], [0, 0.07]], 8);
-      cap = lathe([[0, 0.095], [0.02, 0.09], [0.032, 0.072], [0.03, 0.066], [0, 0.07]], 12);
-      parts.push(colorize(stem, new THREE.Color(0.8, 0.86, 0.9)).scale(s, s, s).translate(ox, 0, oz));
-      parts.push(colorize(cap, new THREE.Color(0.75, 0.9, 1.0)).scale(s, s, s).translate(ox, 0, oz));
+    for (let k = 0; k < 3; k++) { const i0 = v0 + k * 2; idx.push(i0, i0 + 1, i0 + 3, i0, i0 + 3, i0 + 2); }
+    if (b % 6 === 0) { // bulrush (cattail) seed head
+      const ch = new THREE.CylinderGeometry(0.018, 0.018, 0.16, 6).translate(ox + dx * lean * h * 0.8, h * 0.82, oz + dz * lean * h * 0.8);
+      const base = pos.length / 3; const p = ch.attributes.position, ix = ch.index.array;
+      for (let i = 0; i < p.count; i++) { pos.push(p.getX(i), p.getY(i), p.getZ(i)); col.push(0.28, 0.16, 0.08); sway.push(0.7); }
+      for (let i = 0; i < ix.length; i++) idx.push(base + ix[i]);
     }
   }
-  const g = BGU.mergeGeometries(parts);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setAttribute('aSway', new THREE.Float32BufferAttribute(sway, 1));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+
+export function buildLilyPad(seed, flower) {
+  const rng = new RNG(seed); const parts = [];
+  for (let i = 0; i < 3; i++) {
+    const R = rng.range(0.12, 0.2), notch = 0.35;
+    const g = new THREE.CircleGeometry(R, 20, notch / 2, Math.PI * 2 - notch).rotateX(-Math.PI / 2).rotateY(rng.next() * 6.28).translate(rng.range(-0.3, 0.3), 0, rng.range(-0.3, 0.3));
+    const c = new THREE.Color(0.16, 0.3, 0.1).offsetHSL(rng.range(-0.02, 0.02), 0, rng.range(-0.04, 0.04));
+    const p = g.attributes.position, a = new Float32Array(p.count * 3); const cx = p.getX(0), cz = p.getZ(0);
+    for (let k = 0; k < p.count; k++) { const r = Math.hypot(p.getX(k) - cx, p.getZ(k) - cz) / R; const cc = c.clone().multiplyScalar(0.85 + r * 0.35); if (r > 0.92) cc.setRGB(0.4, 0.22, 0.12); a[k * 3] = cc.r; a[k * 3 + 1] = cc.g; a[k * 3 + 2] = cc.b; }
+    g.setAttribute('color', new THREE.BufferAttribute(a, 3)); g.deleteAttribute('uv'); parts.push(g);
+  }
+  if (flower) { // white water-lily
+    for (let k = 0; k < 10; k++) { const pet = new THREE.SphereGeometry(0.03, 6, 4).scale(0.45, 0.3, 1).translate(0, 0.02, 0.03).rotateX(-0.5 - (k > 5 ? 0.4 : 0)).rotateY(k * 1.05); colorize(pet, new THREE.Color(0.95, 0.94, 0.9)); parts.push(pet); }
+    const centre = new THREE.SphereGeometry(0.012, 6, 4).translate(0, 0.03, 0); colorize(centre, new THREE.Color(0.9, 0.75, 0.2)); parts.push(centre);
+  }
+  const g = BGU.mergeGeometries(parts.map((x) => { const n = x.index ? x.toNonIndexed() : x; if (n.attributes.uv) n.deleteAttribute('uv'); if (n.attributes.normal) n.deleteAttribute('normal'); return n; }));
   g.computeVertexNormals();
   return g;
 }
@@ -301,24 +320,6 @@ export function buildBranches(seed) {
     parts.push(g);
   }
   const g = BGU.mergeGeometries(parts); g.computeVertexNormals();
-  return g;
-}
-
-export function buildBerries(shrubGeo, seed, count = 70) {
-  const rng = new RNG(seed);
-  const p = shrubGeo.attributes.position;
-  shrubGeo.computeBoundingBox();
-  const top = shrubGeo.boundingBox.max.y;
-  const parts = [];
-  const proto = new THREE.IcosahedronGeometry(0.022, 1);
-  let tries = 0;
-  while (parts.length < count && tries++ < count * 20) {
-    const i = rng.int(0, p.count - 1);
-    if (p.getY(i) < top * 0.25) continue;
-    const g = proto.clone().translate(p.getX(i), p.getY(i), p.getZ(i));
-    parts.push(g);
-  }
-  const g = BGU.mergeGeometries(parts);
   return g;
 }
 
@@ -419,22 +420,38 @@ export async function defineKinds(pools, quality) {
     defineModel('tree_stump_01', 'stump', { capacity: 400, castShadow: true, radius: 0.55 }),
     defineModel('dead_tree_trunk', 'log', { capacity: 400, castShadow: true }),
   ]);
-  const shrubs = await defineModel('shrub_02', 'shrub', { split: true, wind: true, amp: 0.04, capacity: cap.small, castShadow: true });
-  // berries for each shrub variant
-  const berryMats = {
-    bilberry: new THREE.MeshStandardMaterial({ color: 0x1d2140, roughness: 0.35 }),
-    lingonberry: new THREE.MeshStandardMaterial({ color: 0x9e1a1a, roughness: 0.3 }),
-    cloudberry: new THREE.MeshStandardMaterial({ color: 0xd88a2c, roughness: 0.4 }),
-  };
-  for (const [bname, bmat] of Object.entries(berryMats)) {
-    shrubs.forEach((g, i) => pools.defineKind(`berries_${bname}${i}`, [{ geometry: buildBerries(g, 55 + i), material: bmat }], 300));
+  await defineModel('shrub_02', 'shrub', { split: true, wind: true, amp: 0.04, capacity: cap.small, castShadow: true });
+
+  // species-accurate mushrooms & forage plants (see flora.js) -----------------
+  const FM = floraMaterials();
+  addWind(FM.plant, { amp: 0.035, flutter: 0.012 }); addWind(FM.berryMatte, { amp: 0.035, flutter: 0.012 }); addWind(FM.berryGloss, { amp: 0.035, flutter: 0.012 });
+  const sway = (g, top) => { const p = g.attributes.position; const a = new Float32Array(p.count); for (let i = 0; i < p.count; i++) a[i] = Math.pow(Math.max(0, p.getY(i)) / top, 1.5); g.setAttribute('aSway', new THREE.BufferAttribute(a, 1)); };
+  for (const id of Object.keys(MUSHROOM_SPECS)) {
+    for (let v = 0; v < 2; v++) {
+      const res = buildMushroom(id, 101 + v * 17, { scale: MUSHROOM_WORLD_SCALE });
+      pools.defineKind(`mush_${id}${v}`, res.parts.map((p) => ({ geometry: p.geometry, material: p.material })), 260);
+    }
+    KIND_INFO[`mush_${id}`] = { variants: 2 };
   }
+  for (const id of PROCEDURAL_PLANTS) {
+    for (let v = 0; v < 2; v++) {
+      const res = buildPlant(id, 301 + v * 23);
+      for (const p of res.parts) sway(p.geometry, Math.max(0.15, res.top));
+      pools.defineKind(`plant_${id}${v}`, res.parts.map((p) => ({ geometry: p.geometry, material: p.material, castShadow: res.top > 0.5 })), 400);
+    }
+    KIND_INFO[`plant_${id}`] = { variants: 2 };
+  }
+  KIND_INFO.floraMats = FM;
+  definePrintKinds(pools);
+  // water margins
+  const reedMat = addWind(new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.85 }), { amp: 0.09, flutter: 0.02, keepNormals: true });
+  for (let v = 0; v < 2; v++) pools.defineKind(`reeds${v}`, [{ geometry: buildReeds(500 + v), material: reedMat }], 1500);
+  const lilyMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, side: THREE.DoubleSide });
+  for (let v = 0; v < 2; v++) pools.defineKind(`lilies${v}`, [{ geometry: buildLilyPad(600 + v, v === 1), material: lilyMat }], 1500);
+  const feather = new THREE.PlaneGeometry(0.03, 0.14).rotateX(-Math.PI / 2); colorize(feather, new THREE.Color(0.92, 0.92, 0.9));
+  pools.defineKind('feather0', [{ geometry: feather, material: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, side: THREE.DoubleSide }) }], 200);
 
   // procedural props ----------------------------------------------------------
-  const mushMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.65 });
-  const ghostMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, emissive: 0x4fa8d8, emissiveIntensity: 0.9 });
-  for (const t of ['chanterelle', 'porcini']) for (let v = 0; v < 2; v++) pools.defineKind(`mush_${t}${v}`, [{ geometry: buildMushroom(t, 10 + v), material: mushMat }], 400);
-  pools.defineKind('mush_ghostcap0', [{ geometry: buildMushroom('ghostcap', 5), material: ghostMat }], 200);
   const crystalMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.12, metalness: 0.05, emissive: 0x111111, envMapIntensity: 1.6 });
   for (const [name, c] of [['quartz', 0xe8eef2], ['copper', 0x3fa27c], ['amethyst', 0x7a48b0], ['iron', 0x6b5a50]]) {
     pools.defineKind(`crystal_${name}`, [{ geometry: buildCrystals(40 + name.length, c), material: name === 'iron' ? new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, metalness: 0.6 }) : crystalMat }], 300);

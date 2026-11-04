@@ -16,6 +16,14 @@ import { ITEMS, CATS, RECIPES } from './game/items.js';
 import { loadSave, writeSave, resetSave } from './game/save.js';
 import { SoundScape } from './audio/audio.js';
 import { UI } from './ui/ui.js';
+import { Body, CONDITIONS } from './game/body.js';
+import { PostFX } from './world/postfx.js';
+import { itemInfo, parseKey, know, CATS as ICATS, recognised, speciesOf, catOf } from './game/inventory.js';
+import { interactForage, forageLabel, eatRaw, herbalist } from './game/foraging.js';
+import { openCooking } from './game/cooking.js';
+import { setTrap, checkTrap, lessonPanel, trapsPanelHtml } from './game/traps.js';
+import { MUSHROOMS, PLANTS, FISH, ANIMALS, TRAPS, BAIT, STATUS, SAFETY_NOTE } from './data/species.js';
+import { viewer } from './game/specimen.js';
 
 const QUALITY = {
   low: { pixelRatio: 1, chunkRadius: 2, shadows: 1024, shadowRange: 38, grassRadius: 18, grassDensity: 1.5, grassBlades: 12, capacity: { trees: { near: 2000, far: 3000 }, grass: 2200, small: 1200 }, rainDrops: 350, fogScale: 1.5, streamBudget: 4, antialias: false },
@@ -42,6 +50,7 @@ class Game {
     this.traps = [];
     this.clock = new THREE.Clock();
     this.fps = 60;
+    this.gameTime = 0;
   }
 
   async init() {
@@ -69,11 +78,14 @@ class Game {
     this.ui = new UI(this);
     this.input = new Input(canvas, this.save.settings);
     this.player = new Player(this.camera);
+    this.body = new Body(this); this.player.body = this.body;
+    this.body.restore(this.save.body);
     this.audio = new SoundScape(); this.audio.vol = this.save.settings.volume;
     this.player.onStep = (k, wet) => this.audio.step(k, wet ? 'water' : this.surface());
     this.pools = new PoolManager(this.scene);
     this.waterMat = createWaterMaterial();
     this.sky = new SkySystem(renderer, this.scene, this.quality);
+    this.postfx = new PostFX(renderer, this.quality.antialias ? 4 : 0);
     this.lantern = new THREE.PointLight(0xffc88a, 0, 18, 1.6); this.lantern.position.set(0.25, -0.3, -0.3); this.camera.add(this.lantern);
 
     setProgressHandler((d, t) => { $('loadfill').style.width = `${Math.round((d / Math.max(t, 1)) * 100)}%`; });
@@ -207,8 +219,8 @@ class Game {
       await this.ui.fade(false);
       if (!this.save.tutorial.firstExpedition) {
         this.save.tutorial.firstExpedition = true; writeSave(this.save);
-        setTimeout(() => this.ui.toast('Look for fallen wood, stones, mushrooms and berries. Approach water and face it to fish.', true), 800);
-        setTimeout(() => this.ui.toast('The compass shows your camp and anything you have heard of.'), 5000);
+        setTimeout(() => this.ui.toast('Look for fallen wood, mushrooms, berries and greens. Examine what you find closely — some are deadly lookalikes.', true), 800);
+        setTimeout(() => this.ui.toast('Face open water to fish. Look for worn animal runs to set traps. Your handbook is in the Journal.'), 5200);
       }
     } finally { this.transitioning = false; }
   }
@@ -234,11 +246,13 @@ class Game {
       this.save.journal.expeditions.push({ no: exp.no, name: exp.name, scenario: exp.title, date: new Date().toISOString(), brought, artifacts: arts, places: exp.discovered, weather: exp.weather, minutes: Math.round((Date.now() - exp.started) / 60000) });
       this.save.pendingPack = null;
       this.pack = { items: {}, artifacts: [] };
+      this.traps = [];
       writeSave(this.save);
       await this.enterVillage({ fromExpedition: true });
-      const parts = Object.entries(brought).map(([k, v]) => `${v} ${ITEMS[k]?.name.toLowerCase() || k}`);
+      const parts = Object.entries(brought).map(([k, v]) => `${v} ${itemInfo(k).name.toLowerCase()}`);
       if (parts.length || arts.length) setTimeout(() => this.ui.toast(`Brought home: ${[...parts, ...arts].slice(0, 6).join(', ')}${parts.length + arts.length > 6 ? '…' : ''}`, true), 400);
       if (arts.length) setTimeout(() => this.ui.toast('Your new discoveries are on display in the <b>Hall of Discoveries</b>.'), 3800);
+      if (Object.keys(brought).some((k) => k.startsWith('f:'))) setTimeout(() => this.ui.toast('Take your foraged finds to <b>Maren the herbalist</b> — she will check your identifications.'), 7000);
     } finally { this.transitioning = false; }
   }
 
@@ -250,10 +264,15 @@ class Game {
   }
 
   // ------------------------------------------------------------------ pack
-  packCount() { return Object.values(this.pack.items).reduce((a, b) => a + b, 0) + this.pack.artifacts.length * 2; }
+  packCount() {
+    const half = this.save.upgrades.basket;
+    let n = 0; for (const [k, v] of Object.entries(this.pack.items)) n += (half && (k.startsWith('f:') || k.startsWith('v:'))) ? v * 0.5 : v;
+    return Math.ceil(n) + this.pack.artifacts.length * 2;
+  }
   updatePackMeter() { this.ui.pack(this.packCount(), this.save.upgrades.pack); }
   addToPack(item, qty, partial = false) {
-    const room = this.save.upgrades.pack - this.packCount();
+    const per = this.save.upgrades.basket && (item.startsWith('f:') || item.startsWith('v:')) ? 0.5 : 1;
+    const room = Math.floor((this.save.upgrades.pack - this.packCount()) / per + 1e-6);
     if (room <= 0 || (!partial && room < qty)) return 0;
     const n = Math.min(qty, room);
     this.pack.items[item] = (this.pack.items[item] || 0) + n;
@@ -263,6 +282,7 @@ class Game {
   persist() {
     if (this.expedition) this.save.pendingPack = this.pack;
     this.save.time = this.sky.time;
+    this.save.body = this.body.serialize();
     clearTimeout(this.persistT); this.persistT = setTimeout(() => writeSave(this.save), 400);
   }
 
@@ -301,8 +321,16 @@ class Game {
         if (look.dot(dir) > 0.93) return { type: 'observe', fox: nf.fox, label: `Observe the red fox (${Math.round(d)} m) — keep still` };
       }
     }
+    if (this.world.ambience) {
+      const look = new THREE.Vector3(); this.camera.getWorldDirection(look);
+      for (const h of this.world.ambience.hares) {
+        const dx = h.pos.x - p.x, dz = h.pos.z - p.z, d = Math.hypot(dx, dz); if (d > 30 || h.state === 'flee') continue;
+        const dir = new THREE.Vector3(dx, h.pos.y + 0.2 - this.camera.position.y, dz).normalize();
+        if (look.dot(dir) > 0.94) return { type: 'observe', hare: h, label: `Observe the hare (${Math.round(d)} m) — keep still` };
+      }
+    }
     const spot = this.fishing.findSpot(this.player, this.world);
-    if (spot) return { type: 'fish', spot, label: `Cast your line (${spot.type === 'river' ? 'river' : 'still water'})` };
+    if (spot) return { type: 'fish', spot, label: `Fish here (${{ riffle: 'riffle', pool: 'deep pool', weeds: 'reed bed', lilies: 'lily pads', deep: 'deep water', shore: 'shallows' }[spot.spot]})` };
     return null;
   }
 
@@ -315,6 +343,7 @@ class Game {
         if (!got) { this.ui.toast('Your pack is full. Return home to store what you carry.'); return; }
         let bonusTxt = '';
         if (i.bonus) for (const [k, v] of Object.entries(i.bonus)) { const b = this.addToPack(k, v, true); if (b) bonusTxt += `, +${b} ${ITEMS[k].name.toLowerCase()}`; }
+        if (i.bonusChance?.grub && Math.random() < i.bonusChance.grub[0]) { const g = 1 + Math.floor(Math.random() * 3); this.save.bait.grub = (this.save.bait.grub || 0) + g; bonusTxt += `, +${g} grubs (bait)`; }
         w.removeGatherable(i);
         this.audio.pickup();
         this.ui.toast(`+${got} ${ITEMS[i.item].name}${bonusTxt}`);
@@ -343,9 +372,13 @@ class Game {
       case 'artifact-view': this.showArtifactCard(i.artifact); break;
       case 'well': this.audio.splash(0.4); this.ui.toast('The well water is cold and clear.'); break;
       case 'camp': this.openCamp(); break;
-      case 'trap': this.checkTrap(i); break;
-      case 'observe': this.observing = { fox: i.fox, t: 0 }; break;
-      case 'fish': this.fishing.start(i.spot); break;
+      case 'trap': checkTrap(this, i); break;
+      case 'observe': this.observing = i.fox ? { fox: i.fox, t: 0 } : { hare: i.hare, t: 0 }; break;
+      case 'fish': this.fishing.prepare(i.spot); break;
+      case 'forage': interactForage(this, i); break;
+      case 'tracks': this.examineTracks(i); break;
+      case 'herbalist': herbalist(this); break;
+      case 'hearth': openCooking(this, 'hearth'); break;
     }
   }
 
@@ -356,62 +389,87 @@ class Game {
   }
   showCard(html, ms) { this.ui.card(html, ms); }
 
-  // ------------------------------------------------------------------ snares
-  setSnare() {
-    if (!this.expedition) return;
-    if ((this.save.tools.snare || 0) <= 0) { this.ui.toast('You have no snares. Make some at the workshop.'); return; }
-    const p = this.player.pos, w = this.world;
-    if (w.depthAt(p.x, p.z) > -0.3) { this.ui.toast('The ground here is too wet for a snare.'); return; }
-    if (this.traps.some((t) => t.pos.distanceTo(p) < 6)) { this.ui.toast('You already set a snare close by.'); return; }
-    this.save.tools.snare--;
-    const f = this.player.forward(new THREE.Vector3());
-    const x = p.x + f.x * 1.2, z = p.z + f.z * 1.2, y = w.heightAt(x, z);
-    const g = new THREE.Group();
-    const mat = new THREE.MeshStandardMaterial({ color: 0x6b5a3e, roughness: 0.9 });
-    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 0.5, 5), mat); stick.position.y = 0.25; stick.rotation.z = 0.2;
-    const loop = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.006, 5, 16), new THREE.MeshStandardMaterial({ color: 0xb8a98a })); loop.position.set(0.1, 0.13, 0); loop.rotation.y = Math.PI / 2;
-    g.add(stick, loop); g.position.set(x, y, z); g.traverse((o) => { o.castShadow = true; });
-    this.scene.add(g); this.world.objects.push(g);
-    const s = w.gen.sample(x, z);
-    const habitat = 0.35 + (1 - Math.abs(s.forest - 0.4)) * 0.45;
-    this.traps.push({ type: 'trap', pos: new THREE.Vector3(x, y + 0.3, z), radius: 1.6, mesh: g, setAt: performance.now(), readyAfter: 60000 + Math.random() * 45000, chance: habitat, label: 'Check the snare' });
-    this.ui.toast('Snare set. Check back in a little while.');
-    writeSave(this.save);
+  examineTracks(i) {
+    const A = ANIMALS[i.species]; const k = know(this.save, i.species); const first = !k.seen; k.seen++;
+    this.showCard(`<div class="k">Tracks${first ? ' — new' : ''}</div><div class="n">${this.ui.esc(A.name)}</div><div class="s">${this.ui.esc(A.track)}</div><div class="o">${i.species === 'hare' ? 'A well-used hare run — a good place for a snare.' : this.ui.esc(A.facts)}</div>`, 6000);
+    this.persist();
   }
-  checkTrap(t) {
-    const left = t.setAt + t.readyAfter - performance.now();
-    if (left > 0) { this.ui.toast(`Nothing yet — give it about ${Math.ceil(left / 1000 / 15) * 15} more seconds.`); return; }
-    this.scene.remove(t.mesh); this.traps = this.traps.filter((x) => x !== t);
-    this.save.tools.snare = (this.save.tools.snare || 0) + 1;
-    if (Math.random() < t.chance) {
-      const a = this.addToPack('hare', 1, true), b = this.addToPack('pelt', 1, true);
-      this.audio.pickup();
-      this.ui.toast(a || b ? 'A hare in the snare. <b>+1 hare, +1 pelt</b> (snare recovered)' : 'A hare — but your pack is full. You let it go.', true);
-      const j = this.save.journal.wildlife; j.hare = j.hare || { seen: 0, first: this.expedition.no }; j.hare.seen++;
-    } else this.ui.toast('The snare is empty. You take it back.');
+  onAnimalSeen(id) { const k = know(this.save, id); k.seen++; }
+  clockNow() { return this.gameTime; }
+
+  digWorms() {
+    const p = this.player.pos, w = this.world;
+    if (!this.expedition) return;
+    const s = w.gen.sample(p.x, p.z);
+    if (w.depthAt(p.x, p.z) > -0.15) { this.ui.toast('Too wet here — step up onto the bank.'); return; }
+    if (s.moist < 0.45 && this.sky.weatherName !== 'rain') { this.ui.toast('The soil here is dry and hard. Worms live in damp, rich soil — try near water or in the woods.'); return; }
+    const n = 2 + Math.floor(Math.random() * 3) + (this.sky.weatherName === 'rain' ? 2 : 0);
+    this.save.bait.worm = (this.save.bait.worm || 0) + n;
+    this.sky.time = (this.sky.time + 0.15) % 24;
+    this.audio.dig?.();
+    this.ui.toast(`You turn over the soil with a stick: <b>+${n} earthworms</b>${this.sky.weatherName === 'rain' ? ' — the rain brings them up' : ''}.`);
     this.persist();
   }
 
+  onCollapse() {
+    // a deadly poisoning: the expedition ends and you wake at home, weakened
+    if (this.collapsing) return; this.collapsing = true;
+    (async () => {
+      this.fishing.cancel(); this.ui.closePanel();
+      const inExp = !!this.expedition;
+      await this.ui.fade(true, { kicker: 'Poisoned', title: 'Everything goes dark', sub: inExp ? 'You collapse in the wilderness. Travellers find you and carry you home. You lie in bed for days while Maren nurses you through it.' : 'You collapse at home. For days Maren nurses you through it.', rumor: 'Death cap and deadly nightshade poisonings begin hours after eating, when it is already too late to simply spit it out. Most real-world mushroom deaths are from death caps.' });
+      this.body.clearAll(); this.body.satiety = 40; this.body.stamina = 40;
+      if (inExp) {
+        this.pack.items = Object.fromEntries(Object.entries(this.pack.items).filter(([k]) => !k.startsWith('f:') && !k.startsWith('v:') && !FISH[k]));
+        this.transitioning = false; await new Promise((r) => setTimeout(r, 3500));
+        await this.returnHome();
+      } else { this.sky.time = 8; await new Promise((r) => setTimeout(r, 3500)); await this.ui.fade(false); }
+      this.ui.toast('You survived — barely. Your spoiled food was thrown away.', true);
+      this.collapsing = false;
+    })();
+  }
+
   // ------------------------------------------------------------------ panels
-  itemGrid(items, empty = 'Nothing yet.') {
+  itemGrid(items, empty = 'Nothing yet.', { eat = false } = {}) {
     const ents = Object.entries(items).filter(([, v]) => v > 0);
     if (!ents.length) return `<div class="sub">${empty}</div>`;
     const by = {};
-    for (const [k, v] of ents) { const c = ITEMS[k]?.cat || 'material'; (by[c] = by[c] || []).push([k, v]); }
-    return Object.entries(by).map(([c, list]) => `<h3>${CATS[c].label}</h3><div class="grid">${list.map(([k, v]) => `<div class="item" title="${this.ui.esc(ITEMS[k]?.desc || '')}"><span><span class="sw" style="background:${CATS[c].color}"></span>${ITEMS[k]?.name || k}</span><span class="q">${v}</span></div>`).join('')}</div>`).join('');
+    for (const [k, v] of ents) { const c = catOf(k); (by[c] = by[c] || []).push([k, v]); }
+    return Object.entries(by).map(([c, list]) => `<h3>${(ICATS[c] || ICATS.material).label}</h3><div class="grid">${list.map(([k, v]) => {
+      const i = itemInfo(k);
+      const eatBtn = eat && i.forage ? `<button class="mini" data-act="eat" data-k="${this.ui.esc(k)}">Eat</button>` : '';
+      return `<div class="item ${i.forage && !i.verified ? 'unverified' : ''}" title="${this.ui.esc(i.desc || '')}"><span><span class="sw" style="background:${(ICATS[c] || ICATS.material).color}"></span>${this.ui.esc(i.name)}</span><span class="q">${v}${eatBtn}</span></div>`;
+    }).join('')}</div>`).join('');
   }
 
   openPack() {
     if (this.ui.panelOpen) { this.ui.closePanel(); return; }
     const inExp = !!this.expedition;
     const arts = this.pack.artifacts.map((a) => `<div class="art"><div class="n">${this.ui.esc(a.name)}</div><div class="s">${this.ui.esc(a.story)}</div></div>`).join('');
+    const b = this.save.bait;
+    const bait = Object.entries(BAIT).map(([id, bt]) => `<span class="pill">${bt.name}: <b>${b[id] || 0}</b></span>`).join('');
+    const body = this.body;
     const html = `<button class="close" data-act="close">Close</button><h2>Pack</h2>
-      <div class="sub">${inExp ? `${this.packCount()} of ${this.save.upgrades.pack} spaces used. Everything here is kept once you return home.` : 'You are at home. Your belongings are in the storehouse.'}</div>
-      ${inExp ? this.itemGrid(this.pack.items, 'Your pack is empty. Look around for things to gather.') : ''}
+      <div class="sub">${inExp ? `${this.packCount()} of ${this.save.upgrades.pack} spaces used${this.save.upgrades.basket ? ' (forage takes half space in your basket)' : ''}. Everything here is kept once you return home.` : 'You are at home. Your belongings are in the storehouse.'}</div>
+      <div class="kv">Hunger <b>${body.satiety > 70 ? 'satisfied' : body.satiety > 35 ? 'peckish' : body.satiety > 15 ? 'hungry' : 'starving'}</b>${body.chips().length ? ' · ' + body.chips().map((c) => CONDITIONS[c].label).join(', ') : ''}</div>
+      ${inExp ? this.itemGrid(this.pack.items, 'Your pack is empty. Look around for things to gather.', { eat: true }) : ''}
       ${arts ? `<h3>Artifacts</h3>${arts}` : ''}
-      <h3>Equipment</h3><div class="kv">${this.save.upgrades.rod >= 2 ? 'Sturdy' : 'Simple'} fishing rod · ${this.save.tools.snare || 0} snare${this.save.tools.snare === 1 ? '' : 's'}${this.save.upgrades.lantern ? ' · Lantern (L)' : ''}</div>
-      <div class="actions">${inExp ? `<button class="btn" data-act="snare" ${this.save.tools.snare > 0 ? '' : 'disabled'}>Set a snare here</button>` : ''}<button class="btn ghost" data-act="close">Close</button></div>`;
-    this.ui.showPanel(html, (act) => { if (act === 'snare') { this.ui.closePanel(); this.setSnare(); } });
+      <h3>Fishing bait</h3><div class="pills">${bait}</div>
+      <h3>Traps</h3>${trapsPanelHtml(this)}
+      <h3>Equipment</h3><div class="kv">${this.save.upgrades.rod >= 2 ? 'Sturdy' : 'Simple'} fishing rod${this.save.upgrades.basket ? ' · forager\'s basket' : ''}${this.save.upgrades.lantern ? ' · lantern (L)' : ''}</div>
+      <div class="actions">${inExp ? '<button class="btn ghost" data-act="worms">Dig for worms here</button>' : ''}<button class="btn ghost" data-act="close">Close</button></div>`;
+    this.ui.showPanel(html, (act, d) => {
+      if (act === 'eat') { eatRaw(this, d.k); this.ui.closePanel(); this.openPack(); }
+      if (act === 'worms') { this.ui.closePanel(); this.digWorms(); }
+      if (act === 'trapset') { this.ui.closePanel(); setTrap(this, d.id); }
+      if (act === 'trapmake') {
+        const T = TRAPS[d.id]; const need = T.needs;
+        if (!Object.entries(need).every(([k, v]) => (this.pack.items[k] || 0) >= v)) { this.ui.toast(`You need ${Object.entries(need).map(([k, v]) => `${v} ${k}`).join(' and ')} in your pack.`); return; }
+        for (const [k, v] of Object.entries(need)) { this.pack.items[k] -= v; if (!this.pack.items[k]) delete this.pack.items[k]; }
+        this.save.tools[d.id] = (this.save.tools[d.id] || 0) + 1; this.audio.craft(); this.updatePackMeter(); this.persist();
+        this.ui.toast(`You make a ${T.name.toLowerCase()}.`); this.ui.closePanel(); this.openPack();
+      }
+    });
   }
 
   openStore() {
@@ -423,17 +481,26 @@ class Game {
 
   openWorkshop() {
     const s = this.save.store, u = this.save.upgrades;
-    const done = (r) => r.upgrade && (r.upgrade[0] === 'rod' ? u.rod >= 2 : r.upgrade[0] === 'pack' ? u.pack >= 50 : !!u[r.upgrade[0]]);
+    const done = (r) => !!r.upgrade && (r.upgrade[0] === 'rod' ? u.rod >= 2 : r.upgrade[0] === 'pack' ? u.pack >= 50 : !!u[r.upgrade[0]]);
     const rows = RECIPES.map((r) => {
       const can = Object.entries(r.needs).every(([k, v]) => (s[k] || 0) >= v);
-      const needs = Object.entries(r.needs).map(([k, v]) => `<span class="${(s[k] || 0) >= v ? 'ok' : 'no'}">${v} ${ITEMS[k].name.toLowerCase()} (${s[k] || 0})</span>`).join(' · ');
+      const needs = Object.entries(r.needs).map(([k, v]) => `<span class="${(s[k] || 0) >= v ? 'ok' : 'no'}">${v} ${itemInfo(k).name.toLowerCase()} (${s[k] || 0})</span>`).join(' · ');
       return `<div class="row"><div><div>${r.name}</div><div class="need">${r.desc}<br>${needs}</div></div>${done(r) ? '<span class="q" style="color:var(--good)">Done ✓</span>' : `<button class="btn" data-act="craft" data-id="${r.id}" ${can ? '' : 'disabled'}>Make</button>`}</div>`;
     }).join('');
-    this.ui.showPanel(`<button class="close" data-act="close">Close</button><h2>Workshop</h2><div class="sub">Craft equipment and improve the village with what you have stored.</div>${rows}`, (act, d) => {
+    const lessons = Object.entries(TRAPS).map(([id, T]) => {
+      const learned = this.save.lessons[id];
+      const can = Object.entries(T.needs).every(([k, v]) => (s[k] || 0) >= v);
+      const needs = Object.entries(T.needs).map(([k, v]) => `<span class="${(s[k] || 0) >= v ? 'ok' : 'no'}">${v} ${itemInfo(k).name.toLowerCase()} (${s[k] || 0})</span>`).join(' · ');
+      return `<div class="row"><div><div>${T.name} <span class="q">×${this.save.tools[id] || 0}</span></div><div class="need">${learned ? needs : 'Learn how it works first.'}</div></div>${learned ? `<button class="btn" data-act="maketrap" data-id="${id}" ${can ? '' : 'disabled'}>Make</button>` : `<button class="btn primary" data-act="lesson" data-id="${id}">Learn</button>`}</div>`;
+    }).join('');
+    this.ui.showPanel(`<button class="close" data-act="close">Close</button><h2>Workshop</h2><div class="sub">Craft equipment and improve the village with what you have stored.</div>${rows}<h3>Bushcraft: traps</h3>${lessons}`, (act, d) => {
+      if (act === 'lesson') { lessonPanel(this, d.id, () => {}); return; }
+      if (act === 'maketrap') { const T = TRAPS[d.id]; for (const [k, v] of Object.entries(T.needs)) s[k] -= v; this.save.tools[d.id] = (this.save.tools[d.id] || 0) + 1; writeSave(this.save); this.audio.craft(); this.ui.toast(`Made: <b>${T.name}</b>`); this.openWorkshop(); return; }
       if (act !== 'craft') return;
       const r = RECIPES.find((x) => x.id === d.id);
       for (const [k, v] of Object.entries(r.needs)) s[k] -= v;
-      if (r.gives) for (const [k, v] of Object.entries(r.gives)) { if (k === 'snare') this.save.tools.snare = (this.save.tools.snare || 0) + v; else s[k] = (s[k] || 0) + v; }
+      if (r.gives) for (const [k, v] of Object.entries(r.gives)) s[k] = (s[k] || 0) + v;
+      if (r.bait) for (const [k, v] of Object.entries(r.bait)) this.save.bait[k] = (this.save.bait[k] || 0) + v;
       if (r.upgrade) u[r.upgrade[0]] = r.upgrade[1];
       writeSave(this.save); this.audio.craft();
       this.ui.toast(`Made: <b>${r.name}</b>`, true);
@@ -445,7 +512,8 @@ class Game {
 
   openRest() {
     this.ui.showPanel(`<button class="close" data-act="close">Close</button><h2>Home</h2><div class="sub">A warm hearth and a dry bed. The fire has been banked since you left.</div>
-      <div class="actions"><button class="btn" data-act="morning">Sleep until morning</button><button class="btn" data-act="evening">Rest until evening</button></div>`, async (act) => {
+      <div class="actions"><button class="btn" data-act="cook">Cook at the hearth</button><button class="btn" data-act="morning">Sleep until morning</button><button class="btn" data-act="evening">Rest until evening</button></div>`, async (act) => {
+      if (act === 'cook') { openCooking(this, 'hearth'); return; }
       this.ui.closePanel();
       await this.ui.fade(true, { title: act === 'morning' ? 'Morning' : 'Evening' });
       this.sky.time = act === 'morning' ? 7.2 : 18.3; this.sky.refreshEnv(); this.persist();
@@ -455,7 +523,8 @@ class Game {
 
   openCamp() {
     this.ui.showPanel(`<button class="close" data-act="close">Close</button><h2>Campfire</h2><div class="sub">Your camp at the edge of ${this.ui.esc(this.expedition.name)}. ${this.ui.esc(this.expedition.rumor)}</div>
-      <div class="actions"><button class="btn" data-act="wait">Rest an hour</button><button class="btn primary" data-act="home">⌂ Return home</button></div>`, (act) => {
+      <div class="actions"><button class="btn" data-act="cook">Cook a meal</button><button class="btn" data-act="wait">Rest an hour</button><button class="btn primary" data-act="home">⌂ Return home</button></div>`, (act) => {
+      if (act === 'cook') { openCooking(this, 'camp'); return; }
       if (act === 'wait') { this.ui.closePanel(); this.sky.time = (this.sky.time + 1) % 24; this.ui.toast('You rest by the fire for an hour.'); }
       if (act === 'home') { this.ui.closePanel(); this.confirmReturnHome(); }
     });
@@ -479,36 +548,78 @@ class Game {
       }).join('') || '<div class="sub">No journeys yet. The North Gate is waiting.</div>';
       if (this.expedition) body = `<div class="art"><div class="n">Now: ${this.ui.esc(this.expedition.name)}</div><div class="s">${this.ui.esc(this.expedition.rumor)}</div></div>` + body;
     } else if (tab === 'nature') {
-      const fish = Object.entries(j.fish).map(([k, v]) => `<div class="item"><span>${ITEMS[k].name}</span><span class="q">${v.count} · best ${v.best} cm</span></div>`).join('');
-      const wild = Object.entries(j.wildlife).map(([k, v]) => `<div class="item"><span>${{ fox: 'Red fox', hare: 'Hare' }[k] || k}</span><span class="q">${v.seen}×</span></div>`).join('');
-      body = `<h3>Fish caught</h3><div class="grid">${fish || '<div class="sub">None yet.</div>'}</div><h3>Wildlife observed</h3><div class="grid">${wild || '<div class="sub">None yet. Approach animals slowly and watch them.</div>'}</div>`;
+      body = this.fieldGuide();
     } else if (tab === 'places') {
       body = j.places.slice().reverse().map((p) => `<div class="item"><span>${this.ui.esc(p.name)}</span><span class="q">Exp. ${p.exp}</span></div>`).join('') || '<div class="sub">No landmarks discovered yet.</div>';
       body = `<div class="grid" style="grid-template-columns:1fr">${body}</div>`;
     }
     this.ui.showPanel(`<button class="close" data-act="close">Close</button><h2>Journal</h2>
-      <div class="tabs"><button data-act="tab" data-t="exp" class="${tab === 'exp' ? 'on' : ''}">Expeditions</button><button data-act="tab" data-t="nature" class="${tab === 'nature' ? 'on' : ''}">Nature</button><button data-act="tab" data-t="places" class="${tab === 'places' ? 'on' : ''}">Places</button></div>${body}`,
-    (act, d) => { if (act === 'tab') this.openJournal(d.t); });
+      <div class="tabs"><button data-act="tab" data-t="exp" class="${tab === 'exp' ? 'on' : ''}">Expeditions</button><button data-act="tab" data-t="nature" class="${tab === 'nature' ? 'on' : ''}">Field guide</button><button data-act="tab" data-t="places" class="${tab === 'places' ? 'on' : ''}">Places</button></div>${body}`,
+    (act, d) => {
+      if (act === 'tab') this.openJournal(d.t);
+      if (act === 'gsec') { this.guideSection = d.s; this.openJournal('nature'); }
+      if (act === 'gview') { this.guideView = this.guideView === d.id ? null : d.id; this.openJournal('nature'); }
+    });
+    if (tab === 'nature' && this.guideView) { const el = document.getElementById('spec-view'); if (el) { const v = viewer(); v.show(this.guideSection === 'fish' ? 'fish' : this.guideSection === 'fungi' ? 'mushroom' : 'plant', this.guideView); v.mount(el); } }
+  }
+
+  // the forager's handbook: every species, plus your own notes
+  fieldGuide() {
+    const sec = this.guideSection || 'fungi';
+    const K = this.save.knowledge || {};
+    const tabs = [['fungi', 'Mushrooms'], ['plants', 'Berries & greens'], ['fish', 'Fish'], ['animals', 'Animals & tracks'], ['bush', 'Bushcraft'], ['safety', 'Safety']]
+      .map(([k, l]) => `<button class="chip ${sec === k ? 'on' : ''}" data-act="gsec" data-s="${k}">${l}</button>`).join('');
+    const e = (t) => this.ui.esc(t);
+    const notes = (id) => { const k = K[id]; if (!k) return '<span class="dim">Not yet encountered.</span>'; const bits = []; if (k.seen) bits.push(`seen ${k.seen}×`); if (k.confirmed) bits.push(`identified correctly ${k.confirmed}×`); if (k.wrong) bits.push(`mistaken ${k.wrong}×`); if (k.eaten) bits.push(`eaten ${k.eaten}×`); if (k.caught) bits.push(`caught ${k.caught}×`); if (k.released) bits.push(`released ${k.released}×`); if (k.best) bits.push(`best ${k.best} cm`); return (recognised(this.save, id) ? '<b style="color:#9fc27a">Recognised at a glance.</b> ' : '') + bits.join(' · '); };
+    let out = '';
+    const entry = (id, sp, lines, viewable) => `<div class="art guide"><div class="n">${e(sp.name)} <i>${e(sp.latin || '')}</i>${sp.status ? ` <span class="st" style="color:${STATUS[sp.status].color}">${STATUS[sp.status].label}</span>` : ''}${viewable ? ` <button class="mini" data-act="gview" data-id="${id}">${this.guideView === id ? 'Hide' : 'View'}</button>` : ''}</div>
+      ${this.guideView === id ? '<div class="guideview"><div id="spec-view"></div></div>' : ''}<ul class="obs">${lines}</ul><div class="o">Your notes: ${notes(id)}</div></div>`;
+    if (sec === 'fungi' || sec === 'plants') {
+      const list = sec === 'fungi' ? MUSHROOMS : PLANTS;
+      for (const [id, sp] of Object.entries(list)) {
+        const lines = Object.entries(sp.look).map(([k, v]) => `<li><b>${{ cap: 'Cap', under: 'Underneath', stem: 'Stem', flesh: 'Flesh', smell: 'Smell', spore: 'Spore print', grows: 'Grows', plant: 'Plant', fruit: 'Fruit' }[k] || k}:</b> ${e(v)}</li>`).join('') + `<li>${e(sp.facts)}</li>` + (sp.lookalikes?.length ? `<li><b>Lookalikes:</b> ${sp.lookalikes.map((l) => e(list[l].name)).join(', ')}. ${e(sp.tell || '')}</li>` : '');
+        out += entry(id, sp, lines, true);
+      }
+    } else if (sec === 'fish') {
+      for (const [id, f] of Object.entries(FISH)) {
+        const where = Object.keys(f.water).join(', '), baits = Object.entries(f.bait).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([b]) => BAIT[b].name.toLowerCase()).join(', ');
+        const best = Object.entries(f.time).sort((a, b) => b[1] - a[1])[0][0];
+        out += entry(id, f, `<li><b>Look:</b> ${e(f.look)}</li><li><b>Water:</b> ${where} · <b>Best at:</b> ${best} · <b>Bait:</b> ${baits} · ${f.size[0]}–${f.size[1]} cm</li><li>${e(f.facts)}</li>`, true);
+      }
+    } else if (sec === 'animals') {
+      for (const [id, a] of Object.entries(ANIMALS)) out += entry(id, a, `${a.track ? `<li><b>Tracks:</b> ${e(a.track)}</li>` : ''}<li>${e(a.facts)}</li>`, false);
+    } else if (sec === 'bush') {
+      for (const [id, T] of Object.entries(TRAPS)) out += `<div class="art guide"><div class="n">${e(T.name)} ${this.save.lessons[id] ? '<span class="st" style="color:#9fc27a">Learned</span>' : '<span class="st dim">Learn at the workshop</span>'}</div><ol class="obs">${T.steps.map(([h, b]) => `<li><b>${e(h)}.</b> ${e(b)}</li>`).join('')}</ol><div class="o">${e(T.where)} ${e(T.note)}</div></div>`;
+      out += `<div class="art guide"><div class="n">Bait for fishing</div><ul class="obs">${Object.values(BAIT).map((b) => `<li><b>${e(b.name)}:</b> ${e(b.desc)}</li>`).join('')}</ul></div>`;
+    } else {
+      out = `<div class="art guide"><div class="n">Before you eat anything wild</div><div class="s" style="font-style:normal">${e(SAFETY_NOTE)}</div><ul class="obs">
+        <li>Identify with every feature: cap, underside, stem, ring, base (dig it up), smell, spore print and habitat. One feature is never enough.</li>
+        <li>White gills + a ring + a sac at the base = Amanita. Never eat it.</li>
+        <li>Know the deadly lookalikes of anything you collect, and check every single specimen.</li>
+        <li>Cook wild mushrooms; try a small amount of a new species; never eat anything you are not 100% sure of.</li>
+        <li>If someone may have eaten a poisonous mushroom or berry, get medical help immediately — don't wait for symptoms — and keep a sample.</li></ul></div>`;
+    }
+    return `<div class="chips">${tabs}</div>${out}`;
   }
 
   takeFromPack(req) {
     const items = this.pack.items;
     if (req.item) { if ((items[req.item] || 0) < req.qty) return false; items[req.item] -= req.qty; if (!items[req.item]) delete items[req.item]; return true; }
-    const cands = Object.entries(items).filter(([k]) => ITEMS[k]?.cat === req.cat).sort((a, b) => b[1] - a[1]);
+    const cands = Object.entries(items).filter(([k]) => catOf(k) === req.cat && !(k.startsWith('f:'))).sort((a, b) => b[1] - a[1]);
     if (cands.reduce((a, [, v]) => a + v, 0) < req.qty) return false;
     let need = req.qty;
     for (const [k, v] of cands) { const t = Math.min(v, need); items[k] -= t; if (!items[k]) delete items[k]; need -= t; if (!need) break; }
     return true;
   }
-  hasInPack(req) { return req.item ? (this.pack.items[req.item] || 0) >= req.qty : Object.entries(this.pack.items).filter(([k]) => ITEMS[k]?.cat === req.cat).reduce((a, [, v]) => a + v, 0) >= req.qty; }
-  reqText(req) { return req.item ? `${req.qty} ${ITEMS[req.item].name.toLowerCase()}` : `${req.qty} ${CATS[req.cat].label.toLowerCase()} (any)`; }
+  hasInPack(req) { return req.item ? (this.pack.items[req.item] || 0) >= req.qty : Object.entries(this.pack.items).filter(([k]) => catOf(k) === req.cat && !k.startsWith('f:')).reduce((a, [, v]) => a + v, 0) >= req.qty; }
+  reqText(req) { return req.item ? `${req.qty} ${itemInfo(req.item).name.toLowerCase()}` : `${req.qty} ${ICATS[req.cat].label.toLowerCase()} (any${req.cat === 'forage' ? ', checked' : ''})`; }
 
   openTrade(i) {
     const poi = i.poi;
     const rows = i.offers.map((o, idx) => {
       if (o.done) return '';
       const can = this.hasInPack(o.give);
-      const get = o.artifact ? `<b>${this.ui.esc(o.artifact.name)}</b> <span style="color:var(--dim)">(unique)</span>` : Object.entries(o.get).map(([k, v]) => `${v} ${ITEMS[k].name.toLowerCase()}`).join(', ');
+      const get = o.artifact ? `<b>${this.ui.esc(o.artifact.name)}</b> <span style="color:var(--dim)">(unique)</span>` : Object.entries(o.get).map(([k, v]) => `${v} ${itemInfo(k).name.toLowerCase()}`).join(', ');
       return `<div class="row"><div><div>${get}</div><div class="need">for <span class="${can ? 'ok' : 'no'}">${this.reqText(o.give)}</span></div></div><button class="btn" data-act="trade" data-i="${idx}" ${can ? '' : 'disabled'}>Exchange</button></div>`;
     }).join('');
     this.ui.showPanel(`<button class="close" data-act="close">Close</button><h2>${this.ui.esc(poi.name)}</h2>
@@ -569,6 +680,7 @@ class Game {
   // one simulation + render step (also driven directly by automated tests)
   frame(dt, render = true) {
     this.fps = this.fps * 0.95 + (1 / Math.max(dt, 1e-3)) * 0.05;
+    if (this.state === 'play') this.gameTime += dt;
     this.adaptResolution(dt);
     const input = this.input;
     if (this.state === 'play' && !this.transitioning) {
@@ -581,16 +693,21 @@ class Game {
         if (input.wasPressed('Escape') && !this.fishing.active && !input.locked) this.openMenu();
       } else if (input.wasPressed('Escape')) this.ui.closePanel();
       this.player.update(dt, input, this.world, this.save.settings);
+      this.body.update(dt, this.player.running, this.player.speed > 0.5);
       this.fishing.update(dt, input);
       // wildlife observation
       if (this.observing) {
-        const o = this.observing, d = o.fox.pos.distanceTo(this.player.pos);
-        if (o.fox.state === 'flee' || d > 26 || this.player.speed > 0.6) { this.ui.observe(null); this.observing = null; if (o.fox.state === 'flee') this.ui.toast('The fox noticed you and bolted.'); }
+        const o = this.observing, a = o.fox || o.hare, d = a.pos.distanceTo(this.player.pos);
+        if (a.state === 'flee' || d > 32 || this.player.speed > 0.6) { this.ui.observe(null); this.observing = null; if (a.state === 'flee') this.ui.toast(o.fox ? 'The fox noticed you and bolted.' : 'The hare bolts away in a zig-zag.'); }
+        else if (o.hare && o.t > 2.6) {
+          this.ui.observe(null); this.observing = null; const k = know(this.save, 'hare'); k.seen++;
+          this.showCard(`<div class="k">Field note</div><div class="n">European hare</div><div class="s">${['It sits up, long black-tipped ears turning like radar dishes.', 'It nibbles at the grass, one eye always on you.', 'Its long hind legs are folded beneath it, ready to bolt.'][Math.floor(Math.random() * 3)]}</div><div class="o">${this.ui.esc(ANIMALS.hare.facts)}</div>`, 4200); this.persist();
+        }
         else {
           o.t += dt; this.ui.observe(Math.min(1, o.t / 2.6), 'Watching…');
-          if (o.t > 2.6) {
+          if (o.fox && o.t > 2.6) {
             this.ui.observe(null); this.observing = null;
-            const j = this.save.journal.wildlife; const first = !j.fox; j.fox = j.fox || { seen: 0, first: this.expedition?.no }; j.fox.seen++;
+            const j = { fox: know(this.save, 'fox') }; const first = !j.fox.seen; j.fox.seen++;
             const notes = ['It pauses, ears swivelling towards some sound you cannot hear.', 'It noses through the leaf litter, hunting voles.', 'Its coat is thick — winter is coming early to this land.', 'It glances your way, unbothered, then trots on.'];
             this.showCard(`<div class="k">Field note${first ? ' — new species' : ''}</div><div class="n">Red fox</div><div class="s">${notes[Math.floor(Math.random() * notes.length)]}</div><div class="o">Observed ${j.fox.seen} time${j.fox.seen > 1 ? 's' : ''}.</div>`, 3600);
             this.persist();
@@ -598,7 +715,9 @@ class Game {
         }
       }
       this.current = this.findInteraction();
-      this.ui.prompt(this.current ? (this.current.type === 'trap' && performance.now() < this.current.setAt + this.current.readyAfter ? 'Snare set — check back later' : this.current.label) : null);
+      const c = this.current;
+      this.ui.prompt(c ? (c.type === 'trap' && this.gameTime < c.setAt + c.readyAfter ? `${TRAPS[c.trap].name} set — check back later` : c.type === 'forage' ? forageLabel(this, c) : c.label) : null);
+      this.updateBodyHud(dt);
     }
     if (this.world) {
       const p = this.player.pos;
@@ -615,13 +734,37 @@ class Game {
       // audio
       const s = this.world.gen.sample(p.x, p.z);
       let water = 0; for (let a = 0; a < 6.28; a += 0.785) { const d = this.world.depthAt(p.x + Math.cos(a) * 9, p.z + Math.sin(a) * 9); if (d > 0) water += 0.125; }
-      this.audio.update(dt, { wind: this.sky.w.wind, forest: s.forest, water: water + Math.max(0, this.world.depthAt(p.x, p.z)), rain: this.sky.w.rain, day: this.sky.dayFactor });
+      this.audio.listener = this.player;
+      // the wind sound swells as the same rolling gusts that move the grass pass over you
+      const wave = 0.5 + 0.5 * Math.sin(p.x * 0.045 + p.z * 0.026 - windUniforms.uTime.value * 0.85);
+      this.audio.update(dt, { wind: this.sky.w.wind * (0.6 + 0.9 * wave * wave * wave), forest: s.forest, water: water + Math.max(0, this.world.depthAt(p.x, p.z)), rain: this.sky.w.rain, day: this.sky.dayFactor, bees: this.world.ambience?.beeNear, home: this.world.kind === 'village' });
       if (this.state === 'play') this.updateCompass();
       if (this.state === 'title') { this.player.yaw += dt * 0.03; this.player.syncCamera(); }
     }
+    // body effects on the camera: nausea sway, staggering, collapse
+    const fx = this.body.fx;
+    if (fx.sick > 0.01 || fx.trip > 0.01) {
+      const t = this.gameTime;
+      this.camera.rotation.z = Math.sin(t * 0.7) * 0.05 * fx.sick + Math.sin(t * 0.33) * 0.03 * fx.trip;
+      this.camera.position.y -= fx.collapse * 1.1;
+      this.camera.fov = 70 + Math.sin(t * 0.5) * 4 * fx.trip; this.camera.updateProjectionMatrix(); this.fovTouched = true;
+    } else if (this.fovTouched) { this.fovTouched = false; this.camera.fov = 70; this.camera.updateProjectionMatrix(); }
     input.endFrame();
-    if (render) this.renderer.render(this.scene, this.camera);
+    if (render) {
+      if (this.postfx.active(fx)) this.postfx.render(this.scene, this.camera, fx, dt);
+      else this.renderer.render(this.scene, this.camera);
+    }
     if (this.debug) this.debugHud();
+  }
+
+  updateBodyHud() {
+    const b = this.body, el = this.hudEls || (this.hudEls = { st: $('stamina'), fill: $('stamina-fill'), chips: $('status-chips') });
+    const full = b.stamina >= b.maxStamina - 0.5;
+    el.st.classList.toggle('hidden', full);
+    el.fill.style.width = `${(b.stamina / b.maxStamina) * 100}%`;
+    el.fill.classList.toggle('fed', b.has('fed'));
+    const chips = b.chips().map((c) => `<span style="border-color:${CONDITIONS[c].color};color:${CONDITIONS[c].color}">${CONDITIONS[c].label}</span>`).join('');
+    if (chips !== this.lastChips) { el.chips.innerHTML = chips; this.lastChips = chips; }
   }
 
   // dynamic resolution: trade pixels for frame rate on slower GPUs (e.g. older iPads)
@@ -648,7 +791,7 @@ class Game {
       if (d < 6) continue;
       marks.push({ bearing: Math.atan2(dx, -dz), label: poi.discovered || d < 60 ? poi.name : '?', cls: poi.type === 'camp' ? 'camp' : poi.discovered ? '' : 'rumor', dist: Math.round(d) });
     }
-    for (const t of this.traps) { const dx = t.pos.x - p.x, dz = t.pos.z - p.z; marks.push({ bearing: Math.atan2(dx, -dz), label: 'Snare', cls: 'rumor', dist: Math.round(Math.hypot(dx, dz)) }); }
+    for (const t of this.traps) { const dx = t.pos.x - p.x, dz = t.pos.z - p.z; marks.push({ bearing: Math.atan2(dx, -dz), label: TRAPS[t.trap].name, cls: 'rumor', dist: Math.round(Math.hypot(dx, dz)) }); }
     if (this.world.kind === 'village') { const dx = this.world.gatePos.x - p.x, dz = this.world.gatePos.z - p.z; marks.push({ bearing: Math.atan2(dx, -dz), label: 'North Gate', cls: 'camp' }); }
     this.ui.compass(heading, marks);
   }

@@ -9,6 +9,7 @@ import { RNG } from '../core/rng.js';
 import { generateArtifact } from '../game/items.js';
 import { buildArtifactMesh } from '../game/artifacts3d.js';
 import { Wildlife } from './wildlife.js';
+import { Ambience } from './critters.js';
 
 const LABEL = { hamlet: (n) => n, ruins: (n) => `Ruins of ${n}`, stones: (n) => `The ${n} Stones`, grotto: (n) => `${n} Grotto`, cabin: (n) => `${n} Cabin`, find: () => 'Something glinting' };
 const SPECIALTY_COLOR = { potters: 0x8a3b2a, smiths: 0x2f3e52, carvers: 0x5a6b2e, weavers: 0x6b3f72 };
@@ -63,6 +64,7 @@ export class Wilderness extends World {
     // wildlife & ambience
     this.wildlife = new Wildlife(this.scene, this, { foxes: exp.foxes });
     await this.wildlife.init();
+    this.ambience = new Ambience(this.game, this);
     if (exp.eco.fireflies) this.emitters.add(fireflies(this.trail, 60, 90, (x, z) => this.heightAt(x, z)));
   }
 
@@ -196,10 +198,10 @@ export class Wilderness extends World {
       potters: [{ give: { cat: 'fish', qty: 3 }, get: { clay: 3 } }, { give: { cat: 'forage', qty: 5 }, get: { copper: 1 } }],
       smiths: [{ give: { item: 'wood', qty: 5 }, get: { copper: 2 } }, { give: { item: 'stone', qty: 4 }, get: { iron: 2 } }],
       carvers: [{ give: { item: 'wood', qty: 4 }, get: { fibre: 3 } }, { give: { cat: 'fish', qty: 2 }, get: { pelt: 1 } }],
-      weavers: [{ give: { item: 'nettle', qty: 3 }, get: { fibre: 4 } }, { give: { cat: 'forage', qty: 4 }, get: { pelt: 1 } }],
+      weavers: [{ give: { item: 'v:nettle', qty: 3 }, get: { fibre: 4 } }, { give: { cat: 'forage', qty: 4 }, get: { pelt: 1 } }],
     }[s.specialty] || [];
     const art = generateArtifact(s.seed ^ 0x5151, { ...ctx, source: 'trade' });
-    const uniqueGive = rng.pick([{ cat: 'fish', qty: 4 }, { cat: 'forage', qty: 6 }, { cat: 'mineral', qty: 2 }, { cat: 'game', qty: 2 }]);
+    const uniqueGive = rng.pick([{ cat: 'fish', qty: 4 }, { cat: 'forage', qty: 6 }, { cat: 'mineral', qty: 2 }, { cat: 'game', qty: 2 }]); // forage must be identified & checked
     return [...T.map((o) => ({ ...o })), { give: uniqueGive, artifact: art, once: true }];
   }
 

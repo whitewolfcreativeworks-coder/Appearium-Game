@@ -9,6 +9,7 @@ export const DEFAULT_TERRAIN = {
   hills: 16, hillScale: 0.0035,
   mountains: 0, mountainScale: 0.0019, mountainCover: 0.0,
   rivers: 0.6, riverWidth: 0.028,
+  streams: 0.6, ponds: 0.5,
   lakes: 0.3,
   wetland: 0,
   moisture: 0, forest: 0, forestScale: 0.0055,
@@ -30,8 +31,10 @@ export class WorldGen {
     this.nMoist = new Noise2D(s ^ 0x789a);
     this.nForest = new Noise2D(s ^ 0x89ab);
     this.nDetail = new Noise2D(s ^ 0x9abc);
+    this.nStream = new Noise2D(s ^ 0xa1b2);
+    this.nPond = new Noise2D(s ^ 0xb2c3);
     this.zones = []; // flatten zones {x, z, r, fall, h, clear}
-    this.out = { h: 0, moist: 0, forest: 0, river: 0, valley: 0, clear: 0 };
+    this.out = { h: 0, moist: 0, forest: 0, river: 0, valley: 0, clear: 0, stream: 0, pond: 0, conifer: 0.5 };
   }
 
   addZone(x, z, r, fall = 18, opts = {}) {
@@ -74,6 +77,32 @@ export class WorldGen {
       const L = smoothstep(0.36, 0.62, ln);
       if (L > 0) h = lerp(h, Math.min(h, p.water - 4.5), L);
     }
+    // kettle ponds: small still, weedy waters in low ground
+    let pondK = 0;
+    if (p.ponds > 0) {
+      const above = h - p.water;
+      const low = smoothstep(7, 2.5, above);
+      if (low > 0) {
+        const pv = this.nPond.noise(x * 0.011, z * 0.011) * 0.8 + this.nPond.noise(x * 0.04, z * 0.04) * 0.2;
+        const k = smoothstep(0.78 - p.ponds * 0.14, 0.95 - p.ponds * 0.12, pv) * low;
+        if (k > 0) { h = lerp(h, Math.min(h, p.water - 2.6), k); pondK = smoothstep(0.35, 0.8, k); }
+      }
+    }
+    // streams: narrow, shallow, wadeable channels through the lowlands
+    let stream = 0;
+    if (p.streams > 0) {
+      const above = h - p.water;
+      const low = smoothstep(10, 3.5, above);
+      if (low > 0) {
+        const sn = this.nStream.fbm(wx * 0.0034, wz * 0.0034, 3);
+        const d = Math.abs(sn), w = 0.016;
+        const v = (1 - smoothstep(0, w * 6, d)) * low * p.streams;
+        const ch = (1 - smoothstep(w * 0.25, w * 1.2, d)) * low * p.streams;
+        if (above > 0) h = p.water + above * (1 - 0.7 * v);
+        h = Math.min(h, lerp(h, p.water - 0.85, ch));
+        stream = ch;
+      }
+    }
     let channel = 0, valley = 0;
     if (p.rivers > 0) {
       const rn = this.nRiver.fbm(wx * 0.0014, wz * 0.0014, 3);
@@ -86,7 +115,7 @@ export class WorldGen {
       if (above > 0) h = p.water + above * (1 - 0.93 * Math.pow(valley, 1.4) * p.rivers);
       h = Math.min(h, lerp(h, p.water - 1.9, channel * p.rivers));
     }
-    if (o) { o.river = channel * p.rivers; o.valley = valley * p.rivers; }
+    if (o) { o.river = Math.max(channel * p.rivers, stream); o.valley = valley * p.rivers; o.stream = stream; o.pond = pondK; }
     return h;
   }
 
@@ -129,6 +158,7 @@ export class WorldGen {
     f *= smoothstep(0.4, 1.8, above);
     f *= 1 - clear;
     o.forest = f;
+    o.conifer = clamp(0.5 + (0.5 - o.moist) * 1.2 + smoothstep(p.treeLine - 40, p.treeLine, h) * 0.6 + this.nForest.noise(x * 0.01 + 40, z * 0.01) * 0.25, 0, 1);
     return o;
   }
 }
