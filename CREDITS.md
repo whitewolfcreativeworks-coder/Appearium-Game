@@ -45,3 +45,8 @@ twig/leaf textures of Poly Haven's `fir_tree_01` and `island_tree_02` models.
 | Water normal map (`assets/tex/waternormals.jpg`) | three.js examples | MIT |
 
 All sound in the game is synthesised at runtime (Web Audio API); no audio files are used.
+
+Mushrooms, berries and greens, fish, small animals, insects, track prints, traps and the
+specimen viewer are generated procedurally in code (`src/world/flora.js`, `fishModel.js`,
+`critters.js`, `trails.js`). Species information in `src/data/species.js` was written for this
+game from general natural-history knowledge and is simplified; it is not a field guide.

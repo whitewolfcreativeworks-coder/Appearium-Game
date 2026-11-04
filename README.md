@@ -35,29 +35,90 @@ python3 -m http.server 8000      # any static server works
 | Run | Shift | push the stick to its edge |
 | Jump | Space | ⤒ |
 | Interact | E or left click | ✋ (appears when something is in reach) |
-| Pack / Journal | I / J | Pack / Log buttons |
+| Pack / Journal | I / J | Pack / Log buttons (eat, bait, dig for worms, make & set traps) |
 | Return home | H or **⌂ Return Home** | **⌂ Return Home** (top right) |
 | Lantern (once crafted) | L | ☀ |
 
 ### The loop
 
 1. **Village** — the storehouse shows what you own (its piles of wood, stone and fish grow
-   visibly), the workshop crafts equipment and village upgrades, the Hall of Discoveries
-   displays artifacts, the noticeboard holds your journal, and you can sleep at home.
+   visibly), the workshop crafts equipment, teaches trapping and builds village upgrades, the
+   Hall of Discoveries displays artifacts, **Maren the herbalist** checks the mushrooms and plants
+   you bring home, the hearth at home cooks from your stores, and the noticeboard holds your
+   journal and field guide.
 2. **Expedition** — walk through the North Gate. A region is rolled from one of five archetypes
    (Riverlands, Highlands, Mistwood fens, Meadowlands, Old Heath), with its own terrain,
-   ecology, weather, time of day, season, fish, and points of interest. A rumour tells you
-   roughly where something interesting lies; the compass shows your camp and what you know of.
-3. **Gather & discover** — fallen wood, stones, mushrooms, berries, herbs, minerals, clay;
-   fishing (cast, strike on the bite, manage line tension); snares for hares; observing foxes;
-   trading at remote hamlets; artifacts in ruins, stone circles, crystal grottoes, abandoned
-   cabins, or just glinting in the grass. Your pack has limited space.
+   ecology, weather, time of day, season, fish, and points of interest.
+3. **Forage, fish, trap, discover** — see below. Your pack has limited space.
 4. **Return home** at any time. The wilderness is discarded; your pack goes into the
    storehouse, artifacts go on pedestals with a record of where and when they were found, and
    the journal logs the journey. The next expedition is a brand-new world.
 
-Progress is saved automatically in the browser (localStorage), including the contents of your
-pack during an expedition — if the page is closed mid-journey, you wake at home with your pack.
+### Foraging and identification
+
+Every mushroom, berry and green in the game is a real species placed in its real habitat —
+and edible species often grow near their dangerous lookalikes:
+
+| Edible | …easily confused with |
+|---|---|
+| Chanterelle | False chanterelle (poisonous), Jack-o'-lantern (poisonous, glows at night) |
+| Porcini | Bitter bolete (ruins the whole pan) |
+| Giant puffball | Common earthball (poisonous), young death cap "egg" |
+| Parasol | Death cap (deadly) |
+| Honey fungus | Sulphur tuft (poisonous) |
+| Bilberry | Deadly nightshade (deadly) |
+| Lingonberry | Bittersweet nightshade (poisonous) |
+| Wild garlic | Lily of the valley (poisonous) |
+
+Also: hedgehog mushroom, shaggy ink cap, chicken of the woods, fly agaric, liberty cap,
+cloudberry, wild raspberry, nettle, wood sorrel, dandelion, lesser celandine.
+
+When you find something you don't yet recognise, **Examine** it: a 3D close-up you can turn
+and tilt. *Look underneath* (gills, ridges, pores or spines), *look at the stem* (rings, nets),
+*dig around the base* (the death cap's volva is buried), *slice it open* (puffballs), *smell it*,
+*take a spore print*. Compare what you see with the handbook and pick it as what you think it
+is — or pick it unidentified. Back home, Maren tells you what you actually had and why. After
+two confirmed identifications you recognise a species at a glance.
+
+**Eating.** Eat raw from your pack, or cook at a campfire or your hearth (fish, game and
+mushrooms should be cooked). Good meals make you *well fed* (more stamina). A poisonous find
+makes you sick — staggering, nausea, double vision, no running — for a while. Psychoactive
+species alter your senses. Deadly species behave like the real thing: you feel fine at first,
+then collapse; you wake at home days later, your food spoiled. Hunger is gentle: you never
+starve, you just recover stamina more slowly.
+
+> Appearium simplifies real natural history. It is not a field guide — never eat a wild
+> mushroom or plant unless an experienced local expert has confirmed it in person.
+
+### Fishing
+
+Streams, rivers, lakes and weedy ponds. Read the water: riffles and deep river pools, reed beds,
+lily pads, deep open water, shallows — and watch for fish rising. Choose bait (earthworms you
+dig from damp soil, grubs from rotting logs, minnows, hand-tied flies, copper spinners). Which
+of the 14 species bites depends on the water, the spot, the time of day, the weather and your
+bait: trout and grayling in riffles at dawn, tench under lily pads, pike in the reeds, zander at
+dusk, eels and burbot at night, salmon in rain-raised pools. Each fights differently (pike
+head-shake, carp make long runs, trout and salmon leap). Keep, release, or keep small fish as
+bait. European eels are critically endangered — release them.
+
+### Trapping and tracking
+
+Animals use the same runs every night. Look for narrow worn trails through the grass and the
+prints pressed into them (hare, fox, roe deer, squirrel — *Examine the tracks* to learn them).
+Learn the **snare**, the **figure-4 deadfall** and the **fish basket trap** step by step at the
+workshop (with a quick check at the end), make them from wood, fibre and stone, and set them
+from your pack. Placement matters: a snare across a hare run catches; one in open grass almost
+never does. Fish baskets want shallow flowing water.
+
+### A living forest
+
+Songbirds (robin, blackbird, chaffinch, great tit) hop and peck and flush when you come close;
+mallards dabble on still water; hares graze in the open and bolt in zig-zags; red squirrels
+forage in the woods; butterflies (peacock, brimstone, red admiral, small tortoiseshell, common
+blue), bees and dragonflies; falling leaves (thicker in autumn), drifting pollen, midges at dusk,
+fish rising and jumping; wind gusts you can see rolling through grass and trees. Sound is
+synthesised and positional: each bird species' song, woodpeckers, cuckoos, crows, buzzards,
+ducks, frogs at dusk, bees, squirrel chatter.
 
 ### Settings
 
@@ -66,36 +127,24 @@ default to Medium, desktops to High; resolution also scales automatically to hol
 URL options: `?quality=low|medium|high`, `?scenario=riverlands|highlands|mistwood|hamlet|heath`
 (force a biome), `?debug` (performance overlay), `?fixedres` (disable dynamic resolution).
 
-## What's implemented
+## Under the hood
 
 - **Procedural wilderness, streamed as you walk**: 64 m terrain chunks generated on demand in
-  three LOD rings (with skirts), deterministic so revisited ground is identical. Height field
-  from warped fBm hills, ridged mountains, river valleys with gentle banks, lake basins and
-  wetland ponds; per-point moisture and forest density drive everything else.
-- **Ecological scatter**: species placed by habitat — conifers on dry/high ground, broadleaf
-  in damp valleys, snags, ferns and fungi in wet woods, berries on forest edges, nettles near
-  water, minerals on rocky slopes, clay on fen riverbanks.
-- **Rendering**: 5-layer PBR terrain splat (slope/height/moisture, tri-planar cliffs, height-
-  blended, anti-tiling), Preetham sky, procedural cloud dome, stars, sun/moon with
-  player-following shadows, sky-driven image-based lighting, exponential fog, rain, wind-
-  animated foliage and ~10 k instanced grass clumps, depth-aware water with fresnel reflection,
-  sun glint and shoreline foam. Draw calls stay around 100–200 via instanced pools.
-- **Trees** are built procedurally from scanned Poly Haven bark and foliage (fir branch and
-  leaf-cluster cards composited from real twig scans), because the photoscanned tree models
-  are millions of triangles — far beyond an iPad.
-- **Village**: palisade & gate, home, storehouse with visible stores, workshop, Hall of
-  Discoveries (8 pedestals, 18 when extended), noticeboard, well, hearth, lanterns that light at
-  night; upgrades (watchtower, herb garden, Hall extension).
-- **Activities**: gathering (12 resource types), fishing (6 species, river vs. still water,
-  personal bests), snares, wildlife observation (animated foxes that wander, rest and flee),
-  bird flocks and fish schools, trade with honesty stalls (each hamlet has a specialty and one
-  unique artifact), artifacts (procedurally named, with stories and origin records), crafting
-  (snares, sturdy rod, larger pack, lantern) and village building.
-- **Day/night & weather**: clear, hazy, mist, overcast, rain; dawn to night with appropriate
-  ambience. Synthesised soundscape: wind, leaves, water proximity, rain, birdsong by day,
-  crickets and owls at night, surface-aware footsteps.
-- **UI**: restrained HUD, compass with markers, toasts, panels for pack, storehouse, workshop,
-  Hall, journal (expeditions / nature / places), trade and settings.
+  three LOD rings, deterministic so revisited ground is identical. Height field from warped
+  fBm hills, ridged mountains, river valleys, lowland streams, kettle ponds, lake basins and
+  wetlands; per-point moisture, forest density and conifer/broadleaf character drive the ecology.
+- **Species-accurate procedural flora** (`src/world/flora.js`): each mushroom is built so its
+  identification features physically exist — chanterelle ridges fork and run down the stem,
+  boletes have pore sponges and stem nets (white on porcini, dark on bitter bolete), the death
+  cap has a skirt ring and a buried volva, fly agaric has warts and a scaly bulb, parasols have
+  snakeskin stems and double rings, hedgehogs have spines, puffballs and earthballs can be sliced.
+- **Rendering**: 5-layer PBR terrain splat, Preetham sky, cloud dome, stars, sun/moon with
+  shadows, sky-driven image-based lighting, fog, rain, wind-animated vegetation with rolling
+  gusts, instanced grass, depth-aware water with reflections and foam, a post-processing pass
+  for sickness and altered states (only active when needed).
+- **Trees** are built procedurally from scanned Poly Haven bark and foliage, because the
+  photoscanned tree models are millions of triangles — far beyond an iPad.
+- **Instanced pools** keep draw calls around 150–250 regardless of how much is loaded.
 
 ## Technical decisions
 
@@ -138,9 +187,10 @@ tools/                 offline asset pipeline
 
 Verified in headless Chrome (software WebGL) with automated scripts: loading, the village, all
 five biomes, the full Village → Expedition → Gather → Return Home → New Expedition cycle with
-persistence, fishing from cast to landing, snares, trading, all crafting recipes and upgrades,
-artifact display, and touch controls (joystick, drag-look, tap-to-interact) under iPad
-emulation with zero console errors.
+persistence, examining and picking mushrooms, the herbalist, raw eating with poisoning and
+psychoactive effects, cooking, fishing from bait choice to landing, trail tracks, a trap lesson
+with its check, setting and checking a snare, trading, crafting, the field guide, ambient wildlife
+spawning, and touch controls under iPad emulation — with zero console errors.
 
 **Not yet verified on physical hardware:** real iPad Safari frame rate and memory, iOS audio
 unlock behaviour, and real GPU visuals (tests used a software renderer). If an iPad struggles,
@@ -150,8 +200,10 @@ choose *Low* in the ≡ menu; dynamic resolution also kicks in below ~27 fps.
 
 - There is no swimming — deep water blocks you. Rivers share one water level (no waterfalls).
 - People are implied (honesty stalls, chimney smoke) rather than simulated; there are no NPCs.
-- Hunting is non-lethal observation plus snares; deer and other large animals would need a
-  suitably licensed animated model.
+- There is no shooting or hunting by design — food comes from foraging, fishing and traps.
+  Roe deer appear only as tracks; a realistic animated deer would need a suitably licensed model.
+- Small animals (songbirds, hares, squirrels, ducks) are simple procedural models — convincing
+  at the distances you usually see them, plainer up close.
 - Distant terrain beyond ~200–250 m is hidden by fog; a far-terrain impostor ring would open up
   mountain vistas.
 - Grotto "caves" are rock shelters, not true underground spaces (height-field terrain).
