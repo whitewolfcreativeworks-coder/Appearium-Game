@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0d0f0e">
+  <title>Appearium</title>
+  <link rel="stylesheet" href="src/style.css">
+  <script type="importmap">
+  { "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+  </script>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="touch-layer"></div>
+  <div id="joy"><div id="joy-knob"></div></div>
+
+  <div id="hud" class="hidden">
+    <div id="region"><div id="region-name"></div><div id="region-sub"></div></div>
+    <div id="compass"><div id="compass-strip"></div><div id="compass-needle"></div></div>
+    <div id="crosshair"></div>
+    <div id="prompt" class="hidden"><span class="key">E</span><span id="prompt-text"></span></div>
+    <div id="toasts"></div>
+    <div id="packmeter"><span id="pack-count">0</span>/<span id="pack-cap">30</span></div>
+    <button id="btn-home" class="hidden" aria-label="Return home">⌂ Return Home</button>
+    <div id="buttons">
+      <button id="btn-interact" class="round big hidden" aria-label="Interact">✋</button>
+      <button id="btn-jump" class="round touch-only" aria-label="Jump">⤒</button>
+      <button id="btn-pack" class="round" aria-label="Pack">Pack</button>
+      <button id="btn-journal" class="round" aria-label="Journal">Log</button>
+      <button id="btn-light" class="round hidden" aria-label="Lantern">☀</button>
+      <button id="btn-menu" class="round" aria-label="Menu">≡</button>
+    </div>
+    <div id="fish-ui" class="hidden">
+      <div id="fish-status"></div>
+      <div id="fish-bars"><div class="bar"><label>Line tension</label><div class="track"><div id="fish-tension"></div><div class="danger"></div></div></div>
+      <div class="bar"><label>Landing</label><div class="track"><div id="fish-progress"></div></div></div></div>
+      <button id="btn-reel" class="hidden">Hold to reel</button>
+    </div>
+    <div id="observe" class="hidden"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" class="bg"/><circle id="observe-ring" cx="20" cy="20" r="16" class="fg"/></svg><span id="observe-text"></span></div>
+  </div>
+
+  <div id="panel-wrap" class="hidden"><div id="panel"></div></div>
+  <div id="card" class="hidden"></div>
+
+  <div id="fade"><div id="fade-inner"><div id="fade-kicker"></div><div id="fade-title"></div><div id="fade-sub"></div><div id="fade-rumor"></div></div></div>
+
+  <div id="title">
+    <div class="title-inner">
+      <h1>APPEARIUM</h1>
+      <p class="tag">Every journey, a world of its own.</p>
+      <div id="loadbar"><div id="loadfill"></div></div>
+      <div id="loadtext">Gathering the world…</div>
+      <div id="title-buttons" class="hidden">
+        <button id="btn-start" class="primary">Begin</button>
+        <div class="quality-row"><span>Graphics</span>
+          <button data-q="low">Low</button><button data-q="medium">Medium</button><button data-q="high">High</button></div>
+      </div>
+      <div class="controls">
+        <div class="desk">WASD move · Mouse look (click to capture) · Shift run · Space jump · E interact · I pack · J journal · H return home</div>
+        <div class="tch">Left thumb: move · Right thumb: look · ✋ interact · Push the stick fully to run</div>
+      </div>
+      <p class="credits-link"><a href="CREDITS.md" target="_blank" rel="noopener">Credits &amp; licences</a></p>
+    </div>
+  </div>
+  <noscript>Appearium needs JavaScript and WebGL 2.</noscript>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+// First-person player controller + unified input (keyboard/mouse and touch).
+import * as THREE from 'three';
+import { clamp } from '../core/rng.js';
+
+export class Input {
+  constructor(dom, settings) {
+    this.dom = dom; this.settings = settings;
+    this.keys = new Set(); this.look = { x: 0, y: 0 }; this.joy = { x: 0, y: 0 };
+    this.pressed = new Set(); this.locked = false; this.enabled = true; this.touchRun = false;
+    this.isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      const k = e.code; if (!this.keys.has(k)) this.pressed.add(k); this.keys.add(k);
+      if (['Space', 'Tab', 'ArrowUp', 'ArrowDown'].includes(k)) e.preventDefault();
+    });
+    window.addEventListener('keyup', (e) => this.keys.delete(e.code));
+    window.addEventListener('blur', () => this.keys.clear());
+    document.addEventListener('pointerlockchange', () => { this.locked = document.pointerLockElement === dom; });
+    document.addEventListener('mousemove', (e) => {
+      if (!this.enabled) return;
+      if (this.locked || this.dragging) { this.look.x += e.movementX; this.look.y += e.movementY; }
+    });
+    dom.addEventListener('mousedown', (e) => {
+      if (!this.enabled || this.isTouchEvent) return;
+      if (!this.locked && dom.requestPointerLock) {
+        try { const r = dom.requestPointerLock(); if (r && r.catch) r.catch(() => { this.dragging = true; }); } catch (_) { this.dragging = true; }
+      }
+    });
+    window.addEventListener('mouseup', () => { this.dragging = false; });
+    this.setupTouch();
+  }
+
+  setupTouch() {
+    const layer = document.getElementById('touch-layer');
+    const joyEl = document.getElementById('joy'), knob = document.getElementById('joy-knob');
+    this.joyPtr = null; this.lookPtrs = new Map();
+    const R = 56;
+    layer.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse') return;
+      this.isTouchEvent = true;
+      if (!this.enabled) return;
+      layer.setPointerCapture(e.pointerId);
+      if (e.clientX < window.innerWidth * 0.42 && this.joyPtr === null) {
+        this.joyPtr = e.pointerId; this.joyOrigin = { x: e.clientX, y: e.clientY };
+        joyEl.style.left = (e.clientX - 70) + 'px'; joyEl.style.top = (e.clientY - 70) + 'px'; joyEl.classList.add('on');
+        knob.style.transform = 'translate(0px,0px)';
+      } else this.lookPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      e.preventDefault();
+    }, { passive: false });
+    layer.addEventListener('pointermove', (e) => {
+      if (e.pointerId === this.joyPtr) {
+        let dx = e.clientX - this.joyOrigin.x, dy = e.clientY - this.joyOrigin.y; const l = Math.hypot(dx, dy);
+        if (l > R) { dx *= R / l; dy *= R / l; }
+        this.joy.x = dx / R; this.joy.y = -dy / R;
+        knob.style.transform = `translate(${dx}px,${dy}px)`;
+        this.touchRun = l > R * 0.98 && this.settings.autoRun !== false;
+      } else if (this.lookPtrs.has(e.pointerId)) {
+        const p = this.lookPtrs.get(e.pointerId);
+        this.look.x += (e.clientX - p.x) * 2.2; this.look.y += (e.clientY - p.y) * 2.2;
+        p.x = e.clientX; p.y = e.clientY;
+      }
+      e.preventDefault();
+    }, { passive: false });
+    const end = (e) => {
+      if (e.pointerId === this.joyPtr) { this.joyPtr = null; this.joy.x = this.joy.y = 0; joyEl.classList.remove('on'); this.touchRun = false; }
+      this.lookPtrs.delete(e.pointerId);
+    };
+    layer.addEventListener('pointerup', end); layer.addEventListener('pointercancel', end);
+  }
+
+  releaseAll() { this.keys.clear(); this.joy.x = this.joy.y = 0; this.joyPtr = null; this.lookPtrs?.clear(); document.getElementById('joy')?.classList.remove('on'); if (this.locked) document.exitPointerLock?.(); }
+  wasPressed(code) { return this.pressed.has(code); }
+  endFrame() { this.pressed.clear(); this.look.x = this.look.y = 0; }
+
+  moveVector() {
+    if (!this.enabled) return { x: 0, y: 0 };
+    let x = 0, y = 0;
+    if (this.keys.has('KeyW') || this.keys.has('ArrowUp')) y += 1;
+    if (this.keys.has('KeyS') || this.keys.has('ArrowDown')) y -= 1;
+    if (this.keys.has('KeyD') || this.keys.has('ArrowRight')) x += 1;
+    if (this.keys.has('KeyA') || this.keys.has('ArrowLeft')) x -= 1;
+    x += this.joy.x; y += this.joy.y;
+    const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; }
+    return { x, y };
+  }
+  get running() { return this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.touchRun; }
+}
+
+export class Player {
+  constructor(camera) {
+    this.camera = camera; camera.rotation.order = 'YXZ';
+    this.pos = new THREE.Vector3(); this.vy = 0; this.yaw = 0; this.pitch = 0;
+    this.onGround = true; this.running = false; this.speed = 0; this.bob = 0; this.stepAcc = 0;
+    this.radius = 0.35; this.eye = 1.62; this.frozen = false;
+    this.vel = new THREE.Vector3(); this.inWater = 0; this.lastSafe = new THREE.Vector3();
+    this.onStep = null;
+  }
+  place(x, z, yaw, world) { this.pos.set(x, world.heightAt(x, z), z); this.yaw = yaw; this.pitch = -0.05; this.vy = 0; this.lastSafe.copy(this.pos); this.syncCamera(0); }
+
+  update(dt, input, world, settings) {
+    const sens = 0.0022 * (settings.lookSens || 1);
+    this.yaw -= input.look.x * sens;
+    this.pitch -= input.look.y * sens * (settings.invertY ? -1 : 1);
+    this.pitch = clamp(this.pitch, -1.45, 1.45);
+    const mv = this.frozen ? { x: 0, y: 0 } : input.moveVector();
+    this.running = input.running && mv.y > 0.3 && !this.frozen;
+    const water = world.gen.p.water;
+    const ground = world.heightAt(this.pos.x, this.pos.z);
+    const depth = water - ground;
+    this.inWater = Math.max(0, depth);
+    let target = (this.running ? 5.6 : 2.9) * Math.hypot(mv.x, mv.y);
+    if (depth > 0) target *= Math.max(0.35, 1 - depth * 0.55);
+    this.speed += (target - this.speed) * Math.min(1, dt * 8);
+    const sy = Math.sin(this.yaw), cy = Math.cos(this.yaw);
+    const fx = -sy, fz = -cy, rx = cy, rz = -sy;
+    let dx = fx * mv.y + rx * mv.x, dz = fz * mv.y + rz * mv.x;
+    const dl = Math.hypot(dx, dz) || 1; dx /= dl; dz /= dl;
+    const prev = this.pos.clone();
+    if (mv.x || mv.y) { this.pos.x += dx * this.speed * dt; this.pos.z += dz * this.speed * dt; }
+    else { this.speed *= 0.8; }
+    // steep slopes resist climbing
+    const nh = world.heightAt(this.pos.x, this.pos.z);
+    const rise = (nh - ground) / Math.max(0.001, Math.hypot(this.pos.x - prev.x, this.pos.z - prev.z));
+    if (rise > 1.25 && this.onGround) { this.pos.x = prev.x + (this.pos.x - prev.x) * 0.15; this.pos.z = prev.z + (this.pos.z - prev.z) * 0.15; }
+    world.colliders.resolve(this.pos, this.radius);
+    world.constrain && world.constrain(this.pos, prev);
+    // deep water: can't swim — turn back
+    const ndepth = water - world.heightAt(this.pos.x, this.pos.z);
+    if (ndepth > 1.2) { this.pos.x = prev.x; this.pos.z = prev.z; this.blockedByWater = 0.5; }
+    this.blockedByWater = Math.max(0, (this.blockedByWater || 0) - dt);
+    // vertical
+    const gh = world.heightAt(this.pos.x, this.pos.z);
+    if (input.wasPressed('Space') && this.onGround && !this.frozen && ndepth < 0.5) { this.vy = 4.6; this.onGround = false; }
+    this.vy -= 13 * dt;
+    this.pos.y += this.vy * dt;
+    if (this.pos.y <= gh) { if (!this.onGround && this.vy < -6) this.onStep && this.onStep(1.4); this.pos.y = gh; this.vy = 0; this.onGround = true; }
+    else if (this.pos.y > gh + 0.05 && this.vy <= 0 && this.pos.y - gh < 0.35) { this.pos.y = gh; this.onGround = true; this.vy = 0; } // stick to downhill
+    else this.onGround = this.pos.y - gh < 0.02;
+    if (ndepth < 0.3) this.lastSafe.copy(this.pos);
+    // footsteps & bob
+    const moved = Math.hypot(this.pos.x - prev.x, this.pos.z - prev.z);
+    if (this.onGround) {
+      this.bob += moved * (this.running ? 1.9 : 2.3);
+      this.stepAcc += moved;
+      const stride = this.running ? 1.5 : 0.85;
+      if (this.stepAcc > stride) { this.stepAcc = 0; this.onStep && this.onStep(this.running ? 1 : 0.6, depth > 0.05); }
+    }
+    this.syncCamera(dt);
+  }
+
+  syncCamera() {
+    const bobY = Math.sin(this.bob * 2) * 0.035 * Math.min(1, this.speed / 3), bobX = Math.cos(this.bob) * 0.02 * Math.min(1, this.speed / 3);
+    this.camera.position.set(this.pos.x + Math.cos(this.yaw) * bobX, this.pos.y + this.eye + bobY, this.pos.z - Math.sin(this.yaw) * bobX);
+    this.camera.rotation.set(this.pitch, this.yaw, 0);
+  }
+
+  forward(out = new THREE.Vector3()) { return out.set(-Math.sin(this.yaw), 0, -Math.cos(this.yaw)); }
+}
