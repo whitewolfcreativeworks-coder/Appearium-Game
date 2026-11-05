@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { setAnisotropy, setProgressHandler, preloadTextures, loadModel } from './core/assets.js';
 import { PoolManager } from './world/pools.js';
 import { defineKinds, windUniforms, KIND_INFO } from './world/vegetation.js';
-import { createWaterMaterial } from './world/water.js';
+import { createWaterMaterial, seaSurface } from './world/water.js';
 import { SkySystem } from './world/sky.js';
 import { loadProps } from './world/structures.js';
 import { BuildMode } from './game/buildmode.js';
@@ -159,6 +159,14 @@ class Game {
     $('btn-light').onclick = () => this.toggleLantern();
     $('btn-jump').onpointerdown = (e) => { e.preventDefault(); this.input.pressed.add('Space'); };
     // Run: tap to toggle a steady run; hold to set off on auto-run (steer by looking)
+    // Dive (hold) while swimming; the ⤒ button swims up while held
+    const db = $('btn-dive'), jb = $('btn-jump');
+    db.onpointerdown = (e) => { e.preventDefault(); this.input.touchDive = true; }; db.onpointerup = db.onpointerleave = db.onpointercancel = () => { this.input.touchDive = false; };
+    jb.addEventListener('pointerdown', () => { this.input.touchUp = true; }); for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) jb.addEventListener(ev, () => { this.input.touchUp = false; });
+    this.player.onSwimStart = () => { this.audio.splash(0.8); const q = this.player.pos; this.ripples?.drop(q.x, q.z, 1.0, 0.6); if (!this.save.flags?.swam) { (this.save.flags = this.save.flags || {}).swam = true; this.ui.toast(isTouch ? 'Swimming. Hold <b>Dive</b> to go under, ⤒ to come up — watch your breath.' : 'Swimming. Hold <b>C</b> to dive (swim where you look), Space to come up — watch your breath.', true); } };
+    // floating on the swell: the same waves as the water shader
+    this.player.swell = (x, z) => { const w = this.world, u = this.waterMat.uniforms; if (!w || w.gen.p.kind !== 'coast') return 0; const sea = w.gen.seaAt(x, z); return seaSurface(x, z, u.uTime.value, u.uWave.value, u.uWaveDir.value.x, u.uWaveDir.value.y, sea, w.depthAt(x, z)); };
+    this.player.onStroke = (under, fast) => { if (under) this.audio.bubbles?.(); else { this.audio.stroke?.(fast); const q = this.player.pos; this.ripples?.drop(q.x, q.z, 0.7, fast ? 0.18 : 0.1); } };
     const rb = $('btn-run');
     rb.onpointerdown = (e) => { e.preventDefault(); clearTimeout(this.runHold); this.runHeld = false; this.runHold = setTimeout(() => { this.runHeld = true; this.setRun(true, true); }, 550); };
     rb.onpointerup = (e) => { e.preventDefault(); clearTimeout(this.runHold); if (!this.runHeld) this.setRun(!(this.input.runMode || this.input.autoRun), false); };
@@ -377,6 +385,11 @@ class Game {
       const ob = this.world.fauna.observable(p, look, this.camera.position);
       if (ob) { const A = ANIMALS[ob.kind]; return { type: 'observe', herd: ob, label: `Observe the ${A.name.toLowerCase()} (${Math.round(ob.dist)} m)${A.danger ? ' — keep your distance' : ' — keep still'}` }; }
     }
+    if (this.world.sea) {
+      const look = new THREE.Vector3(); this.camera.getWorldDirection(look);
+      const ob = this.world.sea.observable(p, look, this.camera.position);
+      if (ob) return { type: 'observe', herd: ob, label: `Observe the ${ANIMALS[ob.kind].name.toLowerCase()} (${Math.round(ob.dist)} m) — keep it in sight, head for shallow water` };
+    }
     if (this.world.beasts) {
       const look = new THREE.Vector3(); this.camera.getWorldDirection(look);
       const ob = this.world.beasts.observable(p, look, this.camera.position);
@@ -491,6 +504,9 @@ class Game {
       const T = {
         poison: { kicker: 'Poisoned', title: 'Everything goes dark', sub: inExp ? 'You collapse in the wilderness. Travellers find you and carry you home. You lie in bed for days while Maren nurses you through it.' : 'You collapse at home. For days Maren nurses you through it.', rumor: 'Death cap and deadly nightshade poisonings begin hours after eating, when it is already too late to simply spit it out. Most real-world mushroom deaths are from death caps.' },
         snake: { kicker: 'Snakebite', title: 'The venom takes hold', sub: 'Your leg swells, your vision swims, and you sink down. Travellers find you and carry you home, where Maren treats the bite.', rumor: 'With a venomous bite, time matters: keep still and calm, keep the limb below the heart, take off rings, and get to medical help for antivenom. Never cut, suck, ice or tourniquet a snakebite.' },
+        drown: { kicker: 'Out of breath', title: 'The water closes over you', sub: inExp ? 'Everything goes dark. You wake on the bank, coughing, pulled out by a passing traveller who carries you home.' : 'Everything goes dark. You wake on the bank, coughing.', rumor: 'Keep an eye on your breath. Come up before your lungs burn — the deeper you are, the longer the swim back up.' },
+        shark: { kicker: 'Attacked', title: 'The shark strikes', sub: 'A blow like a truck, then a tearing pain. You fight it off and somehow reach the shallows. Travellers carry you home.', rumor: 'If a shark circles, keep it in sight and leave the water calmly and steadily — splashing and thrashing draw it in. If it attacks, strike at its eyes and gills.' },
+        wolf: { kicker: 'Attacked', title: 'The pack is on you', sub: 'You go down under a rush of grey bodies, kicking and shouting until they break off. Travellers find you torn and shaken and carry you home.', rumor: 'One or two wolves avoid people; a big pack can be bold. Never approach them and never run. Face them, stand tall, shout, and back away steadily. If they attack, stay on your feet and fight back.' },
         mountain_lion: { kicker: 'Attacked', title: 'The lion strikes', sub: 'It hits you from behind and you go down fighting. It breaks off and is gone. Travellers find you and carry you home.', rumor: 'Mountain lions attack what runs or turns away. Face it, stand tall, make yourself big and loud, and back off slowly. If it attacks, fight back — never play dead.' },
         moose: { kicker: 'Trampled', title: 'The moose runs you down', sub: 'It knocks you flat and stamps before trotting off. Travellers find you bruised and battered and carry you home.', rumor: 'Moose give warning — ears laid back, hackles up, lip-licking. Back off at once. If it charges, run and get a tree between you; if you are knocked down, curl up and cover your head.' },
         bear: { kicker: 'Attacked', title: 'The bear is on you', sub: 'You curl up, hands over your neck. After a terrible moment it leaves. Travellers find you hurt and carry you home.', rumor: 'Most bear charges are bluffs — running turns them into a chase. Back away slowly, talking calmly. If a brown bear makes contact, lie flat and play dead; if a black bear attacks, fight back.' },
@@ -501,8 +517,8 @@ class Game {
         this.pack.items = Object.fromEntries(Object.entries(this.pack.items).filter(([k]) => !k.startsWith('f:') && !k.startsWith('v:') && !FISH[k]));
         this.transitioning = false; await new Promise((r) => setTimeout(r, 3500));
         await this.returnHome();
-      } else { this.sky.time = 8; await new Promise((r) => setTimeout(r, 3500)); await this.ui.fade(false); }
-      this.ui.toast(reason === 'poison' ? 'You survived — barely. Your spoiled food was thrown away.' : reason === 'snake' ? 'Maren treated the bite. You will mend — slowly.' : reason === 'moose' ? 'Battered and sore, but alive. Your food was lost.' : 'Bruised and torn, but alive. Your food was lost.', true);
+      } else { this.sky.time = 8; const sp = this.world.spawn; if (sp) this.player.place(sp.x, sp.z, sp.yaw || 0, this.world); await new Promise((r) => setTimeout(r, 3500)); await this.ui.fade(false); }
+      this.ui.toast(reason === 'poison' ? 'You survived — barely. Your spoiled food was thrown away.' : reason === 'snake' ? 'Maren treated the bite. You will mend — slowly.' : reason === 'moose' ? 'Battered and sore, but alive. Your food was lost.' : reason === 'drown' ? 'You coughed up half the lake, but you are alive. Your food was lost.' : 'Bruised and torn, but alive. Your food was lost.', true);
       this.collapsing = false;
     })();
   }
@@ -760,7 +776,8 @@ class Game {
       this.ui.toast('The sow bowls you over, then trots off after her piglets. <b>Bruised</b>, but nothing broken. Never get between a sow and her young.', true);
       this.persist(); return;
     }
-    this.audio.call?.(id === 'moose' ? 'moose' : 'cougar');
+    if (id === 'shark') { this.audio.splash(1.5); this.body.fx.collapse = 1; this.onCollapse('shark'); return; }
+    this.audio.call?.(id === 'moose' ? 'moose' : id === 'wolf' ? 'wolf' : 'cougar');
     this.body.fx.collapse = 1; this.onCollapse(id);
   }
   onBearAttack(id) {
@@ -835,6 +852,7 @@ class Game {
       } else if (input.wasPressed('Escape')) this.ui.closePanel();
       this.player.update(dt, input, this.world, this.save.settings);
       this.body.update(dt, this.player.running, this.player.speed > 0.5, this.player.resting, this.player.climb || 0);
+      this.body.breathUpdate(dt, this.player.swimming && this.player.underwater);
       this.runTick(dt);
       this.fishing.update(dt, input);
       // wildlife observation
@@ -883,9 +901,19 @@ class Game {
       else this.world.stream(p);
       this.pools.flush();
       this.sky.time = (this.sky.time + dt / 120) % 24;
+      // under water? (the camera, not the feet) — set the murk before the sky shares its fog out
+      const W = this.world.gen.p.water, cam = this.camera.position, camUnder = cam.y < W + (this.player.swimming ? this.player.swell(cam.x, cam.z) : 0) - 0.06 && this.world.depthAt(cam.x, cam.z) > 0;
+      if (camUnder) {
+        const reg = this.expedition && this.world.gen.sample(cam.x, cam.z).biome > 0.5 ? this.expedition.region : 'temperate', sea = this.world.sea ? this.world.sea.isSea(cam.x, cam.z) : false;
+        const col = reg === 'tropics' ? [0.07, 0.42, 0.45] : sea ? [0.04, 0.2, 0.3] : [0.07, 0.2, 0.17];
+        this.sky.under = { col: (this.underCol || (this.underCol = new THREE.Color())).setRGB(...col), density: reg === 'tropics' ? 0.04 : sea ? 0.055 : 0.07, depth: W - cam.y };
+      } else this.sky.under = null;
+      this.body.fx.under = (this.body.fx.under || 0) + ((camUnder ? 1 : 0) - (this.body.fx.under || 0)) * Math.min(1, dt * 8);
+      if (camUnder !== this.wasUnder) { this.wasUnder = camUnder; this.audio.setUnder?.(camUnder); this.renderer.setClearColor(camUnder ? 0x0a2a30 : 0x000000); }
+      $('btn-dive').classList.toggle('hidden', !(isTouch && this.player.swimming));
       this.sky.update(dt, this.camera, p);
       this.sky.applyToWater(this.waterMat);
-      const tu = this.world.terrainMat?.userData.uniforms; if (tu) { tu.uWetness.value = this.sky.wetness; tu.uSnowCover.value = this.sky.snowCover; }
+      const tu = this.world.terrainMat?.userData.uniforms; if (tu) { tu.uWetness.value = this.sky.wetness; tu.uSnowCover.value = this.sky.snowCover; tu.uCaustT.value += dt; tu.uCaust.value = this.sky.dayFactor * this.sky.w.light; }
       const wu = this.waterMat.uniforms;
       wu.uTime.value += dt; wu.uWind.value = this.sky.w.wind;
       const gd = this.world.gen.dir; if (gd) wu.uWaveDir.value.set(-gd.x, -gd.z); else wu.uWaveDir.value.set(0, 1);
@@ -957,6 +985,9 @@ class Game {
     el.st.classList.toggle('hidden', full);
     el.fill.style.width = `${(b.stamina / b.maxStamina) * 100}%`;
     el.fill.classList.toggle('fed', b.has('fed') && !b.winded); el.fill.classList.toggle('winded', !!b.winded);
+    const br = el.br || (el.br = $('breath')), bf = el.bf || (el.bf = $('breath-fill'));
+    br.classList.toggle('hidden', !(this.player.swimming && (this.player.underwater || b.breath < 0.99)));
+    bf.style.width = `${b.breath * 100}%`; bf.classList.toggle('low', b.breath < 0.3);
     const chips = b.chips().map((c) => `<span style="border-color:${CONDITIONS[c].color};color:${CONDITIONS[c].color}">${CONDITIONS[c].label}</span>`).join('');
     if (chips !== this.lastChips) { el.chips.innerHTML = chips; this.lastChips = chips; }
   }

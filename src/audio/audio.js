@@ -140,7 +140,10 @@ export class SoundScape {
     this.ctx = ctx;
     // everything goes through a gentle limiter so a bear's roar over a river can't clip
     this.limiter = ctx.createDynamicsCompressor(); this.limiter.threshold.value = -10; this.limiter.knee.value = 8; this.limiter.ratio.value = 6; this.limiter.attack.value = 0.005; this.limiter.release.value = 0.25;
-    this.master = ctx.createGain(); this.master.gain.value = this.vol; this.master.connect(this.limiter); this.limiter.connect(ctx.destination);
+    this.master = ctx.createGain(); this.master.gain.value = this.vol;
+    // everything is muffled under water
+    this.underF = ctx.createBiquadFilter(); this.underF.type = 'lowpass'; this.underF.frequency.value = 20000; this.underF.Q.value = 0.5;
+    this.master.connect(this.underF); this.underF.connect(this.limiter); this.limiter.connect(ctx.destination);
     this.bedBus = ctx.createGain(); this.bedBus.connect(this.master);
     const len = ctx.sampleRate * 2, buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
     let b0 = 0, b1 = 0, b2 = 0;
@@ -161,6 +164,7 @@ export class SoundScape {
     this.bees = loop('bandpass', 230, 6);
     this.surf = loop('lowpass', 600, 0.6);
     this.cicada = loop('bandpass', 4600, 9);
+    this.deep = loop('lowpass', 160, 0.8);      // the pressure-hum of being under water
     this.timers = { wood: 20, cuckoo: 30, crow: 15, buzz: 40, frog: 4, wave: 3, gull: 6, wren: 12, coyote: 30, parrot: 8, treefrog: 2 };
     this.bank = new Bank(ctx);
     this.beds = {};
@@ -566,6 +570,27 @@ export class SoundScape {
     this.drone = { g, oscs: [...oscs, lfo] };
   }
   tripEnd() { if (!this.drone) return; const d = this.drone; this.drone = null; d.g.gain.setTargetAtTime(0, this.ctx.currentTime, 3); setTimeout(() => d.oscs.forEach((o) => o.stop()), 9000); }
+  // two low notes that come faster as something closes in on you in the water
+  tension(level) {
+    if (!this.ready) return; this.tLevel = level;
+    if (level <= 0) { clearTimeout(this.tTimer); this.tTimer = null; return; }
+    if (this.tTimer) return;
+    const beat = () => { if (!(this.tLevel > 0)) { this.tTimer = null; return; } const t = this.ctx.currentTime, v = 0.05 + 0.1 * this.tLevel;
+      this.note(this.master, t, 82, 80, 0.35, v, 'sawtooth'); this.note(this.master, t + 0.4 - this.tLevel * 0.15, 87, 85, 0.35, v, 'sawtooth');
+      this.tTimer = setTimeout(beat, (1600 - this.tLevel * 1150)); };
+    beat();
+  }
+  setUnder(on) {
+    if (!this.ready) return; const t = this.ctx.currentTime;
+    this.underF.frequency.setTargetAtTime(on ? 520 : 20000, t, on ? 0.04 : 0.15);
+    this.deep.g.gain.setTargetAtTime(on ? 0.12 : 0, t, 0.2);
+    if (on) this.bubbles(1.5); else this.burst(1200, 0.7, 0.25, 0.09); // a gasp of air at the surface
+  }
+  bubbles(n = 1) {
+    if (!this.ready) return; const t = this.ctx.currentTime;
+    for (let i = 0; i < 5 * n; i++) { const tt = t + Math.random() * 0.5 * n, f = 300 + Math.random() * 900, o = this.ctx.createOscillator(), g = this.ctx.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(f, tt); o.frequency.exponentialRampToValueAtTime(f * 2.2, tt + 0.06); this.env(g, tt, 0.004, 0.05, 0.07); o.connect(g); g.connect(this.master); o.start(tt); o.stop(tt + 0.1); }
+  }
+  stroke(fast) { if (!this.ready) return; const f = this.burst(1100, 0.7, 0.3, fast ? 0.1 : 0.06); f && f.frequency.exponentialRampToValueAtTime(450, this.ctx.currentTime + 0.3); }
   // your own breathing when tired: an in-breath and a longer out-breath, harder when winded
   breath(k = 0.5) {
     if (!this.ready) return; const t = this.ctx.currentTime, g = this.ctx.createGain(); g.gain.value = 0.5 + k * 0.6; g.connect(this.master);

@@ -36,6 +36,7 @@ export function createTerrainMaterial(layers, opts = {}) {
     uStrata: { value: opts.strata ? 1 : 0 },
     uSnowCover: { value: 0 }, // weather-driven snowfall on everything
     uWetness: { value: 0 },   // rain darkens and glosses the ground
+    uCaustT: { value: 0 }, uCaust: { value: 0 }, // dancing caustic light on the bed of lakes, rivers and the sea
     uScale: { value: new THREE.Vector4(1 / 3.2, 1 / 3.6, 1 / 7.0, 1 / 4.0) }, // ground, forest, rock, shore
     uGroundTint: { value: col(T.ground) }, uForestTint: { value: col(T.forest) }, uShoreTint: { value: col(T.shore) },
   };
@@ -54,7 +55,7 @@ vWNormal = normalize(mat3(modelMatrix) * objectNormal);`);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
 uniform sampler2D tD0, tD1, tD2, tD3, tD4, tN0, tN1, tN2, tN3, tN4;
-uniform float uWater, uSnow, uMode, uHasDest, uStrata, uSnowCover, uWetness; uniform vec4 uScale; uniform vec3 uGroundTint, uForestTint, uShoreTint;
+uniform float uWater, uSnow, uMode, uHasDest, uStrata, uSnowCover, uWetness, uCaustT, uCaust; uniform vec4 uScale; uniform vec3 uGroundTint, uForestTint, uShoreTint;
 varying vec3 vEco; varying vec3 vEco2; varying vec3 vWPos; varying vec3 vWNormal;
 ${NOISE_GLSL}
 float wF, wR, wS, wD, wX, wWet, bio; vec2 uvG, uvF, uvS; vec3 triW; vec2 rUv;`)
@@ -127,6 +128,15 @@ wWet = (1.0 - smoothstep(0.0, 0.9, above)) * (1.0 - wR);
 wWet = max(wWet, uWetness * 0.4 * (1.0 - wX));
 col *= mix(1.0, 0.62, wWet);
 col *= (0.86 + 0.28 * macro);
+// under water: caustics (light focused by the waves) and a blue-green cast that deepens with depth
+if (above < 0.0) {
+  float dd = -above;
+  vec2 cq = wp * 0.55;
+  float c1 = tNoise(cq + vec2(uCaustT * 0.35, uCaustT * 0.22)), c2 = tNoise(cq * 1.3 - vec2(uCaustT * 0.27, -uCaustT * 0.31));
+  float caust = pow(1.0 - abs(c1 - c2), 7.0);
+  col *= mix(vec3(1.0), vec3(0.55, 0.78, 0.8), smoothstep(0.0, 6.0, dd));
+  col += col * caust * uCaust * 1.6 * smoothstep(0.05, 0.6, dd) * exp(-dd * 0.12);
+}
 diffuseColor.rgb *= col;`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
 roughnessFactor = mix(roughnessFactor, 0.42, wWet);
@@ -149,6 +159,6 @@ roughnessFactor = mix(roughnessFactor, 0.6, wX);`)
   normal = normalize((viewMatrix * vec4(wn, 0.0)).xyz);
 }`);
   };
-  mat.customProgramCacheKey = () => 'terrain-splat-v2';
+  mat.customProgramCacheKey = () => 'terrain-splat-v3';
   return mat;
 }

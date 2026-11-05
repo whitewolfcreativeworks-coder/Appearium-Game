@@ -19,7 +19,7 @@ export const CONDITIONS = {
 export class Body {
   constructor(game) {
     this.game = game;
-    this.stamina = 100; this.satiety = 70;
+    this.stamina = 100; this.satiety = 70; this.breath = 1; // breath: 1 = full lungs
     this.conds = []; // {type, sev, onset, dur, t, msg}
     this.fx = { sick: 0, trip: 0, collapse: 0 };
     this.retch = 0; this.sway = 0;
@@ -40,6 +40,17 @@ export class Body {
 
   eat(food) { this.satiety = clamp(this.satiety + food * 9, 0, 100); if (this.satiety > 75 && food >= 3) this.add('fed', { dur: 300 + food * 30 }); }
 
+  // how long you can stay under: about 40 s, nearer a minute when well fed
+  get breathSecs() { return this.has('fed') ? 55 : 40; }
+  breathUpdate(dt, underwater) {
+    const g = this.game;
+    if (underwater) {
+      this.breath = Math.max(0, this.breath - dt / this.breathSecs);
+      if (this.breath < 0.3 && !this.warnedBreath) { this.warnedBreath = true; g.ui.toast('<b>Your lungs burn</b> — get to the surface!', true); }
+      if (this.breath <= 0) { this.drown = (this.drown || 0) + dt; if (this.drown > 5) { this.drown = 0; this.breath = 1; this.fx.collapse = 1; g.onCollapse('drown'); } }
+    } else { this.breath = Math.min(1, this.breath + dt * 0.35); this.drown = 0; if (this.breath > 0.6) this.warnedBreath = false; }
+    this.fx.drown = underwater ? Math.max(0, 1 - this.breath / 0.25) : 0;
+  }
   canRun() { return !this.has('sick') && !this.has('amatoxin') && !this.has('envenomed') && !this.winded && this.stamina > 1; }
   // running pace: full speed while fresh, slowing to a heavy jog as you tire
   runFactor() { const f = this.stamina / this.maxStamina; return 0.72 + 0.28 * Math.min(1, f / 0.3); }

@@ -7,7 +7,7 @@ export class Input {
     this.dom = dom; this.settings = settings;
     this.keys = new Set(); this.look = { x: 0, y: 0 }; this.joy = { x: 0, y: 0 };
     this.pressed = new Set(); this.locked = false; this.enabled = true; this.touchRun = false;
-    this.runMode = false; this.autoRun = false; // the Run button: a steady long-distance pace, and auto-run
+    this.runMode = false; this.autoRun = false; this.touchDive = false; this.touchUp = false; // the Run button: a steady long-distance pace, and auto-run
     this.isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
     window.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT') return;
@@ -86,6 +86,8 @@ export class Input {
     const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; }
     return { x, y };
   }
+  get diving() { return this.keys.has('KeyC') || this.keys.has('ControlLeft') || this.touchDive; }
+  get rising() { return this.keys.has('Space') || this.touchUp; }
   get running() { return this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.touchRun || this.runMode || this.autoRun; }
 }
 
@@ -110,6 +112,9 @@ export class Player {
     this.running = input.running && mv.y > 0.3 && !this.frozen && (!body || body.canRun());
     const water = world.gen.p.water;
     const ground = world.heightAt(this.pos.x, this.pos.z);
+    // swimming: once the water is deeper than about chest height you float, and can dive
+    if (water - ground > 1.3 || (this.swimming && water - ground > 1.0)) { this.swimUpdate(dt, input, world, mv, water, ground); return; }
+    if (this.swimming) { this.swimming = false; this.underwater = false; this.onGround = true; }
     const depth = water - ground;
     this.inWater = Math.max(0, depth);
     // a steady long-distance run, slowing as you tire
@@ -130,10 +135,7 @@ export class Player {
     if (rise > 1.25 && this.onGround) { this.pos.x = prev.x + (this.pos.x - prev.x) * 0.15; this.pos.z = prev.z + (this.pos.z - prev.z) * 0.15; }
     world.colliders.resolve(this.pos, this.radius);
     world.constrain && world.constrain(this.pos, prev);
-    // deep water: can't swim — turn back
     const ndepth = water - world.heightAt(this.pos.x, this.pos.z);
-    if (ndepth > 1.2) { this.pos.x = prev.x; this.pos.z = prev.z; this.blockedByWater = 0.5; }
-    this.blockedByWater = Math.max(0, (this.blockedByWater || 0) - dt);
     // vertical
     const gh = world.heightAt(this.pos.x, this.pos.z);
     if (input.wasPressed('Space') && this.onGround && !this.frozen && ndepth < 0.5) { this.vy = 4.6; this.onGround = false; }
@@ -157,6 +159,47 @@ export class Player {
     this.stillT = still ? (this.stillT || 0) + dt : 0;
     this.resting = this.stillT > 4;
     this.sit = (this.sit || 0) + ((this.resting ? 1 : 0) - (this.sit || 0)) * Math.min(1, dt * 2);
+    this.syncCamera(dt);
+  }
+
+  // in the water: float at the surface; dive (and swim where you look) while holding Dive; rise with
+  // Up/Space; rivers carry you downstream; the bottom and the banks stop you
+  swimUpdate(dt, input, world, mv, W, ground) {
+    const body = this.body, prev = this.pos.clone();
+    if (!this.swimming) { this.swimming = true; this.vy = 0; this.pos.y = Math.max(this.pos.y, W - 1.45); this.onSwimStart?.(); }
+    this.onGround = false; this.running = input.running && mv.y > 0.3 && (!body || body.canRun());
+    const swell = this.swell ? this.swell(this.pos.x, this.pos.z) : 0; this.surfaceH = W + swell;
+    const surfaceY = W + swell - 1.36 + Math.sin(performance.now() * 0.0016) * 0.04; // feet; eyes just above the water, riding the swell
+    const target = (this.running ? 2.5 : 1.6) * Math.hypot(mv.x, mv.y) * (body ? Math.max(0.6, body.speedMul()) : 1);
+    this.speed += (target - this.speed) * Math.min(1, dt * 3);
+    const sy = Math.sin(this.yaw), cy = Math.cos(this.yaw);
+    let dx = -sy * mv.y + cy * mv.x, dz = -cy * mv.y - sy * mv.x; const dl = Math.hypot(dx, dz) || 1; dx /= dl; dz /= dl;
+    const under = this.pos.y < surfaceY - 0.25;
+    // underwater, forward follows your gaze (look down to swim down)
+    let vyWant = 0;
+    if (input.diving) vyWant = -1.5; else if (input.rising) vyWant = 1.5;
+    else if (under) vyWant = mv.y > 0.3 ? Math.sin(this.pitch) * this.speed : 0.35; // drift gently up when still
+    const horiz = under && mv.y > 0.3 && !input.diving && !input.rising ? Math.cos(this.pitch) : 1;
+    if (mv.x || mv.y) { this.pos.x += dx * this.speed * horiz * dt; this.pos.z += dz * this.speed * horiz * dt; } else this.speed *= 0.9;
+    this.vy += (vyWant - this.vy) * Math.min(1, dt * 3);
+    this.pos.y += this.vy * dt;
+    // the current
+    const f = world.gen.flowAt ? world.gen.flowAt(this.pos.x, this.pos.z) : [0, 0];
+    this.pos.x += f[0] * 0.8 * dt; this.pos.z += f[1] * 0.8 * dt;
+    world.colliders.resolve(this.pos, this.radius);
+    world.constrain && world.constrain(this.pos, prev);
+    const g = world.heightAt(this.pos.x, this.pos.z);
+    if (this.pos.y > surfaceY && !this.underwater) { this.pos.y += (surfaceY - this.pos.y) * Math.min(1, dt * 6); this.vy = Math.min(this.vy, 0); } else if (this.pos.y > surfaceY) { this.pos.y = surfaceY; this.vy = Math.min(this.vy, 0); }
+    if (this.pos.y < g + 0.15) { this.pos.y = g + 0.15; this.vy = Math.max(0, this.vy); }
+    // walking out: where it's shallow, stand up
+    if (W - g < 1.0 && this.pos.y >= g - 0.05) { this.swimming = false; this.underwater = false; this.pos.y = g; this.onGround = true; }
+    this.underwater = this.pos.y + this.eye < W + swell - 0.12;
+    this.inWater = W - g; this.lastSafe.copy(this.pos);
+    // strokes
+    const moved = Math.hypot(this.pos.x - prev.x, this.pos.z - prev.z);
+    this.bob += moved * 1.2; this.stepAcc += moved;
+    if (this.stepAcc > 1.4) { this.stepAcc = 0; this.onStroke?.(this.underwater, this.running); }
+    this.stillT = 0; this.resting = false; this.sit = 0; this.climb = 0;
     this.syncCamera(dt);
   }
 

@@ -207,7 +207,7 @@ const HERD = {
   coati:        { geo: coatiGeometry, n: [4, 10], col: [0.58, 0.4, 0.24], scale: [0.95, 1.1], flee: 10, fleeSpeed: 6, walk: 1.4, range: [30, 90], rate: 0.05, habitat: (q, a) => a > 0.6 && q.forest > 0.3 },
 };
 const PACK = {
-  wolf:   { n: [3, 6], col: [0.52, 0.5, 0.46], scale: [0.95, 1.08], trot: 2.6, flee: 55, range: [90, 170], rate: 0.012, sound: 'wolf' },
+  wolf:   { n: [1, 7], col: [0.52, 0.5, 0.46], scale: [0.95, 1.08], trot: 2.6, flee: 55, range: [90, 170], rate: 0.012, sound: 'wolf' },
   coyote: { n: [1, 3], col: [0.66, 0.54, 0.4], scale: [0.72, 0.8], trot: 2.8, flee: 40, range: [60, 140], rate: 0.02, sound: 'coyote' },
 };
 
@@ -338,15 +338,17 @@ export class Beasts {
     if (!list.length && this.rng.chance(dt * P.rate * (ctx.day < 0.35 ? 2.5 : 1))) {
       const s = this.spot(p, (x, z) => { const q = g.sample(x, z); return q.h - W > 1 && q.cliff < 0.5; }, P.range[0], P.range[1]);
       if (s) {
-        const n = this.rng.int(P.n[0], P.n[1]), toP = Math.atan2(p.x - s.x, p.z - s.z), h = toP + (this.rng.chance(0.5) ? 1.3 : -1.3);
+        // wolves: lone wolves and pairs are common, small packs less so, big packs rare
+        const n = k === 'wolf' ? this.rng.pick([1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 6, 7]) : this.rng.int(P.n[0], P.n[1]), toP = Math.atan2(p.x - s.x, p.z - s.z), h = toP + (this.rng.chance(0.5) ? 1.3 : -1.3);
         for (let i = 0; i < n; i++) list.push({ pos: V3(s.x - Math.sin(h) * i * 3, 0, s.z - Math.cos(h) * i * 3), h, speed: P.trot, gait: i, scale: this.rng.range(P.scale[0], P.scale[1]), neck: 0.3, i });
         if (k === 'coyote' && ctx.day < 0.4) this.call('coyote', list[0].pos);
       }
     }
     if (!list.length) { if (this.rigs[k].body.count) { this.rigs[k].begin(); this.rigs[k].end(); } return; }
     const lead = list[0], dLead = lead.pos.distanceTo(p);
+    if (k === 'wolf' && list.length >= 3) { this.updateWolfPack(dt, ctx, list, P); return; }
     const wary = dLead < P.flee || (ctx.player.running && dLead < P.flee * 1.5);
-    if (wary && !this.packWary) { this.packWary = true; this.toastOnce('pack_' + k, k === 'wolf' ? 'Wolves! They have seen you — and want nothing to do with you.' : 'A coyote lopes away, glancing back at you.'); }
+    if (wary && !this.packWary) { this.packWary = true; this.toastOnce('pack_' + k + list.length, k === 'wolf' ? (list.length === 1 ? 'A wolf! It has seen you — and wants nothing to do with you.' : 'A pair of wolves — they have seen you, and slip away.') : 'A coyote lopes away, glancing back at you.'); }
     const R = this.rigs[k]; R.begin();
     list.forEach((w, i) => {
       if (i === 0) {
@@ -365,6 +367,70 @@ export class Beasts {
     });
     if (dLead > 280) { this.packs[k] = []; this.packWary = false; }
     R.end();
+  }
+
+  // ---------------------------------------------------------------- wolves in numbers
+  // Three or four wolves are bolder: they stop and watch you, and may shadow you at a distance —
+  // walk at them and they move off. Five or more are dangerous: they watch, then spread out and
+  // close in if you come nearer or run; back away steadily, facing them, and they lose interest.
+  updateWolfPack(dt, ctx, list, P) {
+    const pl = ctx.player, p = pl.pos, g = this.gen(), W = g.p.water, big = list.length >= 5;
+    const cx = list.reduce((a, w) => a + w.pos.x, 0) / list.length, cz = list.reduce((a, w) => a + w.pos.z, 0) / list.length;
+    const d = Math.hypot(cx - p.x, cz - p.z), toP = Math.atan2(p.x - cx, p.z - cz);
+    const prevD = this.packD ?? d, closing = (prevD - d) / Math.max(dt, 1e-3); this.packD = d;
+    const S = this.pack || (this.pack = { state: 'travel', t: 0 }); S.t -= dt;
+    const ppPrev = S.ppNext; S.pp = ppPrev; S.ppNext = { x: p.x, z: p.z };
+    const say = (key, html) => this.toastOnce(key + list.length, html);
+    switch (S.state) {
+      case 'travel':
+        if (d < (big ? 80 : 60)) { S.state = 'watch'; S.t = this.rng.range(4, 8); this.call('wolf', list[0].pos);
+          say('wolves', big ? `<b>${list.length} wolves</b> — a big pack, and they have noticed you. Don't run. Face them, back away slowly, make yourself big.` : `<b>${list.length} wolves</b> stop and watch you. They're bolder in a group — don't go towards them.`); }
+        break;
+      case 'watch': // heads up, all eyes on you
+        if (closing > 0.5 && d < 45) { if (big) { S.state = 'stalk'; S.t = 25; } else { S.state = 'leave'; S.t = 25; } }
+        else if (pl.running && d < 50 && big) { S.state = 'stalk'; S.t = 25; }
+        else if (S.t < 0) { S.state = big ? (d < 50 ? 'stalk' : 'shadow') : 'shadow'; S.t = this.rng.range(15, 30); }
+        break;
+      case 'shadow': // trotting along at a distance, keeping an eye on you
+        if (closing > 0.6 && d < 30) { S.state = 'leave'; S.t = 25; }
+        if (S.t < 0 || d > 120) { S.state = 'leave'; S.t = 25; }
+        break;
+      case 'stalk': // spread out and close in
+        if (d < 9 || (pl.running && d < 25)) { S.state = 'rush'; S.t = 6; this.call('wolf', list[0].pos); this.game.ui.toast('<b>The wolves rush you!</b>', true); }
+        else {
+          // are you backing away while facing them? (your own movement, not theirs)
+          const pv = S.pp ? Math.hypot(p.x - S.pp.x, p.z - S.pp.z) / Math.max(dt, 1e-3) : 0, away = S.pp ? ((p.x - S.pp.x) * Math.sin(toP) + (p.z - S.pp.z) * Math.cos(toP)) / Math.max(1e-4, Math.hypot(p.x - S.pp.x, p.z - S.pp.z)) : 0;
+          if (pv > 0.4 && pv < 4 && away > 0.5 && this.facing(p, { x: cx, z: cz }) > 0.6) { S.backed = (S.backed || 0) + dt; if (S.backed > 7) { S.state = 'leave'; S.t = 25; this.game.ui.toast('Backing away steadily, facing them, works — the pack loses interest and drifts off.', true); } }
+          if (S.t < 0 && S.state === 'stalk') { S.state = 'leave'; S.t = 25; }
+        }
+        break;
+      case 'rush':
+        if (list.some((w) => w.pos.distanceTo(p) < 2.2)) { S.state = 'leave'; S.t = 30; this.game.onAnimalAttack?.('wolf'); }
+        else if (S.t < 0) { S.state = 'stalk'; S.t = 15; }
+        break;
+      case 'leave': if (S.t < 0 || d > 200) { this.packs.wolf = []; this.pack = null; this.packD = null; return; } break;
+    }
+    const R = this.rigs.wolf; R.begin();
+    list.forEach((w, i) => {
+      const spread = (i - (list.length - 1) / 2) * 0.55; // fan out around you
+      let tgtH = w.h, spd = 0, neck = 0.25;
+      if (S.state === 'travel') { tgtH = i === 0 ? w.h + Math.sin(this.t * 0.2) * dt * 0.15 : Math.atan2(list[i - 1].pos.x - w.pos.x, list[i - 1].pos.z - w.pos.z); spd = P.trot; }
+      else if (S.state === 'watch') { tgtH = Math.atan2(p.x - w.pos.x, p.z - w.pos.z); spd = 0; neck = -0.35; }
+      else if (S.state === 'shadow') { tgtH = toP + Math.PI / 2 * (this.pack.side || (this.pack.side = this.rng.chance(0.5) ? 1 : -1)) + (d > 45 ? 0.5 : d < 30 ? -0.5 : 0) * this.pack.side; spd = 2.2; }
+      else if (S.state === 'stalk') { const tx = p.x - Math.sin(toP + spread) * 12, tz = p.z - Math.cos(toP + spread) * 12; tgtH = Math.atan2(tx - w.pos.x, tz - w.pos.z); spd = Math.hypot(tx - w.pos.x, tz - w.pos.z) > 2 ? 1.8 : 0; neck = 0.6; if (spd === 0) tgtH = Math.atan2(p.x - w.pos.x, p.z - w.pos.z); }
+      else if (S.state === 'rush') { tgtH = Math.atan2(p.x - w.pos.x, p.z - w.pos.z) + spread * 0.3; spd = 11; neck = 0.5; }
+      else if (S.state === 'leave') { tgtH = toP + Math.PI + spread * 0.2; spd = 6; }
+      w.h += angDiff(tgtH, w.h) * Math.min(1, dt * 4); w.speed += (spd - w.speed) * Math.min(1, dt * 3);
+      const nx = w.pos.x + Math.sin(w.h) * w.speed * dt, nz = w.pos.z + Math.cos(w.h) * w.speed * dt;
+      if (g.height(nx, nz) > W + 0.1) { w.pos.x = nx; w.pos.z = nz; } else w.h += 1.5;
+      w.pos.y = g.height(w.pos.x, w.pos.z);
+      w.gait += dt * (w.speed < 3 ? w.speed * 4.5 : 8 + w.speed * 0.5);
+      w.neck += (neck - w.neck) * Math.min(1, dt * 3);
+      const gallop = smoothstep(4, 7, w.speed);
+      R.draw({ pos: w.pos, h: w.h, scale: w.scale, gait: w.gait, sw: Math.min(1, w.speed / 2), gallop, neck: w.neck, col: P.col, bounce: gallop * Math.abs(Math.sin(w.gait)) * 0.18 });
+    });
+    R.end();
+    if (d > 300) { this.packs.wolf = []; this.pack = null; this.packD = null; }
   }
 
   // ---------------------------------------------------------------- the mountain lion
@@ -522,10 +588,10 @@ export class Beasts {
   }
 
   // (dev/testing) put an animal of this kind at x, z
-  debugSpawn(kind, x, z) {
+  debugSpawn(kind, x, z, count = 3) {
     const g = this.gen(), y = g.height(x, z);
     if (HERD[kind]) { const H = HERD[kind]; this.herds[kind] = []; for (let i = 0; i < 4; i++) this.herds[kind].push({ pos: V3(x + i * 2.2, y, z + (i % 2) * 1.5), h: 0.6 * i, state: 'graze', timer: 5, speed: 0, gait: i, neck: 0.8, male: i === 0 && !!H.antlers, young: H.young && i > 0, scale: (H.young && i > 0 ? 0.38 : 1) * H.scale[0] }); }
-    if (PACK[kind]) { this.packs[kind] = []; for (let i = 0; i < 3; i++) this.packs[kind].push({ pos: V3(x - i * 3, y, z), h: Math.PI / 2, speed: 0.01, gait: i, scale: PACK[kind].scale[0], neck: 0.3, i }); }
+    if (PACK[kind]) { this.packs[kind] = []; this.pack = null; this.packD = null; for (let i = 0; i < count; i++) this.packs[kind].push({ pos: V3(x - i * 3, y, z), h: Math.PI / 2, speed: 0.01, gait: i, scale: PACK[kind].scale[0], neck: 0.3, i }); }
     if (kind === 'mountain_lion') this.cat = { pos: V3(x, y, z), h: Math.PI, state: 'watch', timer: 30, speed: 0, gait: 0, neck: -0.1, crouch: 0, faced: 0, hunger: 1 };
     if (kind === 'moose') this.moose = { pos: V3(x, Math.max(y, g.p.water - 1), z), h: 1, state: 'feed', timer: 30, speed: 0, gait: 0, neck: 1.0, bull: true };
     if (kind === 'otter') this.otters.push({ pos: V3(x, g.p.water, z), h: 1, dive: 0, timer: 30, under: false, life: 99 });

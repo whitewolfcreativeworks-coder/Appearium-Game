@@ -36,6 +36,7 @@ python3 -m http.server 8000      # any static server works
 | Run | hold Shift, or **R** / **Run** button to toggle | **Run** button (tap to toggle), or push the stick to its edge |
 | Auto-run (steer by looking) | **Q**, or hold the **Run** button | hold the **Run** button; pull back to stop |
 | Jump | Space | ⤒ |
+| Swim: dive / come up | hold **C** (swim where you look) / Space | hold **Dive** / hold ⤒ |
 | Interact | E or left click | ✋ (appears when something is in reach) |
 | Pack / Journal | I / J | Pack / Log buttons (eat, bait, dig for worms, make & set traps) |
 | Return home | H or **⌂ Return Home** | **⌂ Return Home** (top right) |
@@ -187,7 +188,11 @@ The wilderness is mostly peaceful, but not always:
 - **Moose** (lake country and misty woods) wade the shallows to feed. Calm until crowded — then
   ears back, hackles up, and a charge. Give them room.
 - **Wild boar** sows defend their striped piglets: blunder in among them and you get bowled over.
-- **Wolves** trot single file far off and keep their distance; at night you hear them howl.
+- **Wolves** depend on their numbers. A lone wolf or a pair slips away. Three or four stop and
+  watch you, or shadow you at a distance — walk at them and they move off. Five or more are
+  dangerous: they watch, then spread out and close in if you approach or run. Face them and back
+  away steadily and they lose interest; let them reach you and the expedition ends. At night you
+  hear them howl.
   Coyotes lope across canyon country. Elk herds graze high meadows; mountain goats and bighorn
   sheep pick along cliffs; capybara families lounge by tropical water and coatis troop through the
   jungle; otters swim, roll and dive in rivers, lakes and coves.
@@ -227,6 +232,25 @@ white water riding each breaker in, and a lacy wash that runs up the sand and dr
 the water responds: a small GPU wave solver around you turns footsteps, wading, a cast bobber, a
 jumping fish, a diving otter or a frog — and every raindrop — into rings that spread, cross and
 fade.
+
+### Swimming and diving
+
+Wade in past chest depth and you swim. At the surface you float with your eyes at water level,
+riding the sea swell; rivers carry you downstream. Hold Dive to go under — underwater you swim
+where you look. Your breath lasts about 40 seconds (closer to a minute when well fed); the breath
+bar empties, your lungs burn, the edges of your sight darken, and if you don't make the surface
+you black out and wake on the bank. Underwater the world turns to a blue-green murk (clearest
+in the tropics, greenest in lakes), sound goes muffled, light dances in caustics across the
+bed, and looking up you see Snell's window — the bright sky through a circle in the silvered
+surface. Schools of fish drift and scatter (perch and roach in fresh water, mackerel at sea,
+bright reef fish in the tropics), waterweed and kelp forests sway, coral heads grow in warm
+lagoons, and somewhere on the bottom of every expedition something lost is waiting to be found.
+
+**Sharks.** Swim out into deep salt water (or a tropical lagoon) and a fin may appear — a great
+white on cold coasts, a bull shark in the tropics. It circles, closing in, with a slow pulse of
+low notes that quickens as it comes. Keep it in sight and swim steadily for water too shallow
+for it: watching it slows it down; thrashing and sprinting bring it in fast. If it reaches you,
+it strikes and the expedition ends.
 
 ### Settings
 
@@ -300,6 +324,7 @@ src/world/herds.js         herds and flocks (horses, gulls, geese, ravens, parro
 src/world/fauna.js         deer, bears, snakes, crabs, seals, dolphins, whales
 src/world/beasts.js        mountain lion, wolves, coyotes, moose, elk, boar, goats, bighorn, capybara, coatis, otters
 src/world/waterfx.js       ripple solver and mirror reflections for the water
+src/world/sea.js           underwater life: fish schools, weed, kelp, coral, sharks
 src/game/building.js, buildmode.js   building & decorating your place
 src/game/              items & artifacts, save, player & input, fishing, artifact 3D models
 src/audio/audio.js     3D soundscape: recordings placed in the world, beds, synth fallbacks
@@ -322,8 +347,7 @@ choose *Low* in the ≡ menu; dynamic resolution also kicks in below ~27 fps.
 
 ## Known limitations / next steps
 
-- There is no swimming — deep water blocks you. Rivers, lakes and the sea share one water level
-  (no waterfalls, no tides); the river current is visual, not a force on you.
+- Rivers, lakes and the sea share one water level (no waterfalls, no tides).
 - The water is shaded and simulated on the GPU, not a full fluid simulation: rivers flow by
   flow-mapping, the sea by summed Gerstner waves, ripples by a 2D wave equation around the player.
   Full 3D fluid solvers (SPH/FLIP) are far too heavy for an iPad browser.

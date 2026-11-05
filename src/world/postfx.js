@@ -9,10 +9,10 @@ export class PostFX {
     this.scene = new THREE.Scene();
     this.cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     this.mat = new THREE.ShaderMaterial({
-      uniforms: { tScene: { value: this.rt.texture }, uTime: { value: 0 }, uSick: { value: 0 }, uTrip: { value: 0 }, uCollapse: { value: 0 }, uAspect: { value: 1 } },
+      uniforms: { tScene: { value: this.rt.texture }, uTime: { value: 0 }, uSick: { value: 0 }, uTrip: { value: 0 }, uCollapse: { value: 0 }, uAspect: { value: 1 }, uUnder: { value: 0 }, uTint: { value: new THREE.Color(0.1, 0.3, 0.3) }, uDrown: { value: 0 } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
       fragmentShader: /* glsl */`
-        uniform sampler2D tScene; uniform float uTime, uSick, uTrip, uCollapse, uAspect; varying vec2 vUv;
+        uniform sampler2D tScene; uniform float uTime, uSick, uTrip, uCollapse, uAspect, uUnder, uDrown; uniform vec3 uTint; varying vec2 vUv;
         vec3 hueShift(vec3 c, float a){ const vec3 k = vec3(0.57735); float ca = cos(a); return c * ca + cross(k, c) * sin(a) + k * dot(k, c) * (1.0 - ca); }
         void main(){
           vec2 uv = vUv; vec2 c = uv - 0.5; c.x *= uAspect; float r = length(c);
@@ -22,6 +22,8 @@ export class PostFX {
           uv = mix(uv, 0.5 + (uv - 0.5) * (1.0 + 0.04 * sin(t * 0.9)), uTrip);
           // sickness: slow nauseous drift and double vision
           uv += uSick * 0.006 * vec2(sin(t * 0.8), cos(t * 0.63));
+          // under water: a slow refractive wobble
+          uv += uUnder * 0.0035 * vec2(sin(uv.y * 22.0 + t * 1.7), cos(uv.x * 19.0 + t * 1.4));
           float ca = uTrip * 0.006 + uSick * 0.004;
           vec2 dir = normalize(c + 1e-5) * ca;
           vec3 col;
@@ -38,6 +40,9 @@ export class PostFX {
           float vig = smoothstep(0.35, 0.95, r);
           col *= 1.0 - vig * (uSick * 0.55 + uTrip * 0.15) - uCollapse * smoothstep(0.1, 0.7, r);
           col *= 1.0 - uCollapse * 0.8;
+          // under water: colour absorbed (reds first), soft vignette; out of breath, the edges go dark
+          col = mix(col, col * vec3(0.55, 0.85, 0.9) + uTint * 0.06, uUnder);
+          col *= 1.0 - uUnder * smoothstep(0.45, 1.1, r) * 0.45 - uDrown * smoothstep(0.15, 0.75, r) * 0.9;
           gl_FragColor = vec4(col, 1.0);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
@@ -47,7 +52,7 @@ export class PostFX {
     this.time = 0;
   }
 
-  active(fx) { return fx.sick > 0.01 || fx.trip > 0.01 || fx.collapse > 0.01; }
+  active(fx) { return fx.sick > 0.01 || fx.trip > 0.01 || fx.collapse > 0.01 || fx.under > 0.01; }
 
   render(scene, camera, fx, dt) {
     const r = this.renderer;
@@ -55,7 +60,7 @@ export class PostFX {
     if (this.rt.width !== w || this.rt.height !== h) this.rt.setSize(w, h);
     this.time += dt;
     const u = this.mat.uniforms;
-    u.uTime.value = this.time; u.uSick.value = fx.sick; u.uTrip.value = fx.trip; u.uCollapse.value = fx.collapse; u.uAspect.value = w / h;
+    u.uTime.value = this.time; u.uSick.value = fx.sick; u.uTrip.value = fx.trip; u.uCollapse.value = fx.collapse; u.uAspect.value = w / h; u.uUnder.value = fx.under || 0; u.uDrown.value = fx.drown || 0;
     r.setRenderTarget(this.rt); r.render(scene, camera);
     r.setRenderTarget(null); r.render(this.scene, this.cam);
   }

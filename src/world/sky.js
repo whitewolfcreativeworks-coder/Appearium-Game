@@ -174,6 +174,14 @@ export class SkySystem {
     if (this.flash > 0) { this.horizon.lerp(new THREE.Color(0.75, 0.78, 0.9), this.flash * 0.6); this.zenith.lerp(new THREE.Color(0.6, 0.62, 0.8), this.flash * 0.5); }
     this.fog.color.copy(this.horizon);
     this.fog.density = w.fog * this.q.fogScale;
+    // under water: the world closes in to a coloured murk, darker the deeper you go; no sky
+    const U = this.under;
+    this.sky.visible = this.clouds.visible = this.stars.visible = !U;
+    if (U) {
+      const light = (0.12 + 0.88 * day * w.light) * Math.exp(-U.depth * 0.06);
+      this.fog.color.copy(U.col).multiplyScalar(light); this.fog.density = U.density;
+      this.underColor = this.fog.color;
+    }
 
     this.cloudMat.uniforms.uCover.value = w.clouds;
     this.cloudMat.uniforms.uTime.value += dt;
@@ -192,7 +200,7 @@ export class SkySystem {
     const precip = Math.max(w.rain, w.snow);
     this.rainMat.opacity = snowing ? Math.min(0.9, w.snow * 0.85) : Math.min(0.6, w.rain * 0.45);
     this.rainMat.color.setRGB(snowing ? 0.95 : 0.67, snowing ? 0.96 : 0.71, snowing ? 1 : 0.75);
-    this.rain.visible = precip > 0.02;
+    this.rain.visible = precip > 0.02 && !U;
     if (this.rain.visible) {
       const a = this.rain.geometry.attributes.position.array, s = this.rainSeed, n = s.length / 3;
       const cp = camera.position, fall = snowing ? 1.4 : 14, slant = (w.wind - 0.6) * (snowing ? 0.9 : 0.35);

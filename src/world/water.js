@@ -15,6 +15,18 @@ const WAVES = [[0.0, 41, 0.085], [0.38, 27, 0.075], [-0.33, 19, 0.07], [0.75, 13
 const GLSL_WAVES = `const int NW = ${WAVES.length};
 const vec3 WV[NW] = vec3[NW](${WAVES.map((w) => `vec3(${w.map((x) => x.toFixed(3)).join(',')})`).join(',')});`;
 
+// the height of the sea surface at (x, z) — the same swell as the shader, for floating on it
+export function seaSurface(x, z, t, wave, dirX, dirZ, sea, depth) {
+  if (sea <= 0.001) return 0;
+  const amp = (0.25 + wave * 0.75) * sea; let h = 0;
+  for (let i = 0; i < 5; i++) {
+    const w = WAVES[i], c = Math.cos(w[0]), s = Math.sin(w[0]), dx = dirX * c - dirZ * s, dz = dirX * s + dirZ * c;
+    const k = 6.2832 / w[1], om = Math.sqrt(9.81 * k), A = Math.min(w[2] / k * amp, Math.max(0, depth) * 0.16);
+    h += A * Math.sin(k * (dx * x + dz * z) - om * t + i * 1.7);
+  }
+  return h;
+}
+
 export function createWaterMaterial() {
   const uniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
     uTime: { value: 0 },
@@ -35,7 +47,7 @@ export function createWaterMaterial() {
   }]);
   uniforms.tNormal.value = tex('waternormals.jpg', { srgb: false });
   const mat = new THREE.ShaderMaterial({
-    uniforms, fog: true, transparent: true, depthWrite: false,
+    uniforms, fog: true, transparent: true, depthWrite: false, side: THREE.DoubleSide,
     vertexShader: /* glsl */`
       attribute float aDepth; attribute float aSea; attribute vec2 aFlow;
       uniform float uTime, uWave; uniform vec2 uWaveDir; uniform mat4 uReflMat;
@@ -178,6 +190,15 @@ export function createWaterMaterial() {
         col += vec3(0.6) * uLight * clamp(-ripH * 0.0, 0.0, 0.2);
         float alpha = mix(0.32, 0.95, smoothstep(0.0, 2.4, depthEff));
         alpha = clamp(max(alpha + fres * 0.45, fmAll), 0.0, 1.0) * smoothstep(-0.02, 0.1, depthEff); // foam is opaque
+        if (!gl_FrontFacing) {
+          // seen from below: Snell's window — the bright sky straight up, a silvery mirror of the
+          // dark water at grazing angles, both rippled by the surface above
+          float c = abs(V.y) + (n.x + n.z) * 0.15;
+          float win = smoothstep(0.62, 0.74, c);
+          vec3 up = mix(uSkyHorizon, uSkyZenith, 0.6) * (0.6 + 0.6 * uLight) + uSunColor * pow(max(dot(normalize(vec3(n.x, 1.0, n.z)), normalize(uSunDir)), 0.0), 40.0) * 1.5;
+          col = mix(fogColor * 1.25, up, win);
+          alpha = 1.0;
+        }
         gl_FragColor = vec4(col, alpha);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
