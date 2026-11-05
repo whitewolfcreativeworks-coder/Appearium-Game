@@ -164,6 +164,7 @@ export class SkySystem {
     this.sun.target.position.set(fx, focus.y, fz);
     this.sun.position.copy(lightDir).multiplyScalar(160).add(this.sun.target.position);
     this.hemi.intensity = (0.22 + 0.36 * day) * (0.85 + w.clouds * 0.4) + this.flash * 2.5;
+    this.hemi.intensity *= 1 - 0.55 * (this.indoor || 0); // indoors the open sky lights you less
     this.hemi.color.setRGB(lerp(0.25, 0.72, day), lerp(0.3, 0.8, day), lerp(0.45, 0.95, day));
     this.hemi.groundColor.setRGB(lerp(0.05, 0.3, day), lerp(0.05, 0.27, day), lerp(0.06, 0.2, day));
 
@@ -219,7 +220,7 @@ export class SkySystem {
     // image based lighting from the sky, refreshed occasionally
     const needEnv = Math.abs(this.time - this.lastEnvTime) > 0.35 || this.lastEnvWeather !== this.weatherName;
     if (needEnv) this.refreshEnv();
-    this.scene.environmentIntensity = (0.35 + 0.65 * day) * (1 - w.clouds * 0.35);
+    this.scene.environmentIntensity = (0.35 + 0.65 * day) * (1 - w.clouds * 0.35) * (1 - 0.5 * (this.indoor || 0));
   }
 
   refreshEnv() {

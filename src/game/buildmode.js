@@ -88,7 +88,10 @@ export class BuildMode {
     const def = BUILD[this.piece.t] || { snap: 'free' };
     const s = snapPose(def, p.x, p.z, this.rot);
     if (def.snap === 'cell' || def.snap === 'free') s.rot = def.snap === 'cell' ? Math.round(this.rot / (Math.PI / 2)) * (Math.PI / 2) : s.rot;
-    return { ...this.piece, ...s };
+    // inside one of the village's buildings things stand on its floor; hanging things go up on the beams
+    const inside = v.structAt?.(s.x, s.z);
+    s.y = inside ? (def.hang ? 0.12 + inside.H - 0.12 : 0.12) : 0;
+    return { ...this.piece, ...s, inside: inside?.id || null };
   }
   valid(pc) {
     const v = this.village, g = this.game, def = BUILD[pc.t];
@@ -100,6 +103,13 @@ export class BuildMode {
     for (const b of g.save.builds) {
       if (kind(b.t) !== 'free' && kind(b.t) === kind(pc.t) && Math.abs(b.x - pc.x) < 0.1 && Math.abs(b.z - pc.z) < 0.1) return 'Something is already built there.';
       if (kind(pc.t) === 'free' && kind(b.t) === 'free' && Math.hypot(b.x - pc.x, b.z - pc.z) < 0.4) return 'Too close to something else.';
+    }
+    // inside the village's buildings: furniture and decorations only, and hanging things need a ceiling
+    if (def?.hang && !pc.inside) return 'Hang it from the beams inside a building.';
+    if (def && def.snap !== 'free' && v.structAt?.(pc.x, pc.z, -0.8)) return 'That would be inside one of the village buildings.';
+    for (const c of def?.hang ? [] : v.structColliders || []) {
+      const r = 0.25;
+      if (c.r !== undefined ? Math.hypot(c.x - pc.x, c.z - pc.z) < c.r + r : (() => { const cs = Math.cos(-(c.rot || 0)), sn = Math.sin(-(c.rot || 0)), dx = pc.x - c.x, dz = pc.z - c.z, lx = dx * cs - dz * sn, lz = dx * sn + dz * cs; return Math.abs(lx) < c.hw + r && Math.abs(lz) < c.hd + r; })()) return 'Something is in the way there.';
     }
     // don't build into the village's own buildings
     for (const c of v.baseColliders || []) {
@@ -120,7 +130,7 @@ export class BuildMode {
     if (!pc) { if (this.ghost) this.ghost.visible = false; $('build-cost').textContent = 'Look at the ground where you want to build'; return; }
     const bad = this.valid(pc);
     this.ghost.visible = true;
-    this.ghost.position.set(pc.x, this.village.h0 + 0.01, pc.z); this.ghost.rotation.y = pc.rot;
+    this.ghost.position.set(pc.x, this.village.h0 + 0.01 + (pc.y || 0), pc.z); this.ghost.rotation.y = pc.rot;
     this.ghost.traverse((o) => { if (o.isMesh) o.material = bad ? this.ghostMat.bad : this.ghostMat.ok; });
     $('build-cost').textContent = bad || (pc.t === 'artifact' ? 'Costs 2 wood' : pc.t === 'fish_trophy' ? 'Costs 1 wood and the fish' : costText(BUILD[pc.t].cost));
   }
@@ -139,7 +149,7 @@ export class BuildMode {
     const bad = this.valid(pc); if (bad) { g.ui.toast(bad); return; }
     const cost = pc.t === 'artifact' ? { wood: 2 } : pc.t === 'fish_trophy' ? { wood: 1, [pc.fish]: 1 } : BUILD[pc.t].cost;
     for (const [k, n] of Object.entries(cost)) { g.save.store[k] -= n; if (g.save.store[k] <= 0) delete g.save.store[k]; }
-    const rec = { t: pc.t, x: pc.x, z: pc.z, rot: +pc.rot.toFixed(4) }; if (pc.uid) rec.uid = pc.uid; if (pc.fish) rec.fish = pc.fish;
+    const rec = { t: pc.t, x: pc.x, z: pc.z, rot: +pc.rot.toFixed(4) }; if (pc.uid) rec.uid = pc.uid; if (pc.fish) rec.fish = pc.fish; if (pc.y) rec.y = +pc.y.toFixed(3);
     g.save.builds.push(rec); writeSave(g.save);
     v.buildPlaced(); if (pc.t === 'artifact') v.buildDynamic();
     g.audio.craft?.();

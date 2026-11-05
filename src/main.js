@@ -19,6 +19,7 @@ import { SoundScape } from './audio/audio.js';
 import { UI } from './ui/ui.js';
 import { Body, CONDITIONS } from './game/body.js';
 import { PostFX } from './world/postfx.js';
+import { openPlot, openStation, openHearth, provisionsHtml, useProvision, openBed, villageDay } from './game/villageUI.js';
 import { Ripples, Reflection } from './world/waterfx.js';
 import { itemInfo, parseKey, know, CATS as ICATS, recognised, speciesOf, catOf } from './game/inventory.js';
 import { interactForage, forageLabel, eatRaw, herbalist } from './game/foraging.js';
@@ -298,6 +299,7 @@ class Game {
       this.pack = { items: {}, artifacts: [] };
       this.traps = [];
       writeSave(this.save);
+      villageDay(this); // a day passes while you're away: the garden grows
       await this.enterVillage({ fromExpedition: true });
       if (this.body.conds.some((c) => c.type === 'envenomed')) { this.body.conds = this.body.conds.filter((c) => c.type !== 'envenomed'); setTimeout(() => this.ui.toast('Maren cleans and dresses the snakebite, and gives you something for the pain. You made it home in time.', true), 900); }
       const parts = Object.entries(brought).map(([k, v]) => `${v} ${itemInfo(k).name.toLowerCase()}`);
@@ -418,7 +420,11 @@ class Game {
     const w = this.world;
     switch (i.type) {
       case 'gather': {
-        const got = this.addToPack(i.item, i.qty, true);
+        // iron tools from the forge: twice the wood, half again the stone and ore
+        let qty = i.qty; const u = this.save.upgrades;
+        if (u.axe && (i.item === 'wood' || i.item === 'driftwood')) qty *= 2;
+        if (u.pick && ['stone', 'copper', 'iron', 'quartz', 'amethyst', 'sandstone', 'clay'].includes(i.item)) qty = Math.ceil(qty * 1.5);
+        const got = this.addToPack(i.item, qty, true);
         if (!got) { this.ui.toast('Your pack is full. Return home to store what you carry.'); return; }
         let bonusTxt = '';
         if (i.bonus) for (const [k, v] of Object.entries(i.bonus)) { const b = this.addToPack(k, v, true); if (b) bonusTxt += `, +${b} ${ITEMS[k].name.toLowerCase()}`; }
@@ -462,7 +468,10 @@ class Game {
       case 'forage': interactForage(this, i); break;
       case 'tracks': this.examineTracks(i); break;
       case 'herbalist': herbalist(this); break;
-      case 'hearth': openCooking(this, 'hearth'); break;
+      case 'hearth': openHearth(this); break;
+      case 'plot': openPlot(this, i.plot); break;
+      case 'station': openStation(this, i.station, i.plot); break;
+      case 'bed': openBed(this, i.bed); break;
     }
   }
 
@@ -548,6 +557,7 @@ class Game {
       <div class="sub"> ${inExp ? `${this.packCount()} things carried. Everything here is kept once you return home.` : 'You are at home. Your belongings are in the storehouse.'}</div>
       <div class="kv">Hunger <b>${body.satiety > 70 ? 'satisfied' : body.satiety > 35 ? 'peckish' : body.satiety > 15 ? 'hungry' : 'starving'}</b>${body.chips().length ? ' · ' + body.chips().map((c) => CONDITIONS[c].label).join(', ') : ''}</div>
       ${inExp ? this.itemGrid(this.pack.items, 'Your pack is empty. Look around for things to gather.', { eat: true }) : ''}
+      ${provisionsHtml(this)}
       ${arts ? `<h3>Artifacts</h3>${arts}` : ''}
       <h3>Fishing bait</h3><div class="pills">${bait}</div>
       <h3>Traps</h3>${trapsPanelHtml(this)}
@@ -555,6 +565,7 @@ class Game {
       <div class="actions">${inExp ? '<button class="btn ghost" data-act="worms">Dig for worms here</button>' : ''}<button class="btn ghost" data-act="close">Close</button></div>`;
     this.ui.showPanel(html, (act, d) => {
       if (act === 'eat') { eatRaw(this, d.k); this.ui.closePanel(); this.openPack(); }
+      if (act === 'prov') { useProvision(this, d.k); this.ui.closePanel(); this.openPack(); }
       if (act === 'worms') { this.ui.closePanel(); this.digWorms(); }
       if (act === 'trapset') { this.ui.closePanel(); setTrap(this, d.id); }
       if (act === 'trapmake') {
@@ -609,10 +620,12 @@ class Game {
   openRest() {
     this.ui.showPanel(`<button class="close" data-act="close">Close</button><h2>Home</h2><div class="sub">A warm hearth and a dry bed. The fire has been banked since you left.</div>
       <div class="actions"><button class="btn" data-act="cook">Cook at the hearth</button><button class="btn" data-act="morning">Sleep until morning</button><button class="btn" data-act="evening">Rest until evening</button></div>`, async (act) => {
-      if (act === 'cook') { openCooking(this, 'hearth'); return; }
+      if (act === 'cook') { openHearth(this); return; }
       this.ui.closePanel();
       await this.ui.fade(true, { title: act === 'morning' ? 'Morning' : 'Evening' });
-      this.sky.time = act === 'morning' ? 7.2 : 18.3; this.sky.refreshEnv(); this.persist();
+      this.sky.time = act === 'morning' ? 7.2 : 18.3; this.sky.refreshEnv();
+      if (act === 'morning') { villageDay(this); if ((this.save.village.plots.home?.level || 1) >= 3) { this.body.satiety = Math.max(this.body.satiety, 85); this.body.add('fed', { dur: 600, msg: false }); } }
+      this.persist();
       await this.ui.fade(false);
     });
   }

@@ -30,6 +30,14 @@ export const ITEMS = {
   sea_glass:   { name: 'Sea glass', cat: 'material', value: 3, desc: 'Old glass, tumbled smooth and frosted by the sea. Green, white, and the rare blue.' },
   driftwood:   { name: 'Driftwood', cat: 'material', value: 2, desc: 'Silver, salt-hardened wood from the beach.' },
   feather:     { name: 'Feathers', cat: 'material', value: 1, desc: 'Moulted feathers, picked up near water. Used to tie flies.' },
+  barley:      { name: 'Barley', cat: 'material', value: 1, desc: 'Grain from your garden — plant it to grow more, or grind it into flour at a mill.' },
+  flour:       { name: 'Flour', cat: 'material', value: 2, desc: 'Ground barley. Bake it into bread at a hearth.' },
+  copper_ingot:{ name: 'Copper ingot', cat: 'material', value: 8, desc: 'Smelted at the forge.' },
+  iron_bar:    { name: 'Iron bar', cat: 'material', value: 7, desc: 'Forged from bog iron. Tools, fittings, hinges.' },
+  pottery:     { name: 'Pottery', cat: 'material', value: 4, desc: 'Fired clay pots and jars.' },
+  tile:        { name: 'Roof tiles', cat: 'material', value: 1, desc: 'Fired clay tiles for a roof that lasts.' },
+  rope:        { name: 'Rope', cat: 'material', value: 3, desc: 'Strong three-strand rope.' },
+  cloth:       { name: 'Cloth', cat: 'material', value: 4, desc: 'Rough woven cloth.' },
 };
 
 

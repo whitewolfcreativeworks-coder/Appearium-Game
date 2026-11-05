@@ -14,6 +14,7 @@ export const CONDITIONS = {
   envenomed: { label: 'Snakebite — get home', color: '#e05a4a' },
   bitten: { label: 'Bitten', color: '#d8b46a' },
   bruised: { label: 'Bruised', color: '#d8a06a' },
+  tonic: { label: 'Diver\'s tonic', color: '#8fd0e8' },
 };
 
 export class Body {
@@ -41,7 +42,7 @@ export class Body {
   eat(food) { this.satiety = clamp(this.satiety + food * 9, 0, 100); if (this.satiety > 75 && food >= 3) this.add('fed', { dur: 300 + food * 30 }); }
 
   // how long you can stay under: about 40 s, nearer a minute when well fed
-  get breathSecs() { return this.has('fed') ? 55 : 40; }
+  get breathSecs() { return (this.has('fed') ? 55 : 40) * (this.has('tonic') ? 1.5 : 1); }
   breathUpdate(dt, underwater) {
     const g = this.game;
     if (underwater) {

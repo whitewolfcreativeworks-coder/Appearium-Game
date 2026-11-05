@@ -11,7 +11,7 @@ import { Builder, M, cloth } from '../world/structures.js';
 import { KIND_INFO } from '../world/vegetation.js';
 import { buildArtifactMesh } from './artifacts3d.js';
 import { itemInfo } from './inventory.js';
-import { FISH } from '../data/species.js';
+import { FISH, PLANTS } from '../data/species.js';
 import { buildFish } from '../world/fishModel.js';
 
 const H = 2.6; // wall height
@@ -103,6 +103,37 @@ export const BUILD = {
     b.colliders.push({ x: 0, z: 0, r: 0.2 }); } },
   stone_path:   { cat: 'decor', name: 'Stepping stones', cost: { stone: 2 }, snap: 'free', make: (b) => { for (const [x, z, r] of [[-0.4, -0.3, 0.3], [0.35, 0.1, 0.26], [-0.1, 0.5, 0.24]]) b.cyl(M.stone, r, r * 1.05, 0.06, x, 0.03, z, { seg: 9 }); } },
   stone_cairn:  { cat: 'decor', name: 'Stone cairn', cost: { stone: 4 }, snap: 'free', make: (b) => { let y = 0; for (let k = 0; k < 5; k++) { const r = 0.3 - k * 0.05, h = 0.16 - k * 0.015; b.cyl(M.stone, r, r * 0.9, h, (k % 2) * 0.03, y + h / 2, 0, { seg: 7, ry: k }); y += h; } b.colliders.push({ x: 0, z: 0, r: 0.3 }); } },
+  // ---- made with what the village's buildings produce (and for inside your buildings)
+  shell_chandelier: { cat: 'decor', name: 'Seashell chandelier', cost: { shell: 16, driftwood: 2, rope: 1, sea_glass: 2 }, snap: 'free', hang: true, light: true, make: (b) => {
+    // a driftwood hoop hung from the ceiling on rope, strings of shells and sea glass, candles on the hoop
+    b.add(VCline(), prim(vcol(new THREE.CylinderGeometry(0.008, 0.008, 0.7, 4).translate(0, -0.35, 0), '#b8a888')));
+    const hoop = new THREE.TorusGeometry(0.42, 0.035, 6, 20).rotateX(Math.PI / 2).translate(0, -0.72, 0); b.add(M.grey, prim(hoop));
+    for (let k = 0; k < 3; k++) { const a = k * 2.094; b.add(VCline(), prim(vcol(new THREE.CylinderGeometry(0.005, 0.005, 0.5, 3).rotateZ(Math.cos(a) * 0.6).rotateX(-Math.sin(a) * 0.6).translate(Math.cos(a) * 0.21, -0.5, Math.sin(a) * 0.21), '#b8a888'))); }
+    for (let k = 0; k < 12; k++) { const a = k * 0.5236, x = Math.cos(a) * 0.42, z = Math.sin(a) * 0.42, len = 0.25 + (k % 3) * 0.12;
+      b.add(VCline(), prim(vcol(new THREE.CylinderGeometry(0.003, 0.003, len, 3).translate(x, -0.72 - len / 2, z), '#d8d0b8')));
+      for (const g of shellsGeo(2, 0.01, 0, 40 + k)) { g.translate(x, -0.75 - len * 0.5, z); b.add(vcMats().gloss, g); }
+      if (k % 3 === 0) b.add(vcMats().glass, prim(vcol(new THREE.DodecahedronGeometry(0.035, 0).translate(x, -0.74 - len, z), ['#7ac8b8', '#a8d8c8', '#6a98c8', '#c8e0d8'][k % 4]))); }
+    for (let k = 0; k < 4; k++) { const a = k * 1.571 + 0.4; b.cyl(M.planks, 0.03, 0.03, 0.12, Math.cos(a) * 0.42, -0.62, Math.sin(a) * 0.42, { seg: 6 }); b.box(M.glow, 0.025, 0.04, 0.025, Math.cos(a) * 0.42, -0.53, Math.sin(a) * 0.42); }
+  } },
+  crystal_lamp: { cat: 'decor', name: 'Crystal lamp', cost: { quartz: 2, copper_ingot: 1, wood: 1 }, snap: 'free', light: true, make: (b) => {
+    b.cyl(M.darkwood, 0.18, 0.2, 0.08, 0, 0.04, 0, { seg: 10 }); b.cyl(M.iron, 0.02, 0.02, 1.2, 0, 0.64, 0, { seg: 6 }); b.box(M.glow, 0.14, 0.16, 0.14, 0, 1.3, 0);
+    const k = KIND_INFO.crystalGeo?.quartz; if (k) b.add(M.crystal, prim(k.clone().scale(1.1, 1.1, 1.1).translate(0, 1.32, 0))); b.colliders.push({ x: 0, z: 0, r: 0.2 }); } },
+  clay_vases: { cat: 'decor', name: 'Clay vases', cost: { pottery: 2 }, snap: 'free', make: (b) => {
+    for (const [x, z, h, r] of [[-0.15, 0, 0.55, 0.16], [0.18, 0.08, 0.38, 0.13], [0.02, -0.2, 0.28, 0.1]]) b.add(M.pot, new THREE.LatheGeometry([[0, 0], [r * 0.7, 0], [r, h * 0.35], [r * 0.9, h * 0.7], [r * 0.45, h * 0.88], [r * 0.55, h]].map(([a, y]) => new THREE.Vector2(a, y)), 14).translate(x, 0, z));
+    b.colliders.push({ x: 0, z: 0, r: 0.3 }); } },
+  woven_rug: { cat: 'decor', name: 'Woven rug', cost: { cloth: 2 }, snap: 'free', make: (b) => {
+    const cols = ['#8a3a2a', '#d8c070', '#3a5a7a', '#e8e0cc'];
+    for (let k = 0; k < 7; k++) b.add(vcMats().matte, prim(vcol(new THREE.BoxGeometry(2.0, 0.015, 0.2).translate(0, 0.01, -0.6 + k * 0.2), cols[k % 4])));
+    b.add(vcMats().matte, prim(vcol(new THREE.BoxGeometry(2.1, 0.012, 1.5).translate(0, 0.004, 0), '#5a2a20'))); } },
+  tapestry: { cat: 'decor', name: 'Woven hanging', cost: { cloth: 3, rope: 1, wood: 2 }, snap: 'free', make: (b) => {
+    for (const sx of [-1, 1]) b.box(M.darkwood, 0.06, 2.1, 0.06, sx * 0.7, 1.05, 0); b.box(M.darkwood, 1.6, 0.06, 0.06, 0, 2.05, 0);
+    const cols = ['#3a5a7a', '#d8c070', '#8a3a2a', '#e8e0cc', '#4a6a3a'];
+    for (let k = 0; k < 8; k++) b.add(vcMats().matte, prim(vcol(new THREE.BoxGeometry(1.3, 0.16, 0.02).translate(0, 1.9 - k * 0.16, 0), cols[(k * 3) % 5])));
+    b.colliders.push({ x: 0, z: 0, hw: 0.75, hd: 0.08, rot: 0 }); } },
+  bookshelf: { cat: 'furniture', name: 'Shelves of curios', cost: { wood: 6, pottery: 1 }, snap: 'free', make: (b) => {
+    for (let i = 0; i < 4; i++) b.box(M.planks, 1.2, 0.05, 0.35, 0, 0.1 + i * 0.5, 0); for (const sx of [-1, 1]) b.box(M.darkwood, 0.05, 1.7, 0.35, sx * 0.6, 0.85, 0); b.box(M.darkwood, 1.2, 1.7, 0.03, 0, 0.85, -0.17);
+    for (let i = 0; i < 3; i++) for (let k = 0; k < 4; k++) b.add(M.pot, new THREE.CylinderGeometry(0.05, 0.05, 0.14 + (k % 2) * 0.06, 8).translate(-0.4 + k * 0.27, 0.2 + i * 0.5 + 0.08, 0));
+    b.colliders.push({ x: 0, z: 0, hw: 0.62, hd: 0.2, rot: 0 }); } },
   fish_trophy:  { cat: 'decor', name: 'Mounted fish', cost: { wood: 1, anyfish: 1 }, snap: 'free', fish: true, make: (b) => { b.box(M.darkwood, 0.08, 1.4, 0.08, 0, 0.7, 0); b.box(M.planks, 0.9, 0.4, 0.05, 0, 1.45, 0, { ts: 0.6 }); b.colliders.push({ x: 0, z: 0, r: 0.15 }); } },
 };
 function roofPanel(b, mat) {
@@ -126,14 +157,26 @@ export function snapPose(def, x, z, rot) {
   }
   return { x: Math.round(x * 4) / 4, z: Math.round(z * 4) / 4, rot: Math.round(rot / (Math.PI / 8)) * (Math.PI / 8) };
 }
+// "any of a kind" costs: any fish, any game meat, any edible green you have identified
+const MEAT = ['hare', 'squirrel', 'crab', 'crayfish'];
+export function anyKeys(store, kind) {
+  return Object.keys(store).filter((k) => store[k] > 0 && (kind === 'anyfish' ? !!FISH[k] : kind === 'anymeat' ? MEAT.includes(k) : kind === 'anygreen' ? k.startsWith('v:') && PLANTS[k.slice(2)]?.kind === 'green' && ['edible', 'caution'].includes(PLANTS[k.slice(2)]?.status) : false));
+}
+const ANY = { anyfish: 'fish', anymeat: 'game meat', anygreen: 'edible greens' };
 export function canAfford(store, cost) {
   for (const [k, v] of Object.entries(cost)) {
-    if (k === 'anyfish') { if (!Object.keys(store).some((s) => FISH[s] && store[s] > 0)) return false; continue; }
+    if (ANY[k]) { if (anyKeys(store, k).reduce((a, x) => a + store[x], 0) < v) return false; continue; }
     if ((store[k] || 0) < v) return false;
   }
   return true;
 }
-export function costText(cost) { return Object.entries(cost).map(([k, v]) => `${v} ${k === 'anyfish' ? 'fish' : itemInfo(k).name.toLowerCase()}`).join(', '); }
+export function payCost(store, cost) {
+  for (const [k, v] of Object.entries(cost)) {
+    if (ANY[k]) { let n = v; for (const x of anyKeys(store, k)) { const t = Math.min(n, store[x]); store[x] -= t; n -= t; if (!store[x]) delete store[x]; if (!n) break; } continue; }
+    store[k] -= v; if (store[k] <= 0) delete store[k];
+  }
+}
+export function costText(cost, store = null) { return Object.entries(cost).map(([k, v]) => { const have = store ? (ANY[k] ? anyKeys(store, k).reduce((a, x) => a + store[x], 0) : store[k] || 0) : null; const t = `${v} ${ANY[k] || itemInfo(k).name.toLowerCase()}`; return store ? `<span class="${have >= v ? 'ok' : 'no'}">${t} (${have})</span>` : t; }).join(', '); }
 
 // build one placed piece into a master builder (world space). Returns { colliders, statics, extra }
 export function buildPiece(master, piece, h0, save) {

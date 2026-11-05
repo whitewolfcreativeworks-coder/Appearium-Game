@@ -159,19 +159,51 @@ workshop (with a quick check at the end), make them from wood, fibre and stone, 
 from your pack. Placement matters: a snare across a hare run catches; one in open grass almost
 never does. Fish baskets want shallow flowing water.
 
-### Building your own place
+### Your village: buildings, plots, the garden
 
-Everything you bring home can go into your own house. Press **Build** (or B) in the village, or
-use the workshop: floors, walls (plank, log, stone, driftwood, canyon sandstone, with windows and
-doorways) and roofs (thatch, tiles, palm fronds) snap to a 2 m grid; furniture (bed, table, bench,
-storage chest, display shelf, stone hearth with a real fire, lantern posts) and decorations (a bowl
-of seashells, a shell wind chime, a sea-glass mobile, driftwood sculptures, benches and fences,
-crystal displays, pelt rugs, pots of wildflowers, stepping stones, cairns, your best fish mounted)
-go anywhere and can be turned. Artifacts can be put on stands in your house instead of the Hall.
-A bed you build is a place to rest, a hearth cooks, a chest opens your stores. Everything taken
-down is refunded. Some materials only come from certain lands: shells, driftwood and sea glass
-from the coast, sandstone slabs from the canyon, palm fronds from the tropics, crystals from the
-highlands, clay from the fens.
+**Every building is walk-in.** Your home, the storehouse and the workshop stand on plots in the
+yard, with real doorways, windows you can see out of, furnished rooms, rafters overhead and a
+warm lamp when you're inside. You rest in your bed, open your chest, cook at the hearth, work at
+the workbench — inside.
+
+**Tap a building's door** (✋ / E at the doorstep) to manage it:
+- **Upgrade** it (up to three levels for your home): bigger, with more inside — level 2 adds a
+  stone hearth for cooking and baking; level 3 a second bed and a window seat, and resting there
+  you wake well fed.
+- **Choose its architecture**: timber & thatch, whitewashed, plank & tile, stone & tile, canyon
+  sandstone with a flat roof, beach driftwood, or palm & plank under fronds. Each style needs its
+  own materials — sandstone from the canyon, driftwood from the coast, fronds from the tropics,
+  roof tiles from your kiln.
+- **Convert** it into a different kind of building (half its cost comes back).
+
+**Empty plots** (marked with stakes and a sign) take any of six workshops, each turning what you
+gather into something better:
+- **Forge** — smelt copper and iron ore into ingots and bars; at level 2, an iron axe (twice the
+  wood) and pick (half again the stone and ore).
+- **Mill** — grind barley into flour (bake bread at your hearth).
+- **Smokehouse** — smoke fish and game into provisions that keep.
+- **Pottery kiln** — fire clay into pots and roof tiles.
+- **Weaver's hut** — twist fibre into rope and weave cloth.
+- **Apothecary** — pressure bandages for snakebite (they slow the venom and buy you time),
+  herbal salve for bruises, bites and stings, and a diver's tonic (hold your breath half as long
+  again).
+
+Bigger upgrades need these finer materials (rope, iron bars, tiles…), so the village grows
+step by step from what you bring home. **Provisions** (bread, smoked food, bandages, salves,
+tonic) go with you everywhere — eat or use them from your Pack.
+
+**The garden** lies outside the small south gate behind Maren's hut: eight beds where anything
+you gather alive will grow — barley (you start with some seed), berries, greens, even mushrooms
+on a log. A day passes each time you sleep through the night or come home from an expedition;
+then harvest more than you planted. What you plant grows true: a mistaken identification stays
+mistaken.
+
+**Decorating.** Build mode (Build button, or *Decorate…* on any building) places furniture and
+decorations anywhere — on the floors inside your buildings too — including a seashell
+chandelier hung from the beams, a crystal lamp, clay vases, woven rugs and hangings, shelves of
+curios, and everything from before: shell bowls and chimes, sea-glass mobiles, driftwood art,
+crystals, pelt rugs, mounted fish and your artifacts on stands. You can still raise freehand
+walls, floors and roofs on open ground. Everything you take down is refunded.
 
 ### Danger
 
@@ -328,6 +360,8 @@ src/world/beasts.js        mountain lion, wolves, coyotes, moose, elk, boar, goa
 src/world/waterfx.js       ripple solver and mirror reflections for the water
 src/world/sea.js           underwater life: fish schools, weed, kelp, coral, sharks
 src/game/building.js, buildmode.js   building & decorating your place
+src/game/villagePlan.js, villageUI.js   plots, buildings, crafts, the garden, provisions
+src/world/houses.js        walk-in buildings: walls with openings, roofs, furnished interiors
 src/game/              items & artifacts, save, player & input, fishing, artifact 3D models
 src/audio/audio.js     3D soundscape: recordings placed in the world, beds, synth fallbacks
 src/ui/ui.js           HUD helpers
@@ -356,7 +390,8 @@ choose *Low* in the ≡ menu; dynamic resolution also kicks in below ~27 fps.
 - Animals in herds and flocks, bears, deer, big cats, moose, wolves, seals, whales and snakes are procedural low-poly
   models: convincing as silhouettes and in motion at the distances you usually see them, plain
   up close.
-- Building is single-storey for now, inside the palisade, on the flat village yard.
+- Buildings and freehand building are single-storey; there are eight plots and eight garden beds.
+- People are not yet simulated in the village (Maren is implied by her hut and her advice).
 - People are implied (honesty stalls, chimney smoke) rather than simulated; there are no NPCs.
 - There is no shooting or hunting by design — food comes from foraging, fishing, traps and crabs.
 - Small animals (songbirds, hares, squirrels, ducks) are simple procedural models — convincing

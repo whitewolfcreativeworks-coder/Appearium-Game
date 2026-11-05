@@ -13,14 +13,17 @@ import { KIND_INFO } from './vegetation.js';
 import { ITEMS } from '../game/items.js';
 import { makeHomeGen, homeRoadCurve, HOME_R, ROAD_START } from './generator.js';
 import { buildRoadMesh } from './road.js';
-import { buildPiece } from '../game/building.js';
+import { buildPiece, BUILD } from '../game/building.js';
+import { buildStructure, FLOOR, SIZES, STYLES, WIN_GLASS } from './houses.js';
+import { PLOTS, plotRy, STRUCTS, GARDEN, START_STYLES, cropDays } from '../game/villagePlan.js';
+import { PLANTS, MUSHROOMS } from '../data/species.js';
 
 export const HOME_LAYERS = { home: 'rocky_terrain_02', forest: 'forest_leaves_03', rock: 'aerial_rocks_02', shore: 'coast_sand_rocks_02', dest: 'rocky_terrain_02' };
 export const HOME_ECO = { treeDensity: 0.026, conifer: 0.55, broad: 0.45, snag: 0.02, fern: 0.5, grass: 1.1, flowers: 0.6, rocks: 0.3, logs: 0.3, minerals: [], fungi: 0.6, flora: 0.8 };
 
 // keep scatter out of the village yard (the palisade ring is the boundary)
 export function filterYard(res, R) {
-  const inside = (x, z) => x * x + z * z < (R + 6) ** 2;
+  const inside = (x, z) => { const r2 = x * x + z * z; if (r2 < (R + 6) ** 2) return true; const a = Math.atan2(z, x), da = Math.abs(Math.atan2(Math.sin(a - GARDEN.gateAngle), Math.cos(a - GARDEN.gateAngle))); return da < GARDEN.half + 0.12 && r2 < (R + GARDEN.depth + 4) ** 2; };
   res.interactables = res.interactables.filter((i) => !inside(i.pos.x, i.pos.z));
   res.colliders = res.colliders.filter((col) => !inside(col.x, col.z));
   for (const [k, v] of res.veg) {
@@ -33,6 +36,9 @@ export function filterYard(res, R) {
   }
   return res;
 }
+
+const CLOTH = {}; const cl = (c) => CLOTH[c] || (CLOTH[c] = cloth(c));
+function surfSoil() { return surfSoil.m || (surfSoil.m = new THREE.MeshStandardMaterial({ map: tex('terrain/brown_mud_leaves_01_diff.jpg'), color: 0x8a7060, roughness: 1 })); }
 
 export class Village extends World {
   constructor(game) {
@@ -64,26 +70,12 @@ export class Village extends World {
     this.noGrass.push({ x: 0, z: 0, r: 7.5 });
     // ------------------------------------------------ static structures
     const b = new Builder();
-    const pal = palisade(b, this.R, this.gateAngle);
+    const pal = palisade(b, this.R, this.gateAngle, 0.11, [{ a: GARDEN.gateAngle, half: 0.035 }]);
     this.gatePos = pal.gate.clone().setY(h0);
     // well & square
     well(b, 0, 0);
-    // home
-    const homeP = { x: -15, z: 5 }, homeRy = Math.atan2(15, -5);
-    const home = cabin(b, { x: homeP.x, z: homeP.z, ry: homeRy, w: 7, d: 5.5, h: 2.8, wall: M.logs, roof: M.thatch, windows: [2.2, -2.2] });
-    this.noGrass.push({ x: homeP.x, z: homeP.z, r: 4.5 });
-    // storehouse
-    const stP = { x: 15, z: 6 }, stRy = Math.atan2(-15, -6);
-    const store = cabin(b, { x: stP.x, z: stP.z, ry: stRy, w: 5.5, d: 4.5, h: 2.6, wall: M.planks, roof: M.tiles, chimney: false, windows: [] , sideWindows: [] });
-    this.noGrass.push({ x: stP.x, z: stP.z, r: 4 });
-    // workshop: open shed
-    const wsP = { x: -14, z: -11 };
-    postsAndRoof(b, { w: 6, d: 4, x: wsP.x, z: wsP.z, roof: M.thatch, H: 2.6, posts: 3 });
-    b.box(M.planks, 2.6, 0.12, 0.9, wsP.x, 0.92, wsP.z - 0.9); // workbench
-    for (const sx of [-1.1, 1.1]) b.box(M.darkwood, 0.12, 0.9, 0.8, wsP.x + sx, 0.45, wsP.z - 0.9);
-    b.box(M.iron, 0.5, 0.35, 0.3, wsP.x + 1.8, 0.72, wsP.z + 0.6); b.cyl(M.logs, 0.3, 0.3, 0.55, wsP.x + 1.8, 0.27, wsP.z + 0.6);
-    b.colliders.push({ x: wsP.x, z: wsP.z - 0.9, hw: 1.4, hd: 0.5, rot: 0 }, { x: wsP.x + 1.8, z: wsP.z + 0.6, r: 0.4 });
-    this.noGrass.push({ x: wsP.x, z: wsP.z, r: 3.5 });
+    // home, storehouse, workshop and the other buildings stand on plots (see buildPlots)
+    const homeP = { x: -15, z: 5 }, stP = { x: 15, z: 6 }, stRy = plotRy(stP), wsP = { x: -14, z: -11 };
     // noticeboard
     // herbalist's hut, south side of the yard, herbs drying under the eaves
     const hbP = { x: 0, z: 22 };
@@ -127,7 +119,7 @@ export class Village extends World {
       const n = Math.ceil(L / 3); for (let i = 0; i <= n; i++) this.noGrass.push({ x: x0 + (x1 - x0) * i / n, z: z0 + (z1 - z0) * i / n, r: w * 0.6 });
     };
     path(0, -7, 0, -this.R + 0.5, 2.6);
-    this.add(buildRoadMesh(this, { to: 330, fadeEnd: 80 })); path(-6, 2.5, homeP.x + 3, homeP.z - 1); path(6, 2.5, stP.x - 2.6, stP.z - 1); path(-5, -4.5, wsP.x + 2, wsP.z + 1.5); path(5, -4.5, 12, -8.5); path(0, 7, 0, 19.2, 2);
+    this.add(buildRoadMesh(this, { to: 330, fadeEnd: 80 })); path(-6, 2.5, homeP.x + 3, homeP.z - 1); path(6, 2.5, stP.x - 2.6, stP.z - 1); path(-5, -4.5, wsP.x + 2, wsP.z + 1.5); path(5, -4.5, 12, -8.5); path(0, 7, 0, 19.2, 2); path(3.6, 19.5, 3.6, 27.5, 1.6); path(3.6, 27.5, 0, 33.6, 1.6);
 
     // ------------------------------------------------ trees inside the yard (hand placed)
     const trees = new Map();
@@ -140,16 +132,12 @@ export class Village extends World {
     // ------------------------------------------------ interactables
     const P = (x, z, y = 1) => new THREE.Vector3(x, h0 + y, z);
     this.addStatic({ type: 'gate', pos: this.gatePos.clone().add(new THREE.Vector3(0, 1, 2.5)), radius: 4, label: 'Set out through the North Gate' });
-    this.addStatic({ type: 'store', pos: P(stP.x - 2.6, stP.z - 1.0), radius: 2.6, label: 'Open the storehouse' });
-    this.addStatic({ type: 'craft', pos: P(wsP.x, wsP.z - 0.2), radius: 2.8, label: 'Work at the workbench' });
-    this.addStatic({ type: 'rest', pos: new THREE.Vector3(home.door.x, h0 + 1, home.door.z), radius: 2.2, label: 'Rest at home' });
     this.addStatic({ type: 'journal', pos: P(nbP.x, nbP.z + 0.6), radius: 2.4, label: 'Read the expedition journal' });
     this.addStatic({ type: 'well', pos: P(0, 0), radius: 2.0, label: 'Draw water from the well' });
     this.addStatic({ type: 'herbalist', pos: new THREE.Vector3(this.herbDoor.x, h0 + 1, this.herbDoor.z), radius: 2.6, label: 'Visit Maren the herbalist' });
     for (const [x, z] of [[1.6, 19.3]]) this.addStatic({ type: 'herbalist', pos: P(x, z), radius: 1.6, label: 'Ask Maren to check your basket' });
 
     // smoke & hearth
-    this.emitters.add(chimneySmoke(home.chimney.clone().setY(home.chimney.y + h0), 1));
     const hearth = campfire(new THREE.Vector3(6.5, h0, 2.5)); this.baseFires = [new THREE.Vector3(6.5, h0, 2.5)];
     this.emitters.add(hearth);
     const ring = new InstanceList(); for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283; ring.push(6.5 + Math.cos(a) * 0.65, h0, 2.5 + Math.sin(a) * 0.65, a * 3, 2.6); }
@@ -160,10 +148,116 @@ export class Village extends World {
 
     this.hall = { x: 14, z: -11, ry: Math.atan2(-14, 11) };
     this.store = { x: stP.x, z: stP.z, ry: stRy };
+    this.buildGardenFence();
     this.baseColliders = [...this.colliders.items.values()].map((c) => ({ ...c }));
+    // one warm light that moves to whichever building you are in
+    this.indoorLight = new THREE.PointLight(0xffc890, 0, 12, 1.6); this.indoorLight.position.set(0, -50, 0); this.add(this.indoorLight);
+    this.buildPlots();
+    this.buildGarden();
     this.buildDynamic();
     this.buildPlaced();
     this.emitters.add(chimneySmoke(this.herbChimney.clone().setY(this.herbChimney.y + h0), 0.8));
+  }
+
+  // ---------------------------------------------------------------- plots and the buildings on them
+  buildPlots() {
+    const save = this.game.save, h0 = this.h0;
+    if (this.plotGroup) { this.scene.remove(this.plotGroup); this.objects = this.objects.filter((o) => o !== this.plotGroup); this.plotGroup.traverse((m) => { if (m.isMesh && m.userData.disposable) m.geometry.dispose(); }); }
+    for (const id of this.structColliderIds || []) this.colliders.remove(id);
+    for (const e of this.plotEmitters || []) this.emitters.remove?.(e);
+    this.statics = this.statics.filter((st) => !st.plotStatic);
+    this.structColliderIds = []; this.plotEmitters = []; this.structs = []; this.fires = [];
+    this.noGrass = this.noGrass.filter((n) => !n.plot);
+    const b = new Builder();
+    for (const P of PLOTS) {
+      const st = save.village?.plots?.[P.id], ry = plotRy(P);
+      if (!st) { // an empty plot: corner stakes, a string line and a sign
+        const c = Math.cos(ry), sn = Math.sin(ry), W = 3.4, D = 2.6, loc = (x, z) => [P.x + x * c + z * sn, P.z - x * sn + z * c];
+        for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const [x, z] = loc(sx * W, sz * D); b.cyl(M.darkwood, 0.04, 0.03, 0.7, x, 0.35, z, { seg: 5 }); }
+        for (const [ax, az, bx, bz] of [[-1, -1, 1, -1], [1, -1, 1, 1], [1, 1, -1, 1], [-1, 1, -1, -1]]) { const [x0, z0] = loc(ax * W, az * D), [x1, z1] = loc(bx * W, bz * D); const L = Math.hypot(x1 - x0, z1 - z0); b.box(M.planks, L, 0.015, 0.015, (x0 + x1) / 2, 0.55, (z0 + z1) / 2, { ry: -Math.atan2(z1 - z0, x1 - x0) }); }
+        const [sx, sz] = loc(0, D + 0.4); b.box(M.darkwood, 0.08, 1.1, 0.08, sx, 0.55, sz); b.box(M.planks, 0.7, 0.4, 0.05, sx, 1.05, sz, { ry });
+        this.statics.push({ type: 'plot', plot: P.id, plotStatic: true, pos: new THREE.Vector3(sx, h0 + 1, sz), radius: 2.6, label: 'Empty plot — choose what to build here' });
+        continue;
+      }
+      const style = START_STYLES[st.style] || st.style;
+      const out = buildStructure(b, { x: P.x, z: P.z, ry, type: st.type, level: st.level, style });
+      const S = STRUCTS[st.type];
+      this.structs.push({ id: P.id, x: P.x, z: P.z, ry, w: out.w, d: out.d, H: out.H, light: out.lightPos, type: st.type });
+      this.statics.push({ type: 'plot', plot: P.id, plotStatic: true, pos: out.door.clone().setY(h0 + 1), radius: 1.6, label: `${S.name} — upgrade, restyle or convert` });
+      const names = { rest: 'rest', store: 'store', hearth: 'hearth', craft: 'craft' };
+      for (const sta of out.stations) this.statics.push({ type: names[sta.type] || 'station', station: sta.type, plot: P.id, plotStatic: true, pos: sta.pos.clone().setY(h0 + FLOOR + 1), radius: sta.radius, label: sta.label });
+      if (out.chimney) { const e = chimneySmoke(out.chimney.clone().setY(out.chimney.y + h0), st.type === 'house' ? 1 : 0.8); this.emitters.add(e); this.plotEmitters.push(e); }
+      if (out.fireW) this.fires.push(out.fireW.clone().setY(h0));
+      this.noGrass.push({ x: P.x, z: P.z, r: Math.max(out.w, out.d) / 2 + 0.6, plot: true });
+      if (P.id === 'store') this.storeW = out.w;
+      if (P.id === 'home') this.homeDoor = out.door;
+    }
+    for (const col of b.colliders) this.structColliderIds.push(this.colliders.add({ ...col }));
+    this.structColliders = b.colliders.map((c) => ({ ...c }));
+    const g = b.finish('plots'); g.position.y = h0; this.plotGroup = g; this.add(g);
+    if (this.grass) this.grass.clear();
+  }
+  // which building (if any) a point is inside, and the floor height there
+  structAt(x, z, pad = 0) {
+    for (const s of this.structs || []) {
+      const dx = x - s.x, dz = z - s.z, c = Math.cos(s.ry), sn = Math.sin(s.ry);
+      const lx = dx * c - dz * sn, lz = dx * sn + dz * c;
+      if (Math.abs(lx) < s.w / 2 - pad && Math.abs(lz) < s.d / 2 - pad) return s;
+    }
+    return null;
+  }
+  floorAt(x, z) { return this.structAt(x, z) ? FLOOR : 0; }
+
+  // ---------------------------------------------------------------- the garden, outside the south gate
+  gardenBeds() {
+    const out = [], R = this.R, A = GARDEN.gateAngle, n = GARDEN.beds / 2;
+    for (let row = 0; row < 2; row++) for (let i = 0; i < n; i++) {
+      const r = R + 3.0 + row * 3.4, span = GARDEN.half - 0.1, a = A - span + (i + 0.5) * (2 * span / n) + (i >= n / 2 ? 0.04 : -0.04);
+      out.push({ i: row * n + i, x: Math.cos(a) * r, z: Math.sin(a) * r, ry: -a + Math.PI / 2 });
+    }
+    return out;
+  }
+  buildGardenFence() {
+    const b = new Builder(), R = this.R, A = GARDEN.gateAngle, half = GARDEN.half, R2 = R + GARDEN.depth;
+    const post = (x, z) => b.cyl(M.darkwood, 0.06, 0.05, 1.1, x, 0.55, z, { seg: 6 });
+    const rail = (x0, z0, x1, z1) => { const L = Math.hypot(x1 - x0, z1 - z0); for (const y of [0.45, 0.85]) b.box(M.logs, L, 0.07, 0.07, (x0 + x1) / 2, y, (z0 + z1) / 2, { ry: -Math.atan2(z1 - z0, x1 - x0) }); };
+    const N = 18;
+    for (let i = 0; i <= N; i++) { const a = A - half + (i / N) * 2 * half; post(Math.cos(a) * R2, Math.sin(a) * R2); if (i) { const a0 = A - half + ((i - 1) / N) * 2 * half; rail(Math.cos(a0) * R2, Math.sin(a0) * R2, Math.cos(a) * R2, Math.sin(a) * R2); } }
+    for (const sgn of [-1, 1]) { const a = A + sgn * half; for (let k = 0; k <= 4; k++) { const r = R + (k / 4) * GARDEN.depth; post(Math.cos(a) * r, Math.sin(a) * r); if (k) { const r0 = R + ((k - 1) / 4) * GARDEN.depth; rail(Math.cos(a) * r0, Math.sin(a) * r0, Math.cos(a) * r, Math.sin(a) * r); } } }
+    // a water butt and a sign
+    b.cyl(M.planks, 0.35, 0.35, 0.9, Math.cos(A + 0.1) * (R + 1.5), 0.45, Math.sin(A + 0.1) * (R + 1.5), { seg: 12 });
+    const g = b.finish('garden-fence'); g.position.y = this.h0; this.add(g);
+    this.noGrass.push(...this.gardenBeds().map((q) => ({ x: q.x, z: q.z, r: 1.3 })));
+  }
+  buildGarden() {
+    const save = this.game.save, h0 = this.h0, day = save.village?.day || 0;
+    if (this.gardenGroup) { this.scene.remove(this.gardenGroup); this.objects = this.objects.filter((o) => o !== this.gardenGroup); this.gardenGroup.traverse((m) => { if (m.isMesh && m.userData.disposable) m.geometry.dispose(); }); }
+    this.statics = this.statics.filter((st) => !st.bedStatic);
+    const b = new Builder(), soil = surfSoil(), green = cl(0x4a7a2a), green2 = cl(0x6a9a3a), log = M.logs;
+    for (const q of this.gardenBeds()) {
+      const c = Math.cos(q.ry), sn = Math.sin(q.ry), L = (x, z) => [q.x + x * c + z * sn, q.z - x * sn + z * c];
+      b.box(M.planks, 2.2, 0.28, 1.4, q.x, 0.14, q.z, { ry: q.ry }); b.box(soil, 2.0, 0.06, 1.2, q.x, 0.27, q.z, { ry: q.ry });
+      const bed = save.village?.garden?.[q.i];
+      let label = 'Garden bed — plant something';
+      if (bed) {
+        const days = cropDays(bed.key), age = day - bed.day, stage = Math.min(3, Math.floor((age / days) * 3)), ready = age >= days;
+        const mush = bed.key.startsWith('f:'), sp = mush ? MUSHROOMS[bed.key.split(':')[1]] : bed.key === 'barley' ? null : PLANTS[bed.key.slice(2)];
+        const fruit = bed.key === 'barley' ? 0xd8c070 : sp?.kind === 'berry' ? (sp.color || 0x7a2a4a) : mush ? 0xc8a070 : null;
+        if (mush) { const [x, z] = L(0, 0); b.cyl(log, 0.22, 0.22, 1.8, x, 0.48, z, { rz: Math.PI / 2, ry: q.ry, seg: 9 }); }
+        for (let k = 0; k < 10; k++) {
+          const [x, z] = L(-0.8 + (k % 5) * 0.4, -0.3 + Math.floor(k / 5) * 0.6), y = 0.3;
+          if (mush) { if (stage >= 1 && k < 3 + stage * 2) { const [mx, mz] = L(-0.7 + (k % 7) * 0.24, (k % 2 ? 0.18 : -0.18)); b.cyl(M.planks, 0.02, 0.025, 0.08, mx, 0.68, mz, { seg: 5 }); b.cyl(cl(fruit), 0.0, 0.06 + stage * 0.012, 0.05, mx, 0.74, mz, { seg: 8 }); } continue; }
+          if (stage === 0) { b.cyl(green2, 0.0, 0.03, 0.08, x, y + 0.04, z, { seg: 4 }); continue; }
+          if (bed.key === 'barley') { for (let j = 0; j < 3; j++) { const hh = 0.25 + stage * 0.22; b.cyl(stage >= 3 ? cl(0xc8b060) : green2, 0.008, 0.012, hh, x + (j - 1) * 0.06, y + hh / 2, z, { seg: 3 }); if (stage >= 2) b.cyl(cl(stage >= 3 ? 0xd8c070 : 0x9ab050), 0.025, 0.02, 0.1, x + (j - 1) * 0.06, y + hh + 0.04, z, { seg: 5 }); } continue; }
+          const s2 = 0.08 + stage * 0.06; for (let j = 0; j < 3; j++) b.add(stage >= 2 ? green : green2, new THREE.IcosahedronGeometry(s2 * (0.8 + 0.2 * j), 1).scale(1.1, 0.75, 1.1).translate(x + (j - 1) * s2 * 0.6, y + s2 * 0.6, z + ((j * 7) % 3 - 1) * s2 * 0.4));
+          if (ready && fruit) for (let j = 0; j < 5; j++) b.add(cl(fruit), new THREE.SphereGeometry(0.03, 6, 4).translate(x + (j - 2) * 0.07, y + s2 * 1.1 + (j % 2) * 0.04, z + ((j * 3) % 3 - 1) * 0.06));
+        }
+        const name = bed.key === 'barley' ? 'barley' : bed.label || (sp?.name || 'plants').toLowerCase();
+        label = ready ? `Harvest the ${name}` : `${name[0].toUpperCase() + name.slice(1)} — growing (${['just planted', 'sprouting', 'growing well'][Math.min(2, stage)]})`;
+      }
+      this.statics.push({ type: 'bed', bed: q.i, bedStatic: true, pos: new THREE.Vector3(q.x, h0 + 0.8, q.z), radius: 1.6, label });
+    }
+    const g = b.finish('garden'); g.position.y = h0; this.gardenGroup = g; this.add(g);
   }
 
   // everything the player has built and placed (rebuilt whenever something changes)
@@ -177,7 +271,7 @@ export class Village extends World {
     const save = this.game.save, h0 = this.h0, b = new Builder(), extras = [];
     this.placedNoGrass = [];
     for (const piece of save.builds || []) {
-      const r = buildPiece(b, piece, h0, save); if (!r) continue;
+      const r = buildPiece(b, piece, h0, save); if (!r) continue; // (piece.y lifts it onto a floor or up to the beams)
       if (r.def?.snap === 'cell' && !r.def.roof) this.placedNoGrass.push({ x: piece.x, z: piece.z, r: 1.05 });
       if (piece.t === 'pelt_rug' || piece.t === 'stone_path') this.placedNoGrass.push({ x: piece.x, z: piece.z, r: 0.8 });
       for (const c of r.colliders) this.placedColliders.push(this.colliders.add(c));
@@ -240,15 +334,15 @@ export class Village extends World {
     const local = (lx, lz) => [sp.x + lx * c + lz * s, sp.z - lx * s + lz * c];
     const wood = Math.min(st.wood || 0, 48);
     for (let i = 0; i < wood; i++) {
-      const row = Math.floor(i / 8), k = i % 8; const [x, z] = local(3.6 + (row % 2) * 0.12, -1.6 + k * 0.42);
+      const row = Math.floor(i / 8), k = i % 8; const [x, z] = local((this.storeW || 5.4) / 2 + 0.9 + (row % 2) * 0.12, -1.6 + k * 0.42);
       b.cyl(M.logs, 0.17, 0.17, 1.4, x, 0.18 + row * 0.3, z, { rz: Math.PI / 2, ry: sp.ry, seg: 7 });
     }
-    if (wood) { const [x, z] = local(3.6, 0); b.colliders.push({ x, z, hw: 0.8, hd: 1.8, rot: -sp.ry }); }
+    if (wood) { const [x, z] = local((this.storeW || 5.4) / 2 + 0.9, 0); b.colliders.push({ x, z, hw: 0.8, hd: 1.8, rot: -sp.ry }); }
     const stone = Math.min(st.stone || 0, 40);
-    for (let i = 0; i < stone; i++) { const a = i * 2.4, r = 0.15 + Math.sqrt(i) * 0.14; const [x, z] = local(-3.6 + Math.cos(a) * r, -1 + Math.sin(a) * r); const geo = KIND_INFO.pebble0.geometry; const m = new THREE.Mesh(geo, KIND_INFO.pebble0.material); m.position.set(x, h0 + Math.max(0, 0.35 - r * 0.4), z); m.scale.setScalar(2.4); m.rotation.set(i, i * 2, 0); m.castShadow = true; dyn.add(m); }
+    for (let i = 0; i < stone; i++) { const a = i * 2.4, r = 0.15 + Math.sqrt(i) * 0.14; const [x, z] = local(-(this.storeW || 5.4) / 2 - 0.9 + Math.cos(a) * r, -1 + Math.sin(a) * r); const geo = KIND_INFO.pebble0.geometry; const m = new THREE.Mesh(geo, KIND_INFO.pebble0.material); m.position.set(x, h0 + Math.max(0, 0.35 - r * 0.4), z); m.scale.setScalar(2.4); m.rotation.set(i, i * 2, 0); m.castShadow = true; dyn.add(m); }
     // fish drying rack
     const fishTotal = Object.entries(st).filter(([k]) => ITEMS[k]?.cat === 'fish').reduce((a, [, v]) => a + v, 0);
-    const [rx, rz] = local(-3.6, 1.4);
+    const [rx, rz] = local(-(this.storeW || 5.4) / 2 - 1.0, 1.4);
     for (const sx of [-1, 1]) b.box(M.darkwood, 0.08, 1.9, 0.08, rx + sx * c * 1.1, 0.95, rz - sx * s * 1.1);
     b.box(M.darkwood, 2.4, 0.07, 0.07, rx, 1.85, rz, { ry: sp.ry });
     for (let i = 0; i < Math.min(fishTotal, 10); i++) {
@@ -259,10 +353,10 @@ export class Village extends World {
     // forage baskets and crates
     const forage = Object.entries(st).filter(([k]) => ITEMS[k]?.cat === 'forage').reduce((a, [, v]) => a + v, 0);
     const crates = Math.min(4, Math.ceil(((st.copper || 0) + (st.quartz || 0) + (st.iron || 0) + (st.amethyst || 0) + (st.clay || 0)) / 3));
-    for (let i = 0; i < crates; i++) { const cr = prop('wooden_crate_01'); const [x, z] = local(-1.2 + i * 0.9, 2.9); cr.position.set(x, h0, z); cr.rotation.y = sp.ry + i * 0.2; dyn.add(cr); }
-    for (let i = 0; i < Math.min(3, Math.ceil(forage / 6)); i++) { const bk = prop('wooden_bucket_01'); const [x, z] = local(1.2 + i * 0.5, 2.8); bk.position.set(x, h0, z); dyn.add(bk); }
+    for (let i = 0; i < crates; i++) { const cr = prop('wooden_crate_01'); const [x, z] = local(-(this.storeW || 5.4) / 2 - 0.9, -2.6 - i * 0.9); cr.position.set(x, h0, z); cr.rotation.y = sp.ry + i * 0.2; dyn.add(cr); }
+    for (let i = 0; i < Math.min(3, Math.ceil(forage / 6)); i++) { const bk = prop('wooden_bucket_01'); const [x, z] = local(1.4 + i * 0.5, 3.3); bk.position.set(x, h0, z); dyn.add(bk); }
     const pelts = Math.min(st.pelt || 0, 6);
-    for (let i = 0; i < pelts; i++) { const pm = new THREE.Mesh(new THREE.PlaneGeometry(0.45, 0.7), cloth(0x8a6a4a)); const [x, z] = local(-2.75 + i * 0.01, -0.2 - i * 0.55); pm.position.set(x, h0 + 1.6, z); pm.rotation.y = sp.ry + Math.PI / 2; dyn.add(pm); }
+    for (let i = 0; i < pelts; i++) { const pm = new THREE.Mesh(new THREE.PlaneGeometry(0.45, 0.7), cloth(0x8a6a4a)); const [x, z] = local(-(this.storeW || 5.4) / 2 - 0.02, -0.2 - i * 0.55); pm.position.set(x, h0 + 1.6, z); pm.rotation.y = sp.ry - Math.PI / 2; dyn.add(pm); }
 
     const bg = b.finish('village-dyn'); bg.position.y = h0; dyn.add(bg);
     for (const col of b.colliders) this.dynColliders.push(this.colliders.add({ ...col }));
@@ -287,8 +381,14 @@ export class Village extends World {
     const r = Math.hypot(p.x, p.z);
     const ang = Math.atan2(p.z, p.x);
     const nearGate = Math.abs(Math.atan2(Math.sin(ang - this.gateAngle), Math.cos(ang - this.gateAngle))) < 0.16;
-    if (r > this.R + 3.2 && nearGate) { p.x = prev.x; p.z = prev.z; this.game.onGateReached(); }
-    else if (r > this.R - 0.6 && !nearGate) { const k = (this.R - 0.6) / r; p.x *= k; p.z *= k; }
+    if (r > this.R + 3.2 && nearGate) { p.x = prev.x; p.z = prev.z; this.game.onGateReached(); return; }
+    // the garden beyond the south gate (the palisade itself keeps you to the gate)
+    const dg = Math.atan2(Math.sin(ang - GARDEN.gateAngle), Math.cos(ang - GARDEN.gateAngle));
+    if (r > this.R - 0.7 && Math.abs(dg) < GARDEN.half + 0.25) {
+      if (r > this.R) { const a2 = GARDEN.gateAngle + Math.max(-GARDEN.half + 0.03, Math.min(GARDEN.half - 0.03, dg)), r2 = Math.min(r, this.R + GARDEN.depth - 0.5); p.x = Math.cos(a2) * r2; p.z = Math.sin(a2) * r2; }
+      return;
+    }
+    if (r > this.R - 0.6 && !nearGate) { const k = (this.R - 0.6) / r; p.x *= k; p.z *= k; }
   }
 
   update(dt, ctx) {
@@ -297,5 +397,12 @@ export class Village extends World {
     M.glow.emissiveIntensity = night ? 2.2 : 0.05;
     for (const l of this.lights) l.intensity = night ? 9 : 0;
     this.windowMat.emissive.setRGB(night ? 0.5 : 0, night ? 0.32 : 0, night ? 0.12 : 0);
+    WIN_GLASS.emissive.setRGB(night ? 0.55 : 0, night ? 0.35 : 0, night ? 0.12 : 0);
+    // inside a building: a warm lamp, and less of the open sky's light
+    const pl = ctx.player.pos, inside = this.structAt(pl.x, pl.z, 0.1);
+    if (inside) this.indoorLight.position.set(inside.light.x, this.h0 + inside.light.y, inside.light.z);
+    const tgt = inside ? (night ? 9 : 5) : 0; this.indoorLight.intensity += (tgt - this.indoorLight.intensity) * Math.min(1, dt * 4);
+    const sky = this.game.sky; sky.indoor = (sky.indoor || 0) + ((inside ? 1 : 0) - (sky.indoor || 0)) * Math.min(1, dt * 3);
+    this.inside = inside;
   }
 }

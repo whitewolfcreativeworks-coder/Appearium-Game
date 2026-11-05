@@ -170,13 +170,14 @@ export function postsAndRoof(b, o) {
   for (const sz of [-1, 1]) b.box(M.darkwood, w, 0.2, 0.2, x, H, z + sz * (d / 2 - 0.2));
 }
 
-export function palisade(b, R, gateAngle, gateHalf = 0.11) {
+export function palisade(b, R, gateAngle, gateHalf = 0.11, extra = []) {
+  const inExtra = (a, pad = 0) => extra.some((g) => Math.abs(Math.atan2(Math.sin(a - g.a), Math.cos(a - g.a))) < g.half + pad);
   const n = Math.floor((Math.PI * 2 * R) / 0.42);
   const logs = [];
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2;
     let da = Math.atan2(Math.sin(a - gateAngle), Math.cos(a - gateAngle));
-    if (Math.abs(da) < gateHalf) continue;
+    if (Math.abs(da) < gateHalf || inExtra(a)) continue;
     const h = 3.0 + Math.sin(i * 12.9) * 0.25;
     const x = Math.cos(a) * R, z = Math.sin(a) * R;
     b.cyl(M.logs, 0.2, 0.19, h, x, h / 2 - 0.3, z, { seg: 6, ts: 1.4 });
@@ -187,7 +188,7 @@ export function palisade(b, R, gateAngle, gateHalf = 0.11) {
   for (let i = 0; i < 48; i++) {
     const a0 = (i / 48) * Math.PI * 2, a1 = ((i + 1) / 48) * Math.PI * 2;
     const am = (a0 + a1) / 2; let da = Math.atan2(Math.sin(am - gateAngle), Math.cos(am - gateAngle));
-    if (Math.abs(da) < gateHalf + 0.06) continue;
+    if (Math.abs(da) < gateHalf + 0.06 || inExtra(am, 0.04)) continue;
     const r2 = R - 0.25, x0 = Math.cos(a0) * r2, z0 = Math.sin(a0) * r2, x1 = Math.cos(a1) * r2, z1 = Math.sin(a1) * r2;
     const len = Math.hypot(x1 - x0, z1 - z0);
     b.box(M.darkwood, len + 0.1, 0.14, 0.12, (x0 + x1) / 2, 1.9, (z0 + z1) / 2, { ry: -Math.atan2(z1 - z0, x1 - x0) });
@@ -202,6 +203,12 @@ export function palisade(b, R, gateAngle, gateHalf = 0.11) {
   }
   b.box(M.darkwood, half * 2 + 1.0, 0.35, 0.4, gx, 4.4, gz, { ry: -Math.atan2(tz, tx) });
   b.box(M.darkwood, half * 2 + 0.6, 0.25, 0.3, gx, 3.9, gz, { ry: -Math.atan2(tz, tx) });
+  // smaller gates (e.g. to the garden)
+  for (const g of extra) {
+    const ex = Math.cos(g.a) * R, ez = Math.sin(g.a) * R, etx = -Math.sin(g.a), etz = Math.cos(g.a), eh = R * g.half;
+    for (const s of [-1, 1]) { b.cyl(M.logs, 0.22, 0.2, 3.6, ex + etx * eh * s, 1.5, ez + etz * eh * s, { seg: 8 }); b.colliders.push({ x: ex + etx * eh * s, z: ez + etz * eh * s, r: 0.32 }); }
+    b.box(M.darkwood, eh * 2 + 0.6, 0.25, 0.3, ex, 3.2, ez, { ry: -Math.atan2(etz, etx) });
+  }
   return { gate: new THREE.Vector3(gx, 0, gz), tangent: new THREE.Vector3(tx, 0, tz) };
 }
 
