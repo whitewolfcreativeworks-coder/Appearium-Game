@@ -198,14 +198,14 @@ export class Fishing {
     if (this.state === 'cast') {
       const k = Math.min(1, this.t / 0.8);
       bp.lerpVectors(this.castFrom, this.spot.pos, k); bp.y += Math.sin(k * Math.PI) * 2.2;
-      if (k >= 1) { this.state = 'wait'; this.t = 0; g.audio.plop(); this.setStatus('Waiting for a bite…'); this.ui.reel.classList.remove('hidden'); this.ui.reel.textContent = 'Reel in'; }
+      if (k >= 1) { this.state = 'wait'; this.t = 0; g.audio.plop(); g.ripples?.drop(this.bobber.position.x, this.bobber.position.z, 0.45, 0.35); this.setStatus('Waiting for a bite…'); this.ui.reel.classList.remove('hidden'); this.ui.reel.textContent = 'Reel in'; }
     } else if (this.state === 'wait') {
       bp.copy(this.spot.pos); bp.y = water + Math.sin(this.t * 2.2) * 0.012;
       if (this.dead) { if (this.t > 16) { this.setStatus('Nothing at all. Perhaps the wrong bait, wrong water, or wrong hour.'); } return this.drawLine(tipW, bp); }
-      if (this.nibbles > 0 && this.t > this.wait * (0.3 + 0.25 * this.nibbles)) { this.nibbles--; this.dip = 0.25; g.audio.plop(); this.setStatus('A nibble… wait for it…'); }
+      if (this.nibbles > 0 && this.t > this.wait * (0.3 + 0.25 * this.nibbles)) { this.nibbles--; this.dip = 0.25; g.audio.plop(); g.ripples?.drop(this.bobber.position.x, this.bobber.position.z, 0.3, 0.18); this.setStatus('A nibble… wait for it…'); }
       if (this.dip > 0) { this.dip -= dt; bp.y -= 0.03; }
       if (pressE && this.t > 0.3) { this.cancel('You reel in your line.'); return; }
-      if (this.t > this.wait) { this.state = 'bite'; this.t = 0; this.window = g.save.upgrades.rod >= 2 ? 1.5 : 1.1; this.setStatus('A bite! Strike now!', true); this.ui.reel.textContent = 'Strike!'; g.audio.splash(0.35); }
+      if (this.t > this.wait) { this.state = 'bite'; this.t = 0; this.window = g.save.upgrades.rod >= 2 ? 1.5 : 1.1; this.setStatus('A bite! Strike now!', true); this.ui.reel.textContent = 'Strike!'; g.audio.splash(0.35); g.ripples?.drop(this.bobber.position.x, this.bobber.position.z, 0.6, 0.45); }
     } else if (this.state === 'bite') {
       bp.copy(this.spot.pos); bp.y = water - 0.06 - Math.abs(Math.sin(this.t * 18)) * 0.04;
       if (pressE) this.strike();
@@ -248,12 +248,12 @@ export class Fishing {
     if (this.jumper) g.scene.remove(this.jumper);
     const m = buildFish(this.species); m.scale.setScalar(this.size / 100);
     m.position.copy(this.bobber.position); m.userData.t = 0; m.userData.dir = Math.random() * 6.28;
-    g.scene.add(m); this.jumper = m; g.audio.splash(0.9);
+    g.scene.add(m); this.jumper = m; g.audio.splash(0.9); g.ripples?.drop(m.position.x, m.position.z, 0.8, 0.7);
   }
   updateJumper(dt) {
     const m = this.jumper; if (!m) return;
     m.userData.t += dt; const t = m.userData.t / 0.7;
-    if (t > 1) { this.game.scene.remove(m); this.jumper = null; this.game.audio.splash(0.7); return; }
+    if (t > 1) { this.game.ripples?.drop(m.position.x, m.position.z, 0.8, 0.8); this.game.scene.remove(m); this.jumper = null; this.game.audio.splash(0.7); return; }
     m.position.x = this.bobber.position.x + Math.cos(m.userData.dir) * t * 0.8; m.position.z = this.bobber.position.z + Math.sin(m.userData.dir) * t * 0.8;
     m.position.y = this.game.world.gen.p.water + Math.sin(t * Math.PI) * 0.9;
     m.rotation.set(0, -m.userData.dir, Math.cos(t * Math.PI) * 0.9);

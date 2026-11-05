@@ -15,6 +15,7 @@ import { Village, HOME_LAYERS, HOME_ECO, filterYard } from './village.js';
 import { buildRoadMesh, roadPoint } from './road.js';
 import { Herds } from './herds.js';
 import { Fauna } from './fauna.js';
+import { Beasts } from './beasts.js';
 import { smoothstep } from '../core/rng.js';
 
 const LABEL = { hamlet: (n) => n, ruins: (n) => `Ruins of ${n}`, stones: (n) => `The ${n} Stones`, grotto: (n) => `${n} Grotto`, cabin: (n) => `${n} Cabin`, find: () => 'Something glinting', wreck: (n) => `Wreck at ${n}`, alcove: (n) => `${n} Cliff Dwellings`, carvings: (n) => `${n} Rock Carvings` };
@@ -131,6 +132,7 @@ export class Wilderness extends World {
     this.ambience = new Ambience(this.game, this);
     this.herds = new Herds(this.game, this, exp.herds);
     this.fauna = new Fauna(this.game, this, exp.fauna || {});
+    this.beasts = new Beasts(this.game, this, exp.fauna?.beasts || []);
     if (exp.eco.fireflies) this.emitters.add(fireflies(this.trail, 60, 90, (x, z) => this.heightAt(x, z)));
   }
 
@@ -169,7 +171,7 @@ export class Wilderness extends World {
 
   buildCamp() {
     const p = this.trail, h = this.heightAt(p.x, p.z);
-    const fire = campfire(new THREE.Vector3(p.x, h, p.z)); this.emitters.add(fire);
+    const fire = campfire(new THREE.Vector3(p.x, h, p.z)); this.emitters.add(fire); (this.fires = this.fires || []).push(new THREE.Vector3(p.x, h, p.z));
     const ring = new InstanceList(); for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283; ring.push(p.x + Math.cos(a) * 0.62, h, p.z + Math.sin(a) * 0.62, a * 3, 2.4); }
     this.game.pools.set('pebble0', 'camp', ring.build());
     const b = new Builder();
@@ -371,6 +373,7 @@ export class Wilderness extends World {
     this.home?.update(dt, ctx);
     this.herds?.update(dt, ctx);
     this.fauna?.update(dt, ctx);
+    this.beasts?.update(dt, ctx);
     this.wildlife?.update(dt, ctx.player, ctx);
     // discovery
     const p = ctx.player.pos;
@@ -380,5 +383,5 @@ export class Wilderness extends World {
     }
   }
 
-  dispose() { this.wildlife?.dispose(); this.herds?.dispose(); this.fauna?.dispose(); if (this.home) { for (const o of this.home.objects) this.scene.remove(o); this.home.emitters.clear(); } super.dispose(); }
+  dispose() { this.wildlife?.dispose(); this.herds?.dispose(); this.fauna?.dispose(); this.beasts?.dispose(); if (this.home) { for (const o of this.home.objects) this.scene.remove(o); this.home.emitters.clear(); } super.dispose(); }
 }

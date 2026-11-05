@@ -162,6 +162,16 @@ The wilderness is mostly peaceful, but not always:
   within reach. A venomous bite slowly weakens you — get home to Maren in time. Harmless snakes
   (grass snake, gopher snake — which imitates a rattlesnake — and boa) slip away. Observing them
   from a safe distance teaches you how to tell them apart and what to do if bitten.
+- **Mountain lions** (highlands and canyon country) are rarely seen. One may watch you from a rise,
+  and if you turn your back it creeps closer — freezing whenever you look round. Face it, stand
+  tall and it backs down; run, and it chases.
+- **Moose** (lake country and misty woods) wade the shallows to feed. Calm until crowded — then
+  ears back, hackles up, and a charge. Give them room.
+- **Wild boar** sows defend their striped piglets: blunder in among them and you get bowled over.
+- **Wolves** trot single file far off and keep their distance; at night you hear them howl.
+  Coyotes lope across canyon country. Elk herds graze high meadows; mountain goats and bighorn
+  sheep pick along cliffs; capybara families lounge by tropical water and coatis troop through the
+  jungle; otters swim, roll and dive in rivers, lakes and coves.
 - And the gentler life: red and mule deer (sometimes out on the beach), shore crabs to catch
   (from behind), seals hauled out on the rocks, dolphins rolling past offshore, and now and then
   the tall spout, back and tail of a blue whale far out at sea.
@@ -183,11 +193,23 @@ fish rising and jumping; wind gusts you can see rolling through grass and trees.
 synthesised and positional: each bird species' song, woodpeckers, cuckoos, crows, buzzards,
 ducks, frogs at dusk, bees, squirrel chatter.
 
+### Water
+
+Every lake and river reflects the world around it — trees, hills, the village, the sky — through
+a mirror render pass. Rivers and streams visibly run downstream (their current follows the
+channel), with foam drifting along the banks. The sea is a sum of Gerstner waves with real
+deep-water dispersion: sharp crests and broad troughs, swell that steepens in the shallows,
+white water riding each breaker in, and a lacy wash that runs up the sand and drains back. And
+the water responds: a small GPU wave solver around you turns footsteps, wading, a cast bobber, a
+jumping fish, a diving otter or a frog — and every raindrop — into rings that spread, cross and
+fade.
+
 ### Settings
 
 Graphics quality (Low / Medium / High) is on the title screen and in the ≡ menu. Touch devices
 default to Medium, desktops to High; resolution also scales automatically to hold frame rate.
-URL options: `?quality=low|medium|high`,
+Water reflections can be switched off in the ≡ menu (they are off by default on *Low*).
+URL options: `?quality=low|medium|high`, `?norefl`, `?noripples`,
 `?scenario=riverlands|highlands|mistwood|hamlet|heath|coast|canyon|tropics|lakeland` (force a destination), `?debug` (performance overlay), `?fixedres` (disable dynamic resolution).
 
 ## Under the hood
@@ -209,8 +231,8 @@ URL options: `?quality=low|medium|high`,
   snakeskin stems and double rings, hedgehogs have spines, puffballs and earthballs can be sliced.
 - **Rendering**: PBR terrain splat blending home ground into the destination's ground per vertex
   (beach sand, banded canyon sandstone, snow, moss, straw-dry grass), wet ground in rain and snow
-  cover in snowfall; sea swell (Gerstner-style waves displaced in the water shader) with rolling
-  surf lines and whitecaps that grow with the wind; Preetham sky, cloud dome, stars, sun/moon with
+  cover in snowfall; water with planar reflections, a GPU ripple solver, flow-mapped rivers and
+  Gerstner sea swell with breakers and beach run-up (`water.js`, `waterfx.js`); Preetham sky, cloud dome, stars, sun/moon with
   shadows, sky-driven image-based lighting, fog, rain, wind-animated vegetation with rolling
   gusts, instanced grass, depth-aware water with reflections and foam, a post-processing pass
   for sickness and altered states (only active when needed).
@@ -252,6 +274,8 @@ src/world/village.js, wilderness.js, scenarios.js, wildlife.js
 src/world/road.js          the road out of the North Gate
 src/world/herds.js         herds and flocks (horses, gulls, geese, ravens, parrots, waders, starlings)
 src/world/fauna.js         deer, bears, snakes, crabs, seals, dolphins, whales
+src/world/beasts.js        mountain lion, wolves, coyotes, moose, elk, boar, goats, bighorn, capybara, coatis, otters
+src/world/waterfx.js       ripple solver and mirror reflections for the water
 src/game/building.js, buildmode.js   building & decorating your place
 src/game/              items & artifacts, save, player & input, fishing, artifact 3D models
 src/audio/audio.js     synthesised soundscape
@@ -275,8 +299,11 @@ choose *Low* in the ≡ menu; dynamic resolution also kicks in below ~27 fps.
 ## Known limitations / next steps
 
 - There is no swimming — deep water blocks you. Rivers, lakes and the sea share one water level
-  (no waterfalls, no tides).
-- Animals in herds and flocks, bears, deer, seals, whales and snakes are procedural low-poly
+  (no waterfalls, no tides); the river current is visual, not a force on you.
+- The water is shaded and simulated on the GPU, not a full fluid simulation: rivers flow by
+  flow-mapping, the sea by summed Gerstner waves, ripples by a 2D wave equation around the player.
+  Full 3D fluid solvers (SPH/FLIP) are far too heavy for an iPad browser.
+- Animals in herds and flocks, bears, deer, big cats, moose, wolves, seals, whales and snakes are procedural low-poly
   models: convincing as silhouettes and in motion at the distances you usually see them, plain
   up close.
 - Building is single-storey for now, inside the palisade, on the flat village yard.

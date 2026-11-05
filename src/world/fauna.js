@@ -13,18 +13,18 @@ const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const _m = new THREE.Matrix4(), _m2 = new THREE.Matrix4(), _r = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _s = new THREE.Vector3(), _p = new THREE.Vector3();
 const angDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 
-function vc(g, col) {
+export function vc(g, col) {
   const n = g.attributes.position.count, a = new Float32Array(n * 3), c = new THREE.Color(col);
   for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; }
   g.setAttribute('color', new THREE.BufferAttribute(a, 3)); return g;
 }
-function merge(list) {
+export function merge(list) {
   const g = BGU.mergeGeometries(list.map((x) => { const n = x.index ? x.toNonIndexed() : x; for (const k of Object.keys(n.attributes)) if (!['position', 'color'].includes(k)) n.deleteAttribute(k); return n; }));
   g.computeVertexNormals(); return g;
 }
 
 // ------------------------------------------------------------------ quadruped rigs (head towards +z)
-function deerGeometry() {
+export function deerGeometry() {
   const c = '#ffffff', belly = '#e8e0d4', dark = '#2a2420';
   return {
     body: merge([
@@ -79,7 +79,7 @@ function bearGeometry() {
   };
 }
 
-class Rig {
+export class Rig {
   constructor(group, geo, mat, N) {
     const mk = (g, n = N) => { const m = new THREE.InstancedMesh(g, mat, n); m.count = 0; m.frustumCulled = false; m.castShadow = true; m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3).fill(1), 3); group.add(m); return m; };
     this.geo = geo; this.body = mk(geo.body); this.neck = mk(geo.neck); this.leg = mk(geo.leg, N * 4); this.ant = geo.antlers ? mk(geo.antlers) : null; this.n = 0; this.na = 0;
@@ -286,6 +286,7 @@ export class Fauna {
   updateBear(dt, ctx) {
     const p = ctx.player.pos, g = this.gen(), W = g.p.water, pl = ctx.player;
     if (!this.bear) {
+      if (this.bearRig.body.count) { this.bearRig.begin(); this.bearRig.end(); } // the bear has gone: don't leave its image behind
       this.bearTimer -= dt;
       if (this.bearTimer < 0) {
         this.bearTimer = this.rng.range(60, 140);
@@ -465,7 +466,7 @@ export class Fauna {
       }
       if (s.state === 'flee') { s.pos.x += Math.sin(s.h) * 1.4 * dt; s.pos.z += Math.cos(s.h) * 1.4 * dt; }
       s.pos.y = g.height(s.pos.x, s.pos.z);
-      if (s.pos.y < W - 0.5) { s.dead = true; this.game.audio?.splash?.(0.4); continue; }
+      if (s.pos.y < W - 0.5) { s.dead = true; this.game.audio?.splash?.(0.4); this.game.ripples?.drop(s.pos.x, s.pos.z, 1.0, 0.6); continue; }
       if (d > 250) { s.dead = true; continue; }
       const lift = s.state === 'rest' ? Math.max(0, Math.sin(this.t * 0.4 + s.ph)) * 0.25 * s.banana : Math.abs(Math.sin(this.t * 6 + s.ph)) * 0.12;
       _e.set(-lift, s.h, 0); _q.setFromEuler(_e); _m.compose(_p.set(s.pos.x, Math.max(s.pos.y, W - 0.2) - 0.03, s.pos.z), _q, _s.setScalar(1));

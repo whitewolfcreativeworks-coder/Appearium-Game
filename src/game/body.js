@@ -13,6 +13,7 @@ export const CONDITIONS = {
   amatoxin: { label: '', color: '#e05a4a' }, // hidden until symptoms appear
   envenomed: { label: 'Snakebite — get home', color: '#e05a4a' },
   bitten: { label: 'Bitten', color: '#d8b46a' },
+  bruised: { label: 'Bruised', color: '#d8a06a' },
 };
 
 export class Body {
@@ -46,6 +47,7 @@ export class Body {
     const a = this.active('amatoxin'); if (a) m *= 0.45;
     const v = this.active('envenomed'); if (v) m *= 0.7 - 0.25 * Math.min(1, v.t / v.dur);
     if (this.has('queasy')) m *= 0.9;
+    if (this.has('bruised')) m *= 0.85;
     if (this.retch > 0) m *= 0.2;
     return m;
   }
@@ -95,6 +97,7 @@ export class Body {
       stung: ['Ouch! The stinging hairs burn your fingers.'],
       envenomed: ['Two puncture marks, burning pain and swelling. You have been bitten by a venomous snake. Stay calm, move steadily — and get home to Maren.'],
       bitten: ['A sharp nip — but this snake is not venomous. Just a scratch.'],
+      bruised: ['Bruised and shaken. You will be stiff for a while.'],
     };
     if (c.msg !== false) g.ui.toast(c.msg || (msgs[c.type] || [''])[Math.floor(Math.random() * (msgs[c.type] || ['']).length)], c.type !== 'queasy');
     if (c.type === 'trip') g.audio.tripStart?.();

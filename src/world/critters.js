@@ -437,7 +437,7 @@ export class Ambience {
   }
   ring(x, z, size = 1) {
     const r = this.rings.find((q) => q.t > 1.6) || this.rings[0];
-    r.t = 0; r.size = size; r.m.position.set(x, this.world.gen.p.water + 0.015, z); r.m.visible = true;
+    r.t = 0; r.size = size; r.m.position.set(x, this.world.gen.p.water + 0.015, z); r.m.visible = !this.game.ripples?.enabled; // the ripple solver draws real rings
   }
   updateRises(dt, p, tod) {
     const water = this.world.gen.p.water;
@@ -448,7 +448,7 @@ export class Ambience {
       for (let k = 0; k < 8; k++) {
         const [x, z] = this.rndAround(p, 5, 30); if (this.world.depthAt(x, z) < 0.9) continue;
         this.ring(x, z, rand(0.6, 1.2)); this.rises.push({ x, z, t0: this.t });
-        this.game.audio.plopAt?.(V(x, water, z));
+        this.game.audio.plopAt?.(V(x, water, z)); this.game.ripples?.drop(x, z, 0.35, 0.3);
         if (Math.random() < 0.25) { // a fish leaps clear
           const f = buildFish(Math.random() < 0.5 ? 'roach' : 'trout'); f.scale.setScalar(rand(0.15, 0.3)); f.position.set(x, water, z); f.userData = { t: 0, dir: Math.random() * 6.28 }; this.group.add(f); this.jumpers.push(f);
         }

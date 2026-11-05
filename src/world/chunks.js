@@ -226,12 +226,15 @@ export class ChunkManager {
     // the sea gets a finer grid so swell can be displaced in the vertex shader
     let seaProbe = 0; for (const [a, b] of [[0.5, 0.5], [0, 0], [1, 0], [0, 1], [1, 1]]) seaProbe += this.gen.seaAt(c.x0 + S * a, c.z0 + S * b);
     const N = seaProbe > 0.01 ? 32 : 16, step = S / N;
-    const pos = [], depth = [], sea = [], idx = [];
+    const pos = [], depth = [], sea = [], flow = [], idx = [];
     for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
       const x = c.x0 + i * step, z = c.z0 + j * step;
       pos.push(x, w, z);
-      depth.push(w - this.gen.height(x, z));
-      sea.push(seaProbe > 0.01 ? this.gen.seaAt(x, z) : 0);
+      const dp = w - this.gen.height(x, z), sa = seaProbe > 0.01 ? this.gen.seaAt(x, z) : 0;
+      depth.push(dp); sea.push(sa);
+      // rivers and streams carry a current (the shader scrolls the surface along it)
+      const fl = dp > -0.6 && sa < 0.5 && this.gen.flowAt ? this.gen.flowAt(x, z) : [0, 0];
+      flow.push(fl[0], fl[1]);
     }
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
       const a = j * (N + 1) + i, b = a + 1, d = a + N + 1, e = d + 1;
@@ -242,6 +245,7 @@ export class ChunkManager {
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     g.setAttribute('aDepth', new THREE.Float32BufferAttribute(depth, 1));
     g.setAttribute('aSea', new THREE.Float32BufferAttribute(sea, 1));
+    g.setAttribute('aFlow', new THREE.Float32BufferAttribute(flow, 2));
     g.setIndex(idx); g.computeBoundingSphere();
     return g;
   }

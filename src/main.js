@@ -19,6 +19,7 @@ import { SoundScape } from './audio/audio.js';
 import { UI } from './ui/ui.js';
 import { Body, CONDITIONS } from './game/body.js';
 import { PostFX } from './world/postfx.js';
+import { Ripples, Reflection } from './world/waterfx.js';
 import { itemInfo, parseKey, know, CATS as ICATS, recognised, speciesOf, catOf } from './game/inventory.js';
 import { interactForage, forageLabel, eatRaw, herbalist } from './game/foraging.js';
 import { openCooking } from './game/cooking.js';
@@ -103,12 +104,17 @@ class Game {
     this.body = new Body(this); this.player.body = this.body;
     this.body.restore(this.save.body);
     this.audio = new SoundScape(); this.audio.vol = this.save.settings.volume;
-    this.player.onStep = (k, wet) => this.audio.step(k, wet ? 'water' : this.surface());
+    this.player.onStep = (k, wet) => { this.audio.step(k, wet ? 'water' : this.surface()); if (wet) this.ripples?.drop(this.player.pos.x + (Math.random() - 0.5) * 0.4, this.player.pos.z + (Math.random() - 0.5) * 0.4, 0.55, 0.25 * k); };
     this.pools = new PoolManager(this.scene);
     this.waterMat = createWaterMaterial();
     this.sky = new SkySystem(renderer, this.scene, this.quality);
     this.sky.onLightning = (d) => this.audio?.thunder?.(d);
     this.postfx = new PostFX(renderer, this.quality.antialias ? 4 : 0);
+    // live ripples and mirror reflections on the water (scaled down on slower devices)
+    const wq = { low: [false, 0], medium: [true, 0.38], high: [true, 0.5] }[this.qualityName] || [true, 0.4];
+    this.ripples = new Ripples(renderer, { enabled: wq[0] && !this.params.has('noripples') });
+    const rs = this.save.settings.reflections; // low quality: off unless switched on in settings
+    this.reflection = new Reflection(renderer, { scale: this.params.has('norefl') || rs === false ? 0 : wq[1] || (rs === true ? 0.3 : 0) });
     this.lantern = new THREE.PointLight(0xffc88a, 0, 18, 1.6); this.lantern.position.set(0.25, -0.3, -0.3); this.camera.add(this.lantern);
 
     setProgressHandler((d, t) => { $('loadfill').style.width = `${Math.round((d / Math.max(t, 1)) * 100)}%`; });
@@ -325,6 +331,9 @@ class Game {
     if (!this.world) return 'grass';
     if (this.world.kind === 'village' && Math.hypot(this.player.pos.x, this.player.pos.z) < 7.2) return 'stone';
     const s = this.world.gen.sample(this.player.pos.x, this.player.pos.z);
+    if (this.world.gen.roadInfo?.(this.player.pos.x, this.player.pos.z)?.d < 1.6) return 'stone';
+    if (s.beach > 0.5 || (this.expedition?.region === 'canyon' && s.biome > 0.5 && s.forest < 0.3)) return 'sand';
+    if (s.cliff > 0.5) return 'stone';
     return s.forest > 0.5 ? 'forest' : 'grass';
   }
 
@@ -363,6 +372,11 @@ class Game {
       const ob = this.world.fauna.observable(p, look, this.camera.position);
       if (ob) { const A = ANIMALS[ob.kind]; return { type: 'observe', herd: ob, label: `Observe the ${A.name.toLowerCase()} (${Math.round(ob.dist)} m)${A.danger ? ' — keep your distance' : ' — keep still'}` }; }
     }
+    if (this.world.beasts) {
+      const look = new THREE.Vector3(); this.camera.getWorldDirection(look);
+      const ob = this.world.beasts.observable(p, look, this.camera.position);
+      if (ob) { const A = ANIMALS[ob.kind]; return { type: 'observe', herd: ob, label: `Observe the ${A.name.toLowerCase()}${['wolf', 'coyote', 'elk', 'capybara', 'coati', 'bighorn', 'mountain_goat', 'wild_boar'].includes(ob.kind) ? 's' : ''} (${Math.round(ob.dist)} m)${A.danger ? ' — keep your distance' : ' — keep still'}`.replace('wolfs', 'wolves').replace('elks', 'elk').replace('bighorn sheeps', 'bighorn sheep').replace('wild boars', 'wild boar').replace('(wapiti)s', '(wapiti)') }; }
+    }
     if (this.world.herds) {
       const look = new THREE.Vector3(); this.camera.getWorldDirection(look);
       const ob = this.world.herds.observable(p, look, this.camera.position);
@@ -377,7 +391,7 @@ class Game {
       }
     }
     const spot = this.fishing.findSpot(this.player, this.world);
-    if (spot) return { type: 'fish', spot, label: `Fish here (${{ riffle: 'riffle', pool: 'deep pool', weeds: 'reed bed', lilies: 'lily pads', deep: 'deep water', shore: 'shallows' }[spot.spot]})` };
+    if (spot) return { type: 'fish', spot, label: `Fish here (${{ riffle: 'riffle', pool: 'deep pool', weeds: 'reed bed', lilies: 'lily pads', deep: 'deep water', shore: 'shallows', surf: 'surf', rocks: 'off the rocks' }[spot.spot] || 'open water'})` };
     return null;
   }
 
@@ -472,6 +486,8 @@ class Game {
       const T = {
         poison: { kicker: 'Poisoned', title: 'Everything goes dark', sub: inExp ? 'You collapse in the wilderness. Travellers find you and carry you home. You lie in bed for days while Maren nurses you through it.' : 'You collapse at home. For days Maren nurses you through it.', rumor: 'Death cap and deadly nightshade poisonings begin hours after eating, when it is already too late to simply spit it out. Most real-world mushroom deaths are from death caps.' },
         snake: { kicker: 'Snakebite', title: 'The venom takes hold', sub: 'Your leg swells, your vision swims, and you sink down. Travellers find you and carry you home, where Maren treats the bite.', rumor: 'With a venomous bite, time matters: keep still and calm, keep the limb below the heart, take off rings, and get to medical help for antivenom. Never cut, suck, ice or tourniquet a snakebite.' },
+        mountain_lion: { kicker: 'Attacked', title: 'The lion strikes', sub: 'It hits you from behind and you go down fighting. It breaks off and is gone. Travellers find you and carry you home.', rumor: 'Mountain lions attack what runs or turns away. Face it, stand tall, make yourself big and loud, and back off slowly. If it attacks, fight back — never play dead.' },
+        moose: { kicker: 'Trampled', title: 'The moose runs you down', sub: 'It knocks you flat and stamps before trotting off. Travellers find you bruised and battered and carry you home.', rumor: 'Moose give warning — ears laid back, hackles up, lip-licking. Back off at once. If it charges, run and get a tree between you; if you are knocked down, curl up and cover your head.' },
         bear: { kicker: 'Attacked', title: 'The bear is on you', sub: 'You curl up, hands over your neck. After a terrible moment it leaves. Travellers find you hurt and carry you home.', rumor: 'Most bear charges are bluffs — running turns them into a chase. Back away slowly, talking calmly. If a brown bear makes contact, lie flat and play dead; if a black bear attacks, fight back.' },
       }[reason] || {};
       await this.ui.fade(true, T);
@@ -481,7 +497,7 @@ class Game {
         this.transitioning = false; await new Promise((r) => setTimeout(r, 3500));
         await this.returnHome();
       } else { this.sky.time = 8; await new Promise((r) => setTimeout(r, 3500)); await this.ui.fade(false); }
-      this.ui.toast(reason === 'poison' ? 'You survived — barely. Your spoiled food was thrown away.' : reason === 'snake' ? 'Maren treated the bite. You will mend — slowly.' : 'Bruised and torn, but alive. Your food was lost.', true);
+      this.ui.toast(reason === 'poison' ? 'You survived — barely. Your spoiled food was thrown away.' : reason === 'snake' ? 'Maren treated the bite. You will mend — slowly.' : reason === 'moose' ? 'Battered and sore, but alive. Your food was lost.' : 'Bruised and torn, but alive. Your food was lost.', true);
       this.collapsing = false;
     })();
   }
@@ -699,12 +715,14 @@ class Game {
       <label class="set">Graphics quality <span class="quality-row">${['low', 'medium', 'high'].map((q) => `<button data-act="q" data-q="${q}" class="${q === this.qualityName ? 'on' : ''}">${q}</button>`).join('')}</span></label>
       <label class="set">Look sensitivity <input type="range" min="0.3" max="2.5" step="0.1" value="${s.lookSens}" data-set="lookSens"></label>
       <label class="set">Invert look <input type="checkbox" ${s.invertY ? 'checked' : ''} data-set="invertY"></label>
+      <label class="set">Water reflections <input type="checkbox" ${this.reflection.enabled ? 'checked' : ''} data-set="reflections"></label>
       <label class="set">Volume <input type="range" min="0" max="1" step="0.05" value="${s.volume}" data-set="volume"></label>
       <h3>Controls</h3><div class="kv">${isTouch ? 'Left thumb moves (push fully to run) · right thumb looks · ✋ interacts · ⤒ jumps' : 'WASD move · mouse look (click to capture, Esc to release) · Shift run · Space jump · E or click interact · I pack · J journal · H return home · L lantern'}</div>
       <div class="actions"><button class="btn ghost" data-act="reset">Erase all progress</button><button class="btn ghost" data-act="credits">Credits</button><button class="btn primary" data-act="close">Resume</button></div>`, (act, d, el) => {
       if (act === 'q') { s.quality = d.q; writeSave(this.save); location.reload(); }
       if (act === 'set') {
-        if (d.set === 'invertY') s.invertY = el.checked; else s[d.set] = parseFloat(el.value);
+        if (d.set === 'invertY' || d.set === 'reflections') s[d.set] = el.checked; else s[d.set] = parseFloat(el.value);
+        if (d.set === 'reflections') { const wq = { low: 0.3, medium: 0.38, high: 0.5 }[this.qualityName] ?? 0.4; this.reflection.scale = el.checked ? wq : 0; this.reflection.enabled = this.reflection.scale > 0; }
         if (d.set === 'volume') this.audio.setVolume(s.volume);
         writeSave(this.save);
       }
@@ -728,6 +746,17 @@ class Game {
     else this.body.add('bitten', { dur: 15 });
     this.showCard(`<div class="k">${venom ? 'Snakebite!' : 'Bitten'}</div><div class="n">${this.ui.esc(A.name)}</div><div class="s">${venom ? 'Keep calm. Do not run — it spreads the venom. Return home; Maren can treat it.' : 'Not venomous. It only wanted you to go away.'}</div><div class="o">${this.ui.esc(A.safety)}</div>`, 9000);
     this.persist();
+  }
+  // other animals: a big cat or a moose ends the expedition; a boar sow just knocks you over
+  onAnimalAttack(id) {
+    know(this.save, id).seen++; this.ui.flash?.('hurt');
+    if (id === 'wild_boar') {
+      this.audio.call?.('boar'); this.body.stamina = Math.min(this.body.stamina, 15); this.body.add('bruised', { dur: 120, msg: false });
+      this.ui.toast('The sow bowls you over, then trots off after her piglets. <b>Bruised</b>, but nothing broken. Never get between a sow and her young.', true);
+      this.persist(); return;
+    }
+    this.audio.call?.(id === 'moose' ? 'moose' : 'cougar');
+    this.body.fx.collapse = 1; this.onCollapse(id);
   }
   onBearAttack(id) {
     know(this.save, id).seen++; this.audio.call?.('bear_roar'); this.ui.flash?.('hurt');
@@ -846,7 +875,15 @@ class Game {
       this.sky.update(dt, this.camera, p);
       this.sky.applyToWater(this.waterMat);
       const tu = this.world.terrainMat?.userData.uniforms; if (tu) { tu.uWetness.value = this.sky.wetness; tu.uSnowCover.value = this.sky.snowCover; }
-      this.waterMat.uniforms.uTime.value += dt;
+      const wu = this.waterMat.uniforms;
+      wu.uTime.value += dt; wu.uWind.value = this.sky.w.wind;
+      const gd = this.world.gen.dir; if (gd) wu.uWaveDir.value.set(-gd.x, -gd.z); else wu.uWaveDir.value.set(0, 1);
+      // wading leaves a wake; rain rings the water
+      const dHere = this.world.depthAt(p.x, p.z);
+      if (dHere > 0.05 && this.player.speed > 0.4) { this.wakeT = (this.wakeT || 0) - dt; if (this.wakeT < 0) { this.wakeT = 0.1; this.ripples.drop(p.x, p.z, 0.7, Math.min(0.12, 0.025 * this.player.speed)); } }
+      const waterNearR = dHere > -6 || this.world.depthAt(p.x + 20, p.z) > 0 || this.world.depthAt(p.x - 20, p.z) > 0 || this.world.depthAt(p.x, p.z + 20) > 0 || this.world.depthAt(p.x, p.z - 20) > 0;
+      this.ripples.update(dt, p, this.sky.w.snow > 0.3 ? 0 : Math.min(1, this.sky.w.rain), waterNearR);
+      this.ripples.bind(wu);
       windUniforms.uTime.value += dt; windUniforms.uWind.value = this.sky.w.wind;
       const fm = KIND_INFO.materials; if (fm) { fm.firMat.emissiveIntensity = 0.55 * this.sky.dayFactor * this.sky.w.light; fm.leafMat.emissiveIntensity = 0.5 * this.sky.dayFactor * this.sky.w.light; }
       const night = this.sky.dayFactor < 0.3;
@@ -854,11 +891,11 @@ class Game {
       // audio
       const s = this.world.gen.sample(p.x, p.z);
       let water = 0; for (let a = 0; a < 6.28; a += 0.785) { const d = this.world.depthAt(p.x + Math.cos(a) * 9, p.z + Math.sin(a) * 9); if (d > 0) water += 0.125; }
-      this.audio.listener = this.player;
+      this.audio.listener = this.player; this.audio.world = this.world;
       // the wind sound swells as the same rolling gusts that move the grass pass over you
       const wave = 0.5 + 0.5 * Math.sin(p.x * 0.045 + p.z * 0.026 - windUniforms.uTime.value * 0.85);
       this.audio.update(dt, { wind: this.sky.w.wind * (0.6 + 0.9 * wave * wave * wave), forest: s.forest, water: water + Math.max(0, this.world.depthAt(p.x, p.z)), rain: Math.min(1.4, this.sky.w.rain), day: this.sky.dayFactor, bees: this.world.ambience?.beeNear, home: this.world.kind === 'village',
-        sea: this.seaNear(p), waves: this.sky.w.waves, region: this.expedition && s.biome > 0.5 ? this.expedition.region : 'temperate' });
+        sea: this.seaNear(p), waves: this.sky.w.waves, region: this.expedition && s.biome > 0.5 ? this.expedition.region : 'temperate', scenario: this.expedition && s.biome > 0.5 ? this.expedition.scenario : null });
       if (this.state === 'play') this.updateCompass();
       if (this.expedition && this.state === 'play') this.expeditionTick(dt, s);
       if (this.state === 'title') { this.player.yaw += dt * 0.03; this.player.syncCamera(); }
@@ -873,6 +910,9 @@ class Game {
     } else if (this.fovTouched) { this.fovTouched = false; this.camera.fov = 70; this.camera.updateProjectionMatrix(); }
     input.endFrame();
     if (render) {
+      if (this.world && this.reflection.enabled && this.reflection.waterVisible(this.camera, this.world.chunks?.chunks)) this.reflection.render(this.scene, this.camera, this.world.gen.p.water, [this.sky.rain].filter(Boolean), this.waterMat);
+      else this.reflection.active = false;
+      this.reflection.bind(this.waterMat.uniforms);
       if (this.postfx.active(fx)) this.postfx.render(this.scene, this.camera, fx, dt);
       else this.renderer.render(this.scene, this.camera);
     }

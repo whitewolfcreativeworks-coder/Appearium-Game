@@ -11,6 +11,11 @@ bundled in this repository is listed here.
 | [meshoptimizer](https://github.com/zeux/meshoptimizer) decoder (bundled with three.js addons) | — | MIT | `vendor/three/addons/libs/` |
 | [glTF-Transform](https://gltf-transform.dev), meshoptimizer, sharp — **offline asset pipeline only** | 4.x | MIT / MIT / Apache-2.0 | `tools/` (not shipped to players) |
 
+Techniques adapted (code written for this game): the planar-reflection oblique clipping from
+three.js's `Reflector` (MIT), and the height-field ripple solver popularised by Evan Wallace's
+[WebGL Water](https://github.com/evanw/webgl-water) (MIT); Gerstner waves after Tessendorf /
+*GPU Gems* ch. 1.
+
 Simplex noise in `src/core/noise.js` is an original implementation of Stefan Gustavson's
 public-domain reference algorithm.
 

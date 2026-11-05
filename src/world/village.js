@@ -150,7 +150,7 @@ export class Village extends World {
 
     // smoke & hearth
     this.emitters.add(chimneySmoke(home.chimney.clone().setY(home.chimney.y + h0), 1));
-    const hearth = campfire(new THREE.Vector3(6.5, h0, 2.5));
+    const hearth = campfire(new THREE.Vector3(6.5, h0, 2.5)); this.baseFires = [new THREE.Vector3(6.5, h0, 2.5)];
     this.emitters.add(hearth);
     const ring = new InstanceList(); for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283; ring.push(6.5 + Math.cos(a) * 0.65, h0, 2.5 + Math.sin(a) * 0.65, a * 3, 2.6); }
     this.game.pools.set('pebble0', 'village-hearth', { ...ring.build(), always: true });
@@ -171,6 +171,7 @@ export class Village extends World {
     if (this.placedGroup) { this.scene.remove(this.placedGroup); this.objects = this.objects.filter((o) => o !== this.placedGroup); this.placedGroup.traverse((m) => { if (m.isMesh && m.userData.disposable) m.geometry.dispose(); }); }
     for (const id of this.placedColliders || []) this.colliders.remove(id);
     for (const e of this.placedEmitters || []) this.emitters.remove?.(e);
+    this.placedFires = [];
     this.statics = this.statics.filter((s) => !s.placed);
     this.placedColliders = []; this.placedEmitters = [];
     const save = this.game.save, h0 = this.h0, b = new Builder(), extras = [];
@@ -184,7 +185,7 @@ export class Village extends World {
       const at = new THREE.Vector3(piece.x, h0 + 1, piece.z);
       if (r.def?.use === 'rest') this.statics.push({ type: 'rest', placed: true, pos: at, radius: 2, label: 'Rest in your bed' });
       if (r.def?.use === 'store') this.statics.push({ type: 'store', placed: true, pos: at, radius: 1.8, label: 'Open your chest (the storehouse)' });
-      if (r.def?.use === 'hearth') { this.statics.push({ type: 'hearth', placed: true, pos: at, radius: 2, label: 'Cook at your hearth' }); const f = campfire(new THREE.Vector3(piece.x, h0, piece.z)); this.emitters.add(f); this.placedEmitters.push(f); }
+      if (r.def?.use === 'hearth') { this.statics.push({ type: 'hearth', placed: true, pos: at, radius: 2, label: 'Cook at your hearth' }); const f = campfire(new THREE.Vector3(piece.x, h0, piece.z)); this.emitters.add(f); this.placedEmitters.push(f); this.placedFires.push(new THREE.Vector3(piece.x, h0, piece.z)); }
       if (piece.t === 'artifact') { const a = save.artifacts.find((q) => q.uid === piece.uid); if (a) this.statics.push({ type: 'artifact-view', placed: true, artifact: a, pos: new THREE.Vector3(piece.x, h0 + 1.1, piece.z), radius: 1.4, label: `Examine: ${a.name}` }); }
     }
     const grp = b.finish('placed');

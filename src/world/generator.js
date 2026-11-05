@@ -321,4 +321,31 @@ export class WorldGen {
     const t = this.biomeT(x, z); if (t <= 0) return 0;
     const o = tmpB; this._dest(x, z, o); return o.sea * t;
   }
+
+  // which way the water runs here, as [vx, vz] in m/s (rivers and streams run along their
+  // channels; lakes, ponds and the sea are still). The channels are the zero lines of noise
+  // fields, so the current follows the contour of that field.
+  flowAt(x, z) {
+    const o = this.sample(x, z);
+    if (o.river < 0.04 && o.stream < 0.04) return [0, 0];
+    const t = this.biomeT(x, z), home = this.home && t < 0.5;
+    const g = home ? (this.homeGen || this) : this, p = home ? (this.homeGen ? this.homeGen.p : this.home) : this.p;
+    let F, speed;
+    if (!home && p.kind === 'canyon') {
+      const cnF = (x, z) => { const wx = x + 40 * g.nWarp.fbm(x * 0.003, z * 0.003, 2), wz = z + 40 * g.nWarp.fbm(x * 0.003 + 9, z * 0.003, 2); return g.nRiver.fbm(wx * 0.0021, wz * 0.0021, 3); };
+      const mF = (x, z) => { const [u, lat] = g.roadCoords(x, z); return (u - (p.canyonAt || 290) - 70 * g.nMask.fbm(lat * 0.003 + 4, 1.3, 2)) / 900; };
+      F = Math.abs(cnF(x, z)) < Math.abs(mF(x, z)) ? cnF : mF; speed = 1.1;
+    } else {
+      const stream = o.stream > 0.04 && o.stream >= o.river * 0.95;
+      F = (x, z) => {
+        const wx = x + 55 * g.nWarp.fbm(x * 0.0021, z * 0.0021, 2), wz = z + 55 * g.nWarp.fbm(x * 0.0021 + 31.7, z * 0.0021 - 12.1, 2);
+        return stream ? g.nStream.fbm(wx * 0.0034, wz * 0.0034, 3) : g.nRiver.fbm(wx * 0.0014, wz * 0.0014, 3);
+      };
+      speed = stream ? 1.3 : 0.75;
+    }
+    const e = 1.5, gx = F(x + e, z) - F(x - e, z), gz = F(x, z + e) - F(x, z - e), l = Math.hypot(gx, gz);
+    if (l < 1e-9) return [0, 0];
+    const k = speed * Math.min(1, Math.max(o.river, o.stream) * 1.4);
+    return [(-gz / l) * k, (gx / l) * k];
+  }
 }
