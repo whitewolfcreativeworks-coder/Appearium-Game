@@ -80,7 +80,7 @@ export function makePopulator(world) {
         const kind = `${base === 'cottonwood' ? 'broad' : base}${Math.floor(r3 * VAR[base])}`;
         let sc = 0.7 + r4 * 0.6 - high * 0.25, tilt = (r3 - 0.5) * 0.06, ry = r2 * 6.283, sy = null;
         if (E.windswept && (base === 'conifer' || base === 'broad')) { // bent away from the sea
-          const exposure = smoothstep(150, 360, (x - gen.start.x) * wind.x + (z - gen.start.z) * wind.y);
+          const exposure = smoothstep(70, 220, (x - gen.start.x) * wind.x + (z - gen.start.z) * wind.y);
           if (exposure > 0) { ry = Math.atan2(-wind.x, -wind.y) + (r4 - 0.5) * 0.6; tilt = 0.06 + exposure * 0.14; sy = sc * (1 - exposure * 0.35); }
         }
         if (base === 'cottonwood') sc *= 1.25;

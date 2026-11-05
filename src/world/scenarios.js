@@ -65,10 +65,10 @@ export const SCENARIOS = {
   coast: {
     title: 'The Coast', nouns: ['Shore', 'Strand', 'Sands', 'Bay'], region: 'coast',
     blurb: 'The road runs out of the trees, over the dunes — and there is the sea. Rock pools, gulls, and whatever the tide brings in.',
-    terrain: { kind: 'coast', base: 5, hills: 10, rivers: 0.35, lakes: 0.05, forest: -0.1, moisture: 0.05, streams: 0.5, ponds: 0.3, coastAt: 255 },
-    layers: { ground: 'rocky_terrain_02', rock: 'aerial_rocks_02', shore: 'aerial_beach_01' }, mode: 'dry', shoreTint: 0xe8d8b8, sea: true,
+    terrain: { kind: 'coast', base: 4, hills: 7, rivers: 0.35, lakes: 0.05, forest: -0.42, moisture: 0.05, streams: 0.5, ponds: 0.3, coastAt: 255 },
+    layers: { ground: 'rocky_terrain_02', rock: 'aerial_rocks_02', shore: 'aerial_beach_01' }, mode: 'dry', shoreTint: 0xe8d8b8, groundTint: 0xe8e0b0, sea: true,
     weathers: [['clear', 3], ['windy', 2], ['hazy', 1], ['overcast', 1], ['storm', 1], ['mist', 0.8]], times: [[9, 1], [13, 1], [17, 1]],
-    eco: { region: 'coast', fungi: 0.6, flora: 1.0, lilies: 0.1, treeDensity: 0.016, trees: { conifer: 1, broad: 0.3, snag: 0.05 }, windswept: true, fern: 0.2, grass: 1.2, grassTint: [0.95, 1.05, 0.95], marram: true, flowers: 0.6, rocks: 0.6, logs: 0.3, minerals: [], driftwood: true },
+    eco: { region: 'coast', fungi: 0.6, flora: 1.0, lilies: 0.1, treeDensity: 0.009, trees: { conifer: 1, broad: 0.3, snag: 0.05 }, windswept: true, fern: 0.2, grass: 1.2, grassTint: [0.95, 1.05, 0.95], marram: true, flowers: 0.6, rocks: 0.6, logs: 0.3, minerals: [], driftwood: true },
     pois: [['wreck', 1], ['cabin', 0.3], ['find', 1]], foxes: 1, fauna: { deer: 'red_deer', snakes: ['adder'], crabs: true, seals: true, whales: true, dolphins: true }, herds: ['gulls', 'geese'],
   },
   canyon: {
