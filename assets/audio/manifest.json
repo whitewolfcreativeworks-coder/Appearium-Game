@@ -1,0 +1,2830 @@
+{
+ "beds": {
+  "campfire": [
+   {
+    "file": "beds/campfire_1.mp3",
+    "dur": 36.05,
+    "channels": 1
+   }
+  ],
+  "cicadas": [
+   {
+    "file": "beds/cicadas_1.mp3",
+    "dur": 36.05,
+    "channels": 2
+   }
+  ],
+  "forest_day": [
+   {
+    "file": "beds/forest_day_1.mp3",
+    "dur": 40.05,
+    "channels": 2
+   },
+   {
+    "file": "beds/forest_day_2.mp3",
+    "dur": 40.05,
+    "channels": 2
+   },
+   {
+    "file": "beds/forest_day_3.mp3",
+    "dur": 40.05,
+    "channels": 2
+   }
+  ],
+  "lake_lapping": [
+   {
+    "file": "beds/lake_lapping_1.mp3",
+    "dur": 36.05,
+    "channels": 2
+   }
+  ],
+  "marsh_frogs": [
+   {
+    "file": "beds/marsh_frogs_1.mp3",
+    "dur": 36.05,
+    "channels": 2
+   },
+   {
+    "file": "beds/marsh_frogs_2.mp3",
+    "dur": 36.05,
+    "channels": 2
+   }
+  ],
+  "night_crickets": [
+   {
+    "file": "beds/night_crickets_1.mp3",
+    "dur": 37.04,
+    "channels": 2
+   },
+   {
+    "file": "beds/night_crickets_2.mp3",
+    "dur": 31.03,
+    "channels": 1
+   }
+  ],
+  "rain_heavy": [
+   {
+    "file": "beds/rain_heavy_1.mp3",
+    "dur": 36.05,
+    "channels": 2
+   },
+   {
+    "file": "beds/rain_heavy_2.mp3",
+    "dur": 19.04,
+    "channels": 2
+   }
+  ],
+  "rain_light": [
+   {
+    "file": "beds/rain_light_1.mp3",
+    "dur": 36.05,
+    "channels": 2
+   },
+   {
+    "file": "beds/rain_light_2.mp3",
+    "dur": 36.05,
+    "channels": 2
+   }
+  ],
+  "rainforest_day": [
+   {
+    "file": "beds/rainforest_day_1.mp3",
+    "dur": 36.05,
+    "channels": 2
+   },
+   {
+    "file": "beds/rainforest_day_2.mp3",
+    "dur": 36.05,
+    "channels": 2
+   }
+  ],
+  "rainforest_night": [
+   {
+    "file": "beds/rainforest_night_1.mp3",
+    "dur": 36.05,
+    "channels": 2
+   },
+   {
+    "file": "beds/rainforest_night_2.mp3",
+    "dur": 36.05,
+    "channels": 2
+   }
+  ],
+  "rapids_or_waterfall": [
+   {
+    "file": "beds/rapids_or_waterfall_1.mp3",
+    "dur": 36.05,
+    "channels": 2
+   },
+   {
+    "file": "beds/rapids_or_waterfall_2.mp3",
+    "dur": 36.05,
+    "channels": 2
+   }
+  ],
+  "river": [
+   {
+    "file": "beds/river_1.mp3",
+    "dur": 36.05,
+    "channels": 2
+   },
+   {
+    "file": "beds/river_2.mp3",
+    "dur": 36.05,
+    "channels": 2
+   }
+  ],
+  "stream": [
+   {
+    "file": "beds/stream_1.mp3",
+    "dur": 36.05,
+    "channels": 2
+   },
+   {
+    "file": "beds/stream_2.mp3",
+    "dur": 30.04,
+    "channels": 2
+   }
+  ],
+  "surf_beach": [
+   {
+    "file": "beds/surf_beach_1.mp3",
+    "dur": 36.05,
+    "channels": 2
+   },
+   {
+    "file": "beds/surf_beach_2.mp3",
+    "dur": 36.05,
+    "channels": 2
+   }
+  ],
+  "surf_rocks": [
+   {
+    "file": "beds/surf_rocks_1.mp3",
+    "dur": 36.05,
+    "channels": 2
+   },
+   {
+    "file": "beds/surf_rocks_2.mp3",
+    "dur": 27.04,
+    "channels": 2
+   }
+  ],
+  "wind_soft": [
+   {
+    "file": "beds/wind_soft_1.mp3",
+    "dur": 36.05,
+    "channels": 2
+   },
+   {
+    "file": "beds/wind_soft_2.mp3",
+    "dur": 36.05,
+    "channels": 2
+   }
+  ],
+  "wind_strong": [
+   {
+    "file": "beds/wind_strong_1.mp3",
+    "dur": 36.05,
+    "channels": 2
+   },
+   {
+    "file": "beds/wind_strong_2.mp3",
+    "dur": 36.05,
+    "channels": 2
+   }
+  ]
+ },
+ "calls": {
+  "bear_growl": [
+   {
+    "file": "calls/bear_growl_1.mp3",
+    "dur": 0.44
+   },
+   {
+    "file": "calls/bear_growl_2.mp3",
+    "dur": 2.25
+   },
+   {
+    "file": "calls/bear_growl_3.mp3",
+    "dur": 0.81
+   },
+   {
+    "file": "calls/bear_growl_4.mp3",
+    "dur": 1.2
+   }
+  ],
+  "bee": [
+   {
+    "file": "calls/bee_1.mp3",
+    "dur": 3.76
+   },
+   {
+    "file": "calls/bee_2.mp3",
+    "dur": 3.89
+   },
+   {
+    "file": "calls/bee_3.mp3",
+    "dur": 1.44
+   }
+  ],
+  "blackbird": [
+   {
+    "file": "calls/blackbird_1.mp3",
+    "dur": 2.17
+   },
+   {
+    "file": "calls/blackbird_2.mp3",
+    "dur": 0.78
+   },
+   {
+    "file": "calls/blackbird_3.mp3",
+    "dur": 2.98
+   },
+   {
+    "file": "calls/blackbird_4.mp3",
+    "dur": 0.63
+   }
+  ],
+  "buzzard": [
+   {
+    "file": "calls/buzzard_1.mp3",
+    "dur": 1.36
+   },
+   {
+    "file": "calls/buzzard_2.mp3",
+    "dur": 1.52
+   },
+   {
+    "file": "calls/buzzard_3.mp3",
+    "dur": 0.68
+   }
+  ],
+  "chaffinch": [
+   {
+    "file": "calls/chaffinch_1.mp3",
+    "dur": 2.43
+   },
+   {
+    "file": "calls/chaffinch_2.mp3",
+    "dur": 3.92
+   },
+   {
+    "file": "calls/chaffinch_3.mp3",
+    "dur": 2.95
+   },
+   {
+    "file": "calls/chaffinch_4.mp3",
+    "dur": 2.69
+   }
+  ],
+  "cicada": [
+   {
+    "file": "calls/cicada_1.mp3",
+    "dur": 2.8
+   },
+   {
+    "file": "calls/cicada_2.mp3",
+    "dur": 3.76
+   },
+   {
+    "file": "calls/cicada_3.mp3",
+    "dur": 6.19
+   },
+   {
+    "file": "calls/cicada_4.mp3",
+    "dur": 6.19
+   }
+  ],
+  "common_frog": [
+   {
+    "file": "calls/common_frog_1.mp3",
+    "dur": 0.78
+   },
+   {
+    "file": "calls/common_frog_2.mp3",
+    "dur": 1.49
+   },
+   {
+    "file": "calls/common_frog_3.mp3",
+    "dur": 1.15
+   }
+  ],
+  "common_loon": [
+   {
+    "file": "calls/common_loon_1.mp3",
+    "dur": 5.07
+   },
+   {
+    "file": "calls/common_loon_2.mp3",
+    "dur": 5.67
+   },
+   {
+    "file": "calls/common_loon_3.mp3",
+    "dur": 5.77
+   },
+   {
+    "file": "calls/common_loon_4.mp3",
+    "dur": 6.84
+   },
+   {
+    "file": "calls/common_loon_5.mp3",
+    "dur": 4.21
+   }
+  ],
+  "cricket": [
+   {
+    "file": "calls/cricket_1.mp3",
+    "dur": 4.05
+   },
+   {
+    "file": "calls/cricket_2.mp3",
+    "dur": 3.74
+   },
+   {
+    "file": "calls/cricket_3.mp3",
+    "dur": 2.4
+   },
+   {
+    "file": "calls/cricket_4.mp3",
+    "dur": 4.02
+   },
+   {
+    "file": "calls/cricket_5.mp3",
+    "dur": 2.93
+   }
+  ],
+  "crow": [
+   {
+    "file": "calls/crow_1.mp3",
+    "dur": 0.65
+   },
+   {
+    "file": "calls/crow_2.mp3",
+    "dur": 0.63
+   },
+   {
+    "file": "calls/crow_3.mp3",
+    "dur": 1.18
+   },
+   {
+    "file": "calls/crow_4.mp3",
+    "dur": 2.17
+   }
+  ],
+  "cuckoo": [
+   {
+    "file": "calls/cuckoo_1.mp3",
+    "dur": 0.76
+   },
+   {
+    "file": "calls/cuckoo_2.mp3",
+    "dur": 0.68
+   },
+   {
+    "file": "calls/cuckoo_3.mp3",
+    "dur": 0.94
+   },
+   {
+    "file": "calls/cuckoo_4.mp3",
+    "dur": 0.73
+   }
+  ],
+  "curlew": [
+   {
+    "file": "calls/curlew_1.mp3",
+    "dur": 5.98
+   },
+   {
+    "file": "calls/curlew_2.mp3",
+    "dur": 5.38
+   },
+   {
+    "file": "calls/curlew_3.mp3",
+    "dur": 1.15
+   }
+  ],
+  "deer_bark": [
+   {
+    "file": "calls/deer_bark_1.mp3",
+    "dur": 0.73
+   },
+   {
+    "file": "calls/deer_bark_2.mp3",
+    "dur": 0.71
+   },
+   {
+    "file": "calls/deer_bark_3.mp3",
+    "dur": 0.68
+   }
+  ],
+  "dolphin": [
+   {
+    "file": "calls/dolphin_1.mp3",
+    "dur": 2.64
+   },
+   {
+    "file": "calls/dolphin_2.mp3",
+    "dur": 2.43
+   },
+   {
+    "file": "calls/dolphin_3.mp3",
+    "dur": 2.51
+   }
+  ],
+  "fur_seal": [
+   {
+    "file": "calls/fur_seal_1.mp3",
+    "dur": 1.18
+   }
+  ],
+  "golden_eagle": [
+   {
+    "file": "calls/golden_eagle_1.mp3",
+    "dur": 2.01
+   },
+   {
+    "file": "calls/golden_eagle_2.mp3",
+    "dur": 0.94
+   }
+  ],
+  "goose": [
+   {
+    "file": "calls/goose_1.mp3",
+    "dur": 0.71
+   },
+   {
+    "file": "calls/goose_2.mp3",
+    "dur": 0.5
+   },
+   {
+    "file": "calls/goose_3.mp3",
+    "dur": 0.63
+   }
+  ],
+  "great_tit": [
+   {
+    "file": "calls/great_tit_1.mp3",
+    "dur": 0.84
+   },
+   {
+    "file": "calls/great_tit_2.mp3",
+    "dur": 3.37
+   },
+   {
+    "file": "calls/great_tit_3.mp3",
+    "dur": 2.43
+   },
+   {
+    "file": "calls/great_tit_4.mp3",
+    "dur": 3.13
+   }
+  ],
+  "heron": [
+   {
+    "file": "calls/heron_1.mp3",
+    "dur": 0.84
+   },
+   {
+    "file": "calls/heron_2.mp3",
+    "dur": 0.5
+   },
+   {
+    "file": "calls/heron_3.mp3",
+    "dur": 2.19
+   }
+  ],
+  "herring_gull": [
+   {
+    "file": "calls/herring_gull_1.mp3",
+    "dur": 0.73
+   },
+   {
+    "file": "calls/herring_gull_2.mp3",
+    "dur": 1.67
+   },
+   {
+    "file": "calls/herring_gull_3.mp3",
+    "dur": 4.78
+   },
+   {
+    "file": "calls/herring_gull_4.mp3",
+    "dur": 1.44
+   }
+  ],
+  "horse": [
+   {
+    "file": "calls/horse_1.mp3",
+    "dur": 0.71
+   }
+  ],
+  "howler_monkey": [
+   {
+    "file": "calls/howler_monkey_1.mp3",
+    "dur": 5.09
+   },
+   {
+    "file": "calls/howler_monkey_2.mp3",
+    "dur": 4.34
+   }
+  ],
+  "humpback_whale": [
+   {
+    "file": "calls/humpback_whale_1.mp3",
+    "dur": 2.06
+   },
+   {
+    "file": "calls/humpback_whale_2.mp3",
+    "dur": 0.73
+   }
+  ],
+  "katydid": [
+   {
+    "file": "calls/katydid_1.mp3",
+    "dur": 3.16
+   },
+   {
+    "file": "calls/katydid_2.mp3",
+    "dur": 2.53
+   },
+   {
+    "file": "calls/katydid_3.mp3",
+    "dur": 5.09
+   },
+   {
+    "file": "calls/katydid_4.mp3",
+    "dur": 4.18
+   }
+  ],
+  "mallard": [
+   {
+    "file": "calls/mallard_1.mp3",
+    "dur": 2.72
+   },
+   {
+    "file": "calls/mallard_2.mp3",
+    "dur": 1.88
+   },
+   {
+    "file": "calls/mallard_3.mp3",
+    "dur": 2.82
+   }
+  ],
+  "marmot": [
+   {
+    "file": "calls/marmot_1.mp3",
+    "dur": 0.84
+   },
+   {
+    "file": "calls/marmot_2.mp3",
+    "dur": 0.91
+   }
+  ],
+  "otter": [
+   {
+    "file": "calls/otter_1.mp3",
+    "dur": 0.44
+   },
+   {
+    "file": "calls/otter_2.mp3",
+    "dur": 0.68
+   }
+  ],
+  "oystercatcher": [
+   {
+    "file": "calls/oystercatcher_1.mp3",
+    "dur": 2.69
+   },
+   {
+    "file": "calls/oystercatcher_2.mp3",
+    "dur": 2.06
+   },
+   {
+    "file": "calls/oystercatcher_3.mp3",
+    "dur": 2.46
+   }
+  ],
+  "parrot": [
+   {
+    "file": "calls/parrot_1.mp3",
+    "dur": 1.15
+   },
+   {
+    "file": "calls/parrot_2.mp3",
+    "dur": 1.36
+   },
+   {
+    "file": "calls/parrot_3.mp3",
+    "dur": 0.76
+   },
+   {
+    "file": "calls/parrot_4.mp3",
+    "dur": 0.81
+   }
+  ],
+  "raven": [
+   {
+    "file": "calls/raven_1.mp3",
+    "dur": 0.99
+   },
+   {
+    "file": "calls/raven_2.mp3",
+    "dur": 2.17
+   },
+   {
+    "file": "calls/raven_3.mp3",
+    "dur": 0.71
+   },
+   {
+    "file": "calls/raven_4.mp3",
+    "dur": 0.99
+   }
+  ],
+  "red_deer_roar": [
+   {
+    "file": "calls/red_deer_roar_1.mp3",
+    "dur": 2.32
+   },
+   {
+    "file": "calls/red_deer_roar_2.mp3",
+    "dur": 1.44
+   },
+   {
+    "file": "calls/red_deer_roar_3.mp3",
+    "dur": 0.86
+   }
+  ],
+  "red_fox": [
+   {
+    "file": "calls/red_fox_1.mp3",
+    "dur": 0.76
+   },
+   {
+    "file": "calls/red_fox_2.mp3",
+    "dur": 1.07
+   },
+   {
+    "file": "calls/red_fox_3.mp3",
+    "dur": 1.1
+   },
+   {
+    "file": "calls/red_fox_4.mp3",
+    "dur": 1.54
+   }
+  ],
+  "red_tailed_hawk": [
+   {
+    "file": "calls/red_tailed_hawk_1.mp3",
+    "dur": 1.33
+   },
+   {
+    "file": "calls/red_tailed_hawk_2.mp3",
+    "dur": 2.48
+   }
+  ],
+  "robin": [
+   {
+    "file": "calls/robin_1.mp3",
+    "dur": 3.03
+   },
+   {
+    "file": "calls/robin_2.mp3",
+    "dur": 1.78
+   },
+   {
+    "file": "calls/robin_3.mp3",
+    "dur": 2.87
+   },
+   {
+    "file": "calls/robin_4.mp3",
+    "dur": 1.54
+   }
+  ],
+  "rockfall": [
+   {
+    "file": "calls/rockfall_1.mp3",
+    "dur": 3.63
+   }
+  ],
+  "skylark": [
+   {
+    "file": "calls/skylark_1.mp3",
+    "dur": 5.22
+   },
+   {
+    "file": "calls/skylark_2.mp3",
+    "dur": 5.22
+   }
+  ],
+  "song_thrush": [
+   {
+    "file": "calls/song_thrush_1.mp3",
+    "dur": 4.1
+   },
+   {
+    "file": "calls/song_thrush_2.mp3",
+    "dur": 0.6
+   },
+   {
+    "file": "calls/song_thrush_3.mp3",
+    "dur": 1.07
+   },
+   {
+    "file": "calls/song_thrush_4.mp3",
+    "dur": 3.5
+   }
+  ],
+  "squirrel": [
+   {
+    "file": "calls/squirrel_1.mp3",
+    "dur": 2.85
+   },
+   {
+    "file": "calls/squirrel_2.mp3",
+    "dur": 1.78
+   },
+   {
+    "file": "calls/squirrel_3.mp3",
+    "dur": 1.75
+   }
+  ],
+  "step_forest": [
+   {
+    "file": "calls/step_forest_1.mp3",
+    "dur": 0.34
+   },
+   {
+    "file": "calls/step_forest_2.mp3",
+    "dur": 0.31
+   },
+   {
+    "file": "calls/step_forest_3.mp3",
+    "dur": 0.24
+   },
+   {
+    "file": "calls/step_forest_4.mp3",
+    "dur": 0.29
+   }
+  ],
+  "step_grass": [
+   {
+    "file": "calls/step_grass_1.mp3",
+    "dur": 0.44
+   },
+   {
+    "file": "calls/step_grass_2.mp3",
+    "dur": 0.26
+   },
+   {
+    "file": "calls/step_grass_3.mp3",
+    "dur": 0.91
+   },
+   {
+    "file": "calls/step_grass_4.mp3",
+    "dur": 0.26
+   },
+   {
+    "file": "calls/step_grass_5.mp3",
+    "dur": 0.24
+   },
+   {
+    "file": "calls/step_grass_6.mp3",
+    "dur": 0.29
+   }
+  ],
+  "step_gravel": [
+   {
+    "file": "calls/step_gravel_1.mp3",
+    "dur": 0.6
+   },
+   {
+    "file": "calls/step_gravel_2.mp3",
+    "dur": 0.24
+   },
+   {
+    "file": "calls/step_gravel_3.mp3",
+    "dur": 0.71
+   },
+   {
+    "file": "calls/step_gravel_4.mp3",
+    "dur": 0.13
+   },
+   {
+    "file": "calls/step_gravel_5.mp3",
+    "dur": 0.55
+   },
+   {
+    "file": "calls/step_gravel_6.mp3",
+    "dur": 0.29
+   }
+  ],
+  "step_leaves": [
+   {
+    "file": "calls/step_leaves_1.mp3",
+    "dur": 0.91
+   },
+   {
+    "file": "calls/step_leaves_2.mp3",
+    "dur": 0.55
+   },
+   {
+    "file": "calls/step_leaves_3.mp3",
+    "dur": 0.63
+   },
+   {
+    "file": "calls/step_leaves_4.mp3",
+    "dur": 0.37
+   },
+   {
+    "file": "calls/step_leaves_5.mp3",
+    "dur": 0.47
+   },
+   {
+    "file": "calls/step_leaves_6.mp3",
+    "dur": 0.29
+   }
+  ],
+  "step_sand": [
+   {
+    "file": "calls/step_sand_1.mp3",
+    "dur": 0.6
+   },
+   {
+    "file": "calls/step_sand_2.mp3",
+    "dur": 0.29
+   },
+   {
+    "file": "calls/step_sand_3.mp3",
+    "dur": 0.57
+   },
+   {
+    "file": "calls/step_sand_4.mp3",
+    "dur": 0.31
+   },
+   {
+    "file": "calls/step_sand_5.mp3",
+    "dur": 0.29
+   }
+  ],
+  "step_snow": [
+   {
+    "file": "calls/step_snow_1.mp3",
+    "dur": 0.26
+   },
+   {
+    "file": "calls/step_snow_2.mp3",
+    "dur": 0.47
+   },
+   {
+    "file": "calls/step_snow_3.mp3",
+    "dur": 0.29
+   },
+   {
+    "file": "calls/step_snow_4.mp3",
+    "dur": 0.39
+   }
+  ],
+  "step_water": [
+   {
+    "file": "calls/step_water_1.mp3",
+    "dur": 0.84
+   },
+   {
+    "file": "calls/step_water_2.mp3",
+    "dur": 0.31
+   },
+   {
+    "file": "calls/step_water_3.mp3",
+    "dur": 0.84
+   },
+   {
+    "file": "calls/step_water_4.mp3",
+    "dur": 0.31
+   },
+   {
+    "file": "calls/step_water_5.mp3",
+    "dur": 0.31
+   }
+  ],
+  "step_wood": [
+   {
+    "file": "calls/step_wood_1.mp3",
+    "dur": 0.29
+   },
+   {
+    "file": "calls/step_wood_2.mp3",
+    "dur": 0.31
+   },
+   {
+    "file": "calls/step_wood_3.mp3",
+    "dur": 0.26
+   },
+   {
+    "file": "calls/step_wood_4.mp3",
+    "dur": 0.31
+   },
+   {
+    "file": "calls/step_wood_5.mp3",
+    "dur": 0.26
+   },
+   {
+    "file": "calls/step_wood_6.mp3",
+    "dur": 0.31
+   }
+  ],
+  "tawny_owl": [
+   {
+    "file": "calls/tawny_owl_1.mp3",
+    "dur": 2.48
+   },
+   {
+    "file": "calls/tawny_owl_2.mp3",
+    "dur": 3.71
+   },
+   {
+    "file": "calls/tawny_owl_3.mp3",
+    "dur": 3.21
+   },
+   {
+    "file": "calls/tawny_owl_4.mp3",
+    "dur": 2.82
+   }
+  ],
+  "thunder": [
+   {
+    "file": "calls/thunder_1.mp3",
+    "dur": 11.21
+   },
+   {
+    "file": "calls/thunder_2.mp3",
+    "dur": 12.36
+   },
+   {
+    "file": "calls/thunder_3.mp3",
+    "dur": 11.55
+   },
+   {
+    "file": "calls/thunder_4.mp3",
+    "dur": 11.57
+   }
+  ],
+  "toad": [
+   {
+    "file": "calls/toad_1.mp3",
+    "dur": 0.68
+   },
+   {
+    "file": "calls/toad_2.mp3",
+    "dur": 0.78
+   },
+   {
+    "file": "calls/toad_3.mp3",
+    "dur": 1.7
+   }
+  ],
+  "toucan": [
+   {
+    "file": "calls/toucan_1.mp3",
+    "dur": 0.71
+   },
+   {
+    "file": "calls/toucan_2.mp3",
+    "dur": 1.31
+   },
+   {
+    "file": "calls/toucan_3.mp3",
+    "dur": 2.04
+   }
+  ],
+  "tree_creak": [
+   {
+    "file": "calls/tree_creak_1.mp3",
+    "dur": 2.22
+   }
+  ],
+  "tree_frog": [
+   {
+    "file": "calls/tree_frog_1.mp3",
+    "dur": 3.11
+   },
+   {
+    "file": "calls/tree_frog_2.mp3",
+    "dur": 2.56
+   },
+   {
+    "file": "calls/tree_frog_3.mp3",
+    "dur": 1.02
+   },
+   {
+    "file": "calls/tree_frog_4.mp3",
+    "dur": 2.12
+   }
+  ],
+  "water_drip": [
+   {
+    "file": "calls/water_drip_1.mp3",
+    "dur": 0.26
+   },
+   {
+    "file": "calls/water_drip_2.mp3",
+    "dur": 0.21
+   },
+   {
+    "file": "calls/water_drip_3.mp3",
+    "dur": 0.21
+   },
+   {
+    "file": "calls/water_drip_4.mp3",
+    "dur": 0.21
+   }
+  ],
+  "whale_blow": [
+   {
+    "file": "calls/whale_blow_1.mp3",
+    "dur": 1.93
+   },
+   {
+    "file": "calls/whale_blow_2.mp3",
+    "dur": 1.2
+   }
+  ],
+  "wolf_howl": [
+   {
+    "file": "calls/wolf_howl_1.mp3",
+    "dur": 8.75
+   },
+   {
+    "file": "calls/wolf_howl_2.mp3",
+    "dur": 9.59
+   },
+   {
+    "file": "calls/wolf_howl_3.mp3",
+    "dur": 7.89
+   }
+  ],
+  "wood_pigeon": [
+   {
+    "file": "calls/wood_pigeon_1.mp3",
+    "dur": 5.62
+   },
+   {
+    "file": "calls/wood_pigeon_2.mp3",
+    "dur": 5.15
+   },
+   {
+    "file": "calls/wood_pigeon_3.mp3",
+    "dur": 3.81
+   }
+  ],
+  "woodpecker_drum": [
+   {
+    "file": "calls/woodpecker_drum_1.mp3",
+    "dur": 1.1
+   },
+   {
+    "file": "calls/woodpecker_drum_2.mp3",
+    "dur": 2.19
+   },
+   {
+    "file": "calls/woodpecker_drum_3.mp3",
+    "dur": 0.84
+   },
+   {
+    "file": "calls/woodpecker_drum_4.mp3",
+    "dur": 0.63
+   }
+  ],
+  "wren": [
+   {
+    "file": "calls/wren_1.mp3",
+    "dur": 7.03
+   },
+   {
+    "file": "calls/wren_2.mp3",
+    "dur": 5.93
+   },
+   {
+    "file": "calls/wren_3.mp3",
+    "dur": 5.04
+   }
+  ]
+ },
+ "credits": [
+  {
+   "files": [
+    "beds/campfire_1.mp3"
+   ],
+   "title": "Campfire (granular resequence of OGA 'fire-loop' by qubodup [CC BY 3.0] and 'fire-crackling' by AntumDeluge [CC0])",
+   "author": "qubodup; AntumDeluge",
+   "license": "CC BY 3.0 (fire-loop) + CC0 (fire-crackling)",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "source": "https://opengameart.org/content/fire-loop ; https://opengameart.org/content/fire-crackling"
+  },
+  {
+   "files": [
+    "beds/cicadas_1.mp3"
+   ],
+   "title": "Cicada 20200619.wav",
+   "author": "Shyamal",
+   "license": "CC0",
+   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Cicada_20200619.wav"
+  },
+  {
+   "files": [
+    "beds/forest_day_1.mp3"
+   ],
+   "title": "Bourne woods Birdsong 2020-05-02 0804.mp3",
+   "author": "Robert EA Harvey",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Bourne_woods_Birdsong_2020-05-02_0804.mp3"
+  },
+  {
+   "files": [
+    "beds/forest_day_2.mp3"
+   ],
+   "title": "2020-04-28 deciduous forest.wav",
+   "author": "Strebo7",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:2020-04-28_deciduous_forest.wav"
+  },
+  {
+   "files": [
+    "beds/forest_day_3.mp3"
+   ],
+   "title": "Sonus naturalis - Soundscape XC178043.mp3",
+   "author": "Jonathon Jongsma",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Sonus_naturalis_-_Soundscape_XC178043.mp3"
+  },
+  {
+   "files": [
+    "beds/lake_lapping_1.mp3"
+   ],
+   "title": "Het kabbelen van water - SoundCloud - Beeld en Geluid.ogg",
+   "author": "Beeld en Geluid",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Het_kabbelen_van_water_-_SoundCloud_-_Beeld_en_Geluid.ogg"
+  },
+  {
+   "files": [
+    "beds/marsh_frogs_1.mp3"
+   ],
+   "title": "Sonus naturalis - Soundscape XC138640.mp3",
+   "author": "Jonathon Jongsma",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Sonus_naturalis_-_Soundscape_XC138640.mp3"
+  },
+  {
+   "files": [
+    "beds/marsh_frogs_2.mp3"
+   ],
+   "title": "Sonus naturalis - Soundscape XC138641.mp3",
+   "author": "Jonathon Jongsma",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Sonus_naturalis_-_Soundscape_XC138641.mp3"
+  },
+  {
+   "files": [
+    "beds/night_crickets_1.mp3"
+   ],
+   "title": "Audio H\u00f6rbild Grillenzirpen - nachts um 3 im F\u00f6hrenwald M\u00f6dling.wav",
+   "author": "DrTrumpet",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Audio_H%C3%B6rbild_Grillenzirpen_-_nachts_um_3_im_F%C3%B6hrenwald_M%C3%B6dling.wav"
+  },
+  {
+   "files": [
+    "beds/night_crickets_2.mp3"
+   ],
+   "title": "Orthoptera Calls - Wyckoff, New Jersey 2024-08-15.mp3",
+   "author": "Ryan Hodnett",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Orthoptera_Calls_-_Wyckoff,_New_Jersey_2024-08-15.mp3"
+  },
+  {
+   "files": [
+    "beds/rain_heavy_1.mp3"
+   ],
+   "title": "Heavy rain in Glenshaw, PA.ogg",
+   "author": "Sage Ross",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Heavy_rain_in_Glenshaw,_PA.ogg"
+  },
+  {
+   "files": [
+    "beds/rain_heavy_2.mp3"
+   ],
+   "title": "Heavy Rain in Summer.ogg",
+   "author": "Fiver, der Hellseher",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Heavy_Rain_in_Summer.ogg"
+  },
+  {
+   "files": [
+    "beds/rain_light_1.mp3"
+   ],
+   "title": "Bourne woods rain 2020-05-10 0800.mp3",
+   "author": "Robert EA Harvey",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Bourne_woods_rain_2020-05-10_0800.mp3"
+  },
+  {
+   "files": [
+    "beds/rain_light_2.mp3"
+   ],
+   "title": "Sound of light rainfall.ogg",
+   "author": "Mijesty",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Sound_of_light_rainfall.ogg"
+  },
+  {
+   "files": [
+    "beds/rainforest_day_1.mp3"
+   ],
+   "title": "Short nature soundscape, Lamington National Park, Australia.ogg",
+   "author": "ssimple",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Short_nature_soundscape,_Lamington_National_Park,_Australia.ogg"
+  },
+  {
+   "files": [
+    "beds/rainforest_day_2.mp3"
+   ],
+   "title": "Jungle Sound Thailand Phuket.flac",
+   "author": "Amada44",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Jungle_Sound_Thailand_Phuket.flac"
+  },
+  {
+   "files": [
+    "beds/rainforest_night_1.mp3"
+   ],
+   "title": "Coqu\u00edes1.ogg",
+   "author": "ValWey",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Coqu%C3%ADes1.ogg"
+  },
+  {
+   "files": [
+    "beds/rainforest_night_2.mp3"
+   ],
+   "title": "Tree frogs and rain 75 sec.wav",
+   "author": "Jud McCranie",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Tree_frogs_and_rain_75_sec.wav"
+  },
+  {
+   "files": [
+    "beds/rapids_or_waterfall_1.mp3"
+   ],
+   "title": "Catarata Paqchaq.flac",
+   "author": "Yupanasimi",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Catarata_Paqchaq.flac"
+  },
+  {
+   "files": [
+    "beds/rapids_or_waterfall_2.mp3"
+   ],
+   "title": "Peque\u00f1a cascada a mitad de camino a la Laguna Churup.wav",
+   "author": "Huandy Laguna Ibarra",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Peque%C3%B1a_cascada_a_mitad_de_camino_a_la_Laguna_Churup.wav"
+  },
+  {
+   "files": [
+    "beds/river_1.mp3"
+   ],
+   "title": "Pienaarsrivier, klank vanaf R734-brug te Dinokeng, a.mp3",
+   "author": "JMK",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Pienaarsrivier,_klank_vanaf_R734-brug_te_Dinokeng,_a.mp3"
+  },
+  {
+   "files": [
+    "beds/river_2.mp3"
+   ],
+   "title": "Boekenhoutspruit, klank vanaf R628-bruggie te Leeuwgedacht-bewarea, a.mp3",
+   "author": "JMK",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Boekenhoutspruit,_klank_vanaf_R628-bruggie_te_Leeuwgedacht-bewarea,_a.mp3"
+  },
+  {
+   "files": [
+    "beds/stream_1.mp3"
+   ],
+   "title": "Sesmylspruit, klank van stroom by bruggie, a.mp3",
+   "author": "JMK",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Sesmylspruit,_klank_van_stroom_by_bruggie,_a.mp3"
+  },
+  {
+   "files": [
+    "beds/stream_2.mp3"
+   ],
+   "title": "363120 fractalstudios water-trickle.wav",
+   "author": "FractalStudios",
+   "license": "CC0",
+   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:363120_fractalstudios_water-trickle.wav"
+  },
+  {
+   "files": [
+    "beds/surf_beach_1.mp3"
+   ],
+   "title": "Wave (Gravity Sound).wav",
+   "author": "Gravity Sound",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Wave_(Gravity_Sound).wav"
+  },
+  {
+   "files": [
+    "beds/surf_beach_2.mp3"
+   ],
+   "title": "At sea (Gravity Sound).wav",
+   "author": "Gravity Sound",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:At_sea_(Gravity_Sound).wav"
+  },
+  {
+   "files": [
+    "beds/surf_rocks_1.mp3"
+   ],
+   "title": "Water on Rocks.ogg",
+   "author": "Dsw4",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Water_on_Rocks.ogg"
+  },
+  {
+   "files": [
+    "beds/surf_rocks_2.mp3"
+   ],
+   "title": "Water over rocks as tide recedes.ogg",
+   "author": "earthcalling",
+   "license": "Public domain",
+   "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+   "source": "https://commons.wikimedia.org/wiki/File:Water_over_rocks_as_tide_recedes.ogg"
+  },
+  {
+   "files": [
+    "beds/wind_soft_1.mp3"
+   ],
+   "title": "Wind sounds 2020-05-10 1625.mp3",
+   "author": "Robert EA Harvey",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Wind_sounds_2020-05-10_1625.mp3"
+  },
+  {
+   "files": [
+    "beds/wind_soft_2.mp3"
+   ],
+   "title": "Wind in forest (Gravity Sound).wav",
+   "author": "Gravity Sound",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Wind_in_forest_(Gravity_Sound).wav"
+  },
+  {
+   "files": [
+    "beds/wind_strong_1.mp3"
+   ],
+   "title": "Wind in Swedish pine forest at 25 mps.ogg",
+   "author": "W.carter",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Wind_in_Swedish_pine_forest_at_25_mps.ogg"
+  },
+  {
+   "files": [
+    "beds/wind_strong_2.mp3"
+   ],
+   "title": "20221229 - Abisko Turiststation at night - Wind and snow.wav",
+   "author": "Fabricio Cardenas",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:20221229_-_Abisko_Turiststation_at_night_-_Wind_and_snow.wav"
+  },
+  {
+   "files": [
+    "calls/bear_growl_1.mp3",
+    "calls/bear_growl_3.mp3",
+    "calls/bear_growl_4.mp3"
+   ],
+   "title": "Yellowstone sound library - Grizzly Bear vocalizations - 001.mp3",
+   "author": "NPS & MSU Acoustic Atlas / Jennifer Jerrett",
+   "license": "Public domain",
+   "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+   "source": "https://commons.wikimedia.org/wiki/File:Yellowstone_sound_library_-_Grizzly_Bear_vocalizations_-_001.mp3"
+  },
+  {
+   "files": [
+    "calls/bear_growl_2.mp3"
+   ],
+   "title": "Yellowstone sound library - Grizzly Bears Roar - 001.mp3",
+   "author": "NPS & MSU Acoustic Atlas / Jennifer Jerrett",
+   "license": "Public domain",
+   "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+   "source": "https://commons.wikimedia.org/wiki/File:Yellowstone_sound_library_-_Grizzly_Bears_Roar_-_001.mp3"
+  },
+  {
+   "files": [
+    "calls/bee_1.mp3",
+    "calls/bee_3.mp3"
+   ],
+   "title": "Zumbido de abejorro.wav",
+   "author": "Luis Alvaz",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Zumbido_de_abejorro.wav"
+  },
+  {
+   "files": [
+    "calls/bee_2.mp3"
+   ],
+   "title": "Bee sounds near Cologne, Germany - reinsamba.wav",
+   "author": "reinsamba",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Bee_sounds_near_Cologne,_Germany_-_reinsamba.wav"
+  },
+  {
+   "files": [
+    "calls/blackbird_1.mp3"
+   ],
+   "title": "Turdus merula - Common Blackbird XC483999.mp3",
+   "author": "Marie-Lan Ta\u00ff Pamart",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Turdus_merula_-_Common_Blackbird_XC483999.mp3"
+  },
+  {
+   "files": [
+    "calls/blackbird_2.mp3",
+    "calls/blackbird_4.mp3"
+   ],
+   "title": "Turdus merula - Common Blackbird XC466535.mp3",
+   "author": "Marie-Lan Ta\u00ff Pamart",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Turdus_merula_-_Common_Blackbird_XC466535.mp3"
+  },
+  {
+   "files": [
+    "calls/blackbird_3.mp3"
+   ],
+   "title": "Turdus merula - Common Blackbird XC541201.mp3",
+   "author": "Beno\u00eet Van Hecke",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Turdus_merula_-_Common_Blackbird_XC541201.mp3"
+  },
+  {
+   "files": [
+    "calls/buzzard_1.mp3",
+    "calls/buzzard_3.mp3"
+   ],
+   "title": "Buteo buteo - Common Buzzard XC538678.mp3",
+   "author": "Beno\u00eet Van Hecke",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Buteo_buteo_-_Common_Buzzard_XC538678.mp3"
+  },
+  {
+   "files": [
+    "calls/buzzard_2.mp3"
+   ],
+   "title": "Buteo buteo - Common Buzzard XC538277.mp3",
+   "author": "Beno\u00eet Van Hecke",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Buteo_buteo_-_Common_Buzzard_XC538277.mp3"
+  },
+  {
+   "files": [
+    "calls/chaffinch_1.mp3"
+   ],
+   "title": "Fringilla coelebs - Common Chaffinch XC538310.mp3",
+   "author": "Beno\u00eet Van Hecke",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Fringilla_coelebs_-_Common_Chaffinch_XC538310.mp3"
+  },
+  {
+   "files": [
+    "calls/chaffinch_2.mp3",
+    "calls/chaffinch_4.mp3"
+   ],
+   "title": "Fringilla coelebs - Common Chaffinch XC405787.mp3",
+   "author": "Dimit\u01cer Boevski",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Fringilla_coelebs_-_Common_Chaffinch_XC405787.mp3"
+  },
+  {
+   "files": [
+    "calls/chaffinch_3.mp3"
+   ],
+   "title": "Fringilla coelebs - Common Chaffinch XC489896.mp3",
+   "author": "Hannu Varkki",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Fringilla_coelebs_-_Common_Chaffinch_XC489896.mp3"
+  },
+  {
+   "files": [
+    "calls/cicada_1.mp3"
+   ],
+   "title": "Meimuna Opalifera KR.wav",
+   "author": "Prof. Yun, Ki-sang\uff08\uc724\uae30\uc0c1 \ubc15\uc0ac\uff09",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Meimuna_Opalifera_KR.wav"
+  },
+  {
+   "files": [
+    "calls/cicada_2.mp3"
+   ],
+   "title": "Northern Dog-day Cicada (Neotibicen canicularis) - Guelph, Ontario 2020-07-26.mp3",
+   "author": "Ryan Hodnett",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Northern_Dog-day_Cicada_(Neotibicen_canicularis)_-_Guelph,_Ontario_2020-07-26.mp3"
+  },
+  {
+   "files": [
+    "calls/cicada_3.mp3",
+    "calls/cicada_4.mp3"
+   ],
+   "title": "Black-Prince-Cicada- Psaltoda-plaga.wav",
+   "author": "7575u",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Black-Prince-Cicada-_Psaltoda-plaga.wav"
+  },
+  {
+   "files": [
+    "calls/common_frog_1.mp3",
+    "calls/common_frog_3.mp3"
+   ],
+   "title": "16 bruine kikker individu Rana temporaria individual.wav",
+   "author": "Od\u00e9, Baudewijn .mw-parser-output .messagebox{margin:4px 0;width:auto;border-collapse:collapse;border:2px solid var(--bor",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:16_bruine_kikker_individu_Rana_temporaria_individual.wav"
+  },
+  {
+   "files": [
+    "calls/common_frog_2.mp3"
+   ],
+   "title": "Grasfrosch Paarungsrufe.OGG",
+   "author": "Rabe19",
+   "license": "Public domain",
+   "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+   "source": "https://commons.wikimedia.org/wiki/File:Grasfrosch_Paarungsrufe.OGG"
+  },
+  {
+   "files": [
+    "calls/common_loon_1.mp3",
+    "calls/common_loon_5.mp3"
+   ],
+   "title": "Yellowstone sound library - Common Loon - 001.mp3",
+   "author": "NPS & MSU Acoustic Atlas/Jennifer Jerrett",
+   "license": "Public domain",
+   "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+   "source": "https://commons.wikimedia.org/wiki/File:Yellowstone_sound_library_-_Common_Loon_-_001.mp3"
+  },
+  {
+   "files": [
+    "calls/common_loon_2.mp3"
+   ],
+   "title": "Common loon yodels.ogg",
+   "author": "Darwin Long, Peter Otto",
+   "license": "CC BY-SA 2.5",
+   "license_url": "https://creativecommons.org/licenses/by-sa/2.5",
+   "source": "https://commons.wikimedia.org/wiki/File:Common_loon_yodels.ogg"
+  },
+  {
+   "files": [
+    "calls/common_loon_3.mp3"
+   ],
+   "title": "Common loon tremolo.ogg",
+   "author": "Darwin Long",
+   "license": "CC BY-SA 2.5",
+   "license_url": "https://creativecommons.org/licenses/by-sa/2.5",
+   "source": "https://commons.wikimedia.org/wiki/File:Common_loon_tremolo.ogg"
+  },
+  {
+   "files": [
+    "calls/common_loon_4.mp3"
+   ],
+   "title": "Loon yodel.ogg",
+   "author": "D. Gordon E. Robertson",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Loon_yodel.ogg"
+  },
+  {
+   "files": [
+    "calls/cricket_1.mp3"
+   ],
+   "title": "BioAcoustica 432 2 Gryllus campestris 656r1b.flac",
+   "author": "BioAcoustica (Natural History Museum, London)",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:BioAcoustica_432_2_Gryllus_campestris_656r1b.flac"
+  },
+  {
+   "files": [
+    "calls/cricket_2.mp3"
+   ],
+   "title": "Oecanthus pellucens song 23C.wav",
+   "author": "Gunther Tschuch",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Oecanthus_pellucens_song_23C.wav"
+  },
+  {
+   "files": [
+    "calls/cricket_3.mp3"
+   ],
+   "title": "Oecanthus pellucens - Tree Cricket XC558882.mp3",
+   "author": "Olivier Grimm",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Oecanthus_pellucens_-_Tree_Cricket_XC558882.mp3"
+  },
+  {
+   "files": [
+    "calls/cricket_4.mp3"
+   ],
+   "title": "Canto de un grillo.opus",
+   "author": "Armartinell",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Canto_de_un_grillo.opus"
+  },
+  {
+   "files": [
+    "calls/cricket_5.mp3"
+   ],
+   "title": "Allonemobius shalontaki song.wav",
+   "author": "Greeper782",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Allonemobius_shalontaki_song.wav"
+  },
+  {
+   "files": [
+    "calls/crow_1.mp3"
+   ],
+   "title": "Corvus corone - Carrion Crow XC24828.mp3",
+   "author": "Sander Pieterse",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Corvus_corone_-_Carrion_Crow_XC24828.mp3"
+  },
+  {
+   "files": [
+    "calls/crow_2.mp3"
+   ],
+   "title": "Corvus corone - Carrion Crow XC461980.mp3",
+   "author": "Marie-Lan Ta\u00ff Pamart",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Corvus_corone_-_Carrion_Crow_XC461980.mp3"
+  },
+  {
+   "files": [
+    "calls/crow_3.mp3"
+   ],
+   "title": "Corvus corone - Carrion Crow XC500630.mp3",
+   "author": "Marie-Lan Ta\u00ff Pamart",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Corvus_corone_-_Carrion_Crow_XC500630.mp3"
+  },
+  {
+   "files": [
+    "calls/crow_4.mp3"
+   ],
+   "title": "Corvus corone - Carrion Crow XC482407.mp3",
+   "author": "Marie-Lan Ta\u00ff Pamart",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Corvus_corone_-_Carrion_Crow_XC482407.mp3"
+  },
+  {
+   "files": [
+    "calls/cuckoo_1.mp3",
+    "calls/cuckoo_4.mp3"
+   ],
+   "title": "Cuculus canorus - Common Cuckoo XC541195.mp3",
+   "author": "Beno\u00eet Van Hecke",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Cuculus_canorus_-_Common_Cuckoo_XC541195.mp3"
+  },
+  {
+   "files": [
+    "calls/cuckoo_2.mp3"
+   ],
+   "title": "Cuculus canorus - Common Cuckoo XC552150.mp3",
+   "author": "Tommy Andriollo",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Cuculus_canorus_-_Common_Cuckoo_XC552150.mp3"
+  },
+  {
+   "files": [
+    "calls/cuckoo_3.mp3"
+   ],
+   "title": "Cuculus canorus - Common Cuckoo XC108332.mp3",
+   "author": "Alexander Kurthy",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Cuculus_canorus_-_Common_Cuckoo_XC108332.mp3"
+  },
+  {
+   "files": [
+    "calls/curlew_1.mp3",
+    "calls/curlew_3.mp3"
+   ],
+   "title": "Numenius arquata - Eurasian Curlew XC432918.mp3",
+   "author": "Joost van Bruggen",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Numenius_arquata_-_Eurasian_Curlew_XC432918.mp3"
+  },
+  {
+   "files": [
+    "calls/curlew_2.mp3"
+   ],
+   "title": "Numenius arquata - Eurasian Curlew XC466469.mp3",
+   "author": "Pascal Christe",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Numenius_arquata_-_Eurasian_Curlew_XC466469.mp3"
+  },
+  {
+   "files": [
+    "calls/deer_bark_1.mp3",
+    "calls/deer_bark_2.mp3",
+    "calls/deer_bark_3.mp3"
+   ],
+   "title": "Barking Deer Alarm Call 20240209 214224.wav",
+   "author": "PJeganathan",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Barking_Deer_Alarm_Call_20240209_214224.wav"
+  },
+  {
+   "files": [
+    "calls/dolphin_1.mp3",
+    "calls/dolphin_2.mp3",
+    "calls/dolphin_3.mp3"
+   ],
+   "title": "161691 felixblume dolphin-screaming-underwater-in-caribbean-sea-mexico.wav",
+   "author": "Felix Blume (via Freesound)",
+   "license": "CC0",
+   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:161691_felixblume_dolphin-screaming-underwater-in-caribbean-sea-mexico.wav"
+  },
+  {
+   "files": [
+    "calls/fur_seal_1.mp3"
+   ],
+   "title": "Arctocephalusgazellavocal.wav",
+   "author": "Aubin T, Jouventin P, Charrier I",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Arctocephalusgazellavocal.wav"
+  },
+  {
+   "files": [
+    "calls/golden_eagle_1.mp3",
+    "calls/golden_eagle_2.mp3"
+   ],
+   "title": "Golden Eagle (Aquila chrysaetos) (W1CDR0001387 BD6).ogg",
+   "author": "British Library",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Golden_Eagle_(Aquila_chrysaetos)_(W1CDR0001387_BD6).ogg"
+  },
+  {
+   "files": [
+    "calls/goose_1.mp3",
+    "calls/goose_3.mp3"
+   ],
+   "title": "Branta canadensis - Canada Goose XC388771.mp3",
+   "author": "Antonio Xeira",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Branta_canadensis_-_Canada_Goose_XC388771.mp3"
+  },
+  {
+   "files": [
+    "calls/goose_2.mp3"
+   ],
+   "title": "Anser anser - Greylag Goose XC518305.mp3",
+   "author": "Jens Loose",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Anser_anser_-_Greylag_Goose_XC518305.mp3"
+  },
+  {
+   "files": [
+    "calls/great_tit_1.mp3"
+   ],
+   "title": "Parus major - Great Tit XC531168.mp3",
+   "author": "Beno\u00eet Van Hecke",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Parus_major_-_Great_Tit_XC531168.mp3"
+  },
+  {
+   "files": [
+    "calls/great_tit_2.mp3",
+    "calls/great_tit_4.mp3"
+   ],
+   "title": "Parus major - Great Tit XC172577.mp3",
+   "author": "Sander Pieterse",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Parus_major_-_Great_Tit_XC172577.mp3"
+  },
+  {
+   "files": [
+    "calls/great_tit_3.mp3"
+   ],
+   "title": "Parus major - Great Tit XC478081.mp3",
+   "author": "Marie-Lan Ta\u00ff Pamart",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Parus_major_-_Great_Tit_XC478081.mp3"
+  },
+  {
+   "files": [
+    "calls/heron_1.mp3"
+   ],
+   "title": "Ardea cinerea - Grey Heron XC432231.mp3",
+   "author": "Joost van Bruggen",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Ardea_cinerea_-_Grey_Heron_XC432231.mp3"
+  },
+  {
+   "files": [
+    "calls/heron_2.mp3"
+   ],
+   "title": "Ardea cinerea - Grey Heron XC531166.mp3",
+   "author": "Beno\u00eet Van Hecke",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Ardea_cinerea_-_Grey_Heron_XC531166.mp3"
+  },
+  {
+   "files": [
+    "calls/heron_3.mp3"
+   ],
+   "title": "Ardea cinerea - Grey Heron XC436360.mp3",
+   "author": "Joost van Bruggen",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Ardea_cinerea_-_Grey_Heron_XC436360.mp3"
+  },
+  {
+   "files": [
+    "calls/herring_gull_1.mp3"
+   ],
+   "title": "Larus argentatus - European Herring Gull XC436943.mp3",
+   "author": "Joost van Bruggen",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Larus_argentatus_-_European_Herring_Gull_XC436943.mp3"
+  },
+  {
+   "files": [
+    "calls/herring_gull_2.mp3"
+   ],
+   "title": "XC707075 - European Herring Gull - Larus argentatus.mp3",
+   "author": "Sonoth\u00e8que ADVL",
+   "license": "CC0",
+   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:XC707075_-_European_Herring_Gull_-_Larus_argentatus.mp3"
+  },
+  {
+   "files": [
+    "calls/herring_gull_3.mp3",
+    "calls/herring_gull_4.mp3"
+   ],
+   "title": "Larus argentatus - European Herring Gull XC488995.mp3",
+   "author": "Marie-Lan Ta\u00ff Pamart",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Larus_argentatus_-_European_Herring_Gull_XC488995.mp3"
+  },
+  {
+   "files": [
+    "calls/horse_1.mp3"
+   ],
+   "title": "Horse in Antefasy.wav",
+   "author": "Gasybeaugosse2020",
+   "license": "CC0",
+   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Horse_in_Antefasy.wav"
+  },
+  {
+   "files": [
+    "calls/howler_monkey_1.mp3",
+    "calls/howler_monkey_2.mp3"
+   ],
+   "title": "Monos Congo - Howler Monkeys.WAV",
+   "author": "Francisco Guerrero",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Monos_Congo_-_Howler_Monkeys.WAV"
+  },
+  {
+   "files": [
+    "calls/humpback_whale_1.mp3"
+   ],
+   "title": "Humpbackwhale2.ogg",
+   "author": "Spyrogumas",
+   "license": "CC0",
+   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Humpbackwhale2.ogg"
+  },
+  {
+   "files": [
+    "calls/humpback_whale_2.mp3"
+   ],
+   "title": "Humpback whale moo.ogg",
+   "author": "U.S. National Park Service (Glacier Bay NP)",
+   "license": "Public domain",
+   "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+   "source": "https://commons.wikimedia.org/wiki/File:Humpback_whale_moo.ogg"
+  },
+  {
+   "files": [
+    "calls/katydid_1.mp3"
+   ],
+   "title": "Great Green Bush-Cricket (Tettigonia viridissima) - Oslo, Norway 2020-08-14.mp3",
+   "author": "Ryan Hodnett",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Great_Green_Bush-Cricket_(Tettigonia_viridissima)_-_Oslo,_Norway_2020-08-14.mp3"
+  },
+  {
+   "files": [
+    "calls/katydid_2.mp3"
+   ],
+   "title": "Sword-bearing Conehead (Neoconocephalus ensiger) - Guelph, Ontario 2020-07-26.mp3",
+   "author": "Ryan Hodnett",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Sword-bearing_Conehead_(Neoconocephalus_ensiger)_-_Guelph,_Ontario_2020-07-26.mp3"
+  },
+  {
+   "files": [
+    "calls/katydid_3.mp3",
+    "calls/katydid_4.mp3"
+   ],
+   "title": "Pterophylla camellifolia singing.wav",
+   "author": "peterwchen",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Pterophylla_camellifolia_singing.wav"
+  },
+  {
+   "files": [
+    "calls/mallard_1.mp3",
+    "calls/mallard_3.mp3"
+   ],
+   "title": "Anas platyrhynchos - Mallard XC112828.mp3",
+   "author": "Jonathon Jongsma",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Anas_platyrhynchos_-_Mallard_XC112828.mp3"
+  },
+  {
+   "files": [
+    "calls/mallard_2.mp3"
+   ],
+   "title": "Anas platyrhynchos - Mallard XC518422.mp3",
+   "author": "Marie-Lan Ta\u00ff Pamart",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Anas_platyrhynchos_-_Mallard_XC518422.mp3"
+  },
+  {
+   "files": [
+    "calls/marmot_1.mp3",
+    "calls/marmot_2.mp3"
+   ],
+   "title": "Alpine marmot call.wav",
+   "author": "TanguyLo\u00efs",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Alpine_marmot_call.wav"
+  },
+  {
+   "files": [
+    "calls/otter_1.mp3",
+    "calls/otter_2.mp3"
+   ],
+   "title": "Smooth-coated otter sound.wav",
+   "author": "Ganesh Mohan T",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Smooth-coated_otter_sound.wav"
+  },
+  {
+   "files": [
+    "calls/oystercatcher_1.mp3",
+    "calls/oystercatcher_3.mp3"
+   ],
+   "title": "Haematopus ostralegus - Eurasian Oystercatcher XC466472.mp3",
+   "author": "Pascal Christe",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Haematopus_ostralegus_-_Eurasian_Oystercatcher_XC466472.mp3"
+  },
+  {
+   "files": [
+    "calls/oystercatcher_2.mp3"
+   ],
+   "title": "Haematopus ostralegus - Eurasian Oystercatcher XC503632.mp3",
+   "author": "Jochem verweij",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Haematopus_ostralegus_-_Eurasian_Oystercatcher_XC503632.mp3"
+  },
+  {
+   "files": [
+    "calls/parrot_1.mp3",
+    "calls/parrot_4.mp3"
+   ],
+   "title": "Scarlet macaw 01.wav",
+   "author": "Ganesh Mohan T",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Scarlet_macaw_01.wav"
+  },
+  {
+   "files": [
+    "calls/parrot_2.mp3"
+   ],
+   "title": "Ara militaris - Military Macaw XC250486.mp3",
+   "author": "Niels Krabbe",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Ara_militaris_-_Military_Macaw_XC250486.mp3"
+  },
+  {
+   "files": [
+    "calls/parrot_3.mp3"
+   ],
+   "title": "Amazona farinosa - Mealy Amazon XC250466.mp3",
+   "author": "Niels Krabbe",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Amazona_farinosa_-_Mealy_Amazon_XC250466.mp3"
+  },
+  {
+   "files": [
+    "calls/raven_1.mp3"
+   ],
+   "title": "Yellowstone sound library - Common Raven - 001.mp3",
+   "author": "NPS/David Restivo",
+   "license": "Public domain",
+   "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+   "source": "https://commons.wikimedia.org/wiki/File:Yellowstone_sound_library_-_Common_Raven_-_001.mp3"
+  },
+  {
+   "files": [
+    "calls/raven_2.mp3",
+    "calls/raven_4.mp3"
+   ],
+   "title": "Corvus corax - Northern Raven XC488951.mp3",
+   "author": "Benjamin Mayer",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Corvus_corax_-_Northern_Raven_XC488951.mp3"
+  },
+  {
+   "files": [
+    "calls/raven_3.mp3"
+   ],
+   "title": "Corvus corax - Northern Raven XC496700.mp3",
+   "author": "Marie-Lan Ta\u00ff Pamart",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Corvus_corax_-_Northern_Raven_XC496700.mp3"
+  },
+  {
+   "files": [
+    "calls/red_deer_roar_1.mp3",
+    "calls/red_deer_roar_2.mp3",
+    "calls/red_deer_roar_3.mp3"
+   ],
+   "title": "Hirschbrunft Gaggafeld.flac",
+   "author": "32-Fu\u00df-Freak",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Hirschbrunft_Gaggafeld.flac"
+  },
+  {
+   "files": [
+    "calls/red_fox_1.mp3"
+   ],
+   "title": "FuchsSchreit.mp3",
+   "author": "Livlandfahrer",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:FuchsSchreit.mp3"
+  },
+  {
+   "files": [
+    "calls/red_fox_2.mp3"
+   ],
+   "title": "Red Fox (Vulpes vulpes) (W1CDR0001529 BD12).ogg",
+   "author": "British Library",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Red_Fox_(Vulpes_vulpes)_(W1CDR0001529_BD12).ogg"
+  },
+  {
+   "files": [
+    "calls/red_fox_3.mp3"
+   ],
+   "title": "Bellender Fuchs.ogg",
+   "author": "Jugr\u00fc",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Bellender_Fuchs.ogg"
+  },
+  {
+   "files": [
+    "calls/red_fox_4.mp3"
+   ],
+   "title": "Vulpes vulpes, at Henclov\u00e1, Slovakia XC108315.mp3",
+   "author": "Alexander Kurthy",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Vulpes_vulpes,_at_Henclov%C3%A1,_Slovakia_XC108315.mp3"
+  },
+  {
+   "files": [
+    "calls/red_tailed_hawk_1.mp3"
+   ],
+   "title": "Buteo jamaicensis - Red-tailed Hawk XC71575.mp3",
+   "author": "Jonathon Jongsma",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Buteo_jamaicensis_-_Red-tailed_Hawk_XC71575.mp3"
+  },
+  {
+   "files": [
+    "calls/red_tailed_hawk_2.mp3"
+   ],
+   "title": "Screaming Hawk.wav",
+   "author": "PsychoBird",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Screaming_Hawk.wav"
+  },
+  {
+   "files": [
+    "calls/robin_1.mp3"
+   ],
+   "title": "Erithacus rubecula - European Robin XC524928.mp3",
+   "author": "Van Hecke",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Erithacus_rubecula_-_European_Robin_XC524928.mp3"
+  },
+  {
+   "files": [
+    "calls/robin_2.mp3",
+    "calls/robin_4.mp3"
+   ],
+   "title": "Erithacus rubecula - European Robin XC473253.mp3",
+   "author": "Marie-Lan Ta\u00ff Pamart",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Erithacus_rubecula_-_European_Robin_XC473253.mp3"
+  },
+  {
+   "files": [
+    "calls/robin_3.mp3"
+   ],
+   "title": "Erithacus rubecula - European Robin XC542842.mp3",
+   "author": "Beno\u00eet Van Hecke",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Erithacus_rubecula_-_European_Robin_XC542842.mp3"
+  },
+  {
+   "files": [
+    "calls/rockfall_1.mp3"
+   ],
+   "title": "OGA: falling-rock / Falling%20Rock.wav",
+   "author": "spookymodem",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "source": "https://opengameart.org/content/falling-rock"
+  },
+  {
+   "files": [
+    "calls/skylark_1.mp3"
+   ],
+   "title": "Alauda arvensis - Eurasian Skylark XC423566.mp3",
+   "author": "Phoenicurus ochruros",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Alauda_arvensis_-_Eurasian_Skylark_XC423566.mp3"
+  },
+  {
+   "files": [
+    "calls/skylark_2.mp3"
+   ],
+   "title": "Alauda arvensis - Eurasian Skylark XC484052.mp3",
+   "author": "Marie-Lan Ta\u00ff Pamart",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Alauda_arvensis_-_Eurasian_Skylark_XC484052.mp3"
+  },
+  {
+   "files": [
+    "calls/song_thrush_1.mp3",
+    "calls/song_thrush_4.mp3"
+   ],
+   "title": "Turdus philomelos - Song Thrush XC321571.mp3",
+   "author": "T (xeno-canto recordist)",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Turdus_philomelos_-_Song_Thrush_XC321571.mp3"
+  },
+  {
+   "files": [
+    "calls/song_thrush_2.mp3"
+   ],
+   "title": "Turdus philomelos - Song Thrush XC434600.mp3",
+   "author": "Joost van Bruggen",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Turdus_philomelos_-_Song_Thrush_XC434600.mp3"
+  },
+  {
+   "files": [
+    "calls/song_thrush_3.mp3"
+   ],
+   "title": "Turdus philomelos - Song Thrush XC537554.mp3",
+   "author": "Mats Havskogen",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Turdus_philomelos_-_Song_Thrush_XC537554.mp3"
+  },
+  {
+   "files": [
+    "calls/squirrel_1.mp3"
+   ],
+   "title": "Indian palm squirrel sound.wav",
+   "author": "Ganesh Mohan T",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Indian_palm_squirrel_sound.wav"
+  },
+  {
+   "files": [
+    "calls/squirrel_2.mp3",
+    "calls/squirrel_3.mp3"
+   ],
+   "title": "Squirrel calls.wav",
+   "author": "Arunasank",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Squirrel_calls.wav"
+  },
+  {
+   "files": [
+    "calls/step_forest_1.mp3",
+    "calls/step_forest_2.mp3",
+    "calls/step_forest_3.mp3",
+    "calls/step_forest_4.mp3"
+   ],
+   "title": "Walking in woods (Gravity Sound).wav",
+   "author": "Gravity Sound",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Walking_in_woods_(Gravity_Sound).wav"
+  },
+  {
+   "files": [
+    "calls/step_grass_1.mp3",
+    "calls/step_grass_3.mp3"
+   ],
+   "title": "Walking through tall grass (Gravity Sound).wav",
+   "author": "Gravity Sound",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Walking_through_tall_grass_(Gravity_Sound).wav"
+  },
+  {
+   "files": [
+    "calls/step_grass_2.mp3",
+    "calls/step_grass_4.mp3",
+    "calls/step_grass_5.mp3",
+    "calls/step_grass_6.mp3"
+   ],
+   "title": "Walking on grass (Gravity Sound).wav",
+   "author": "Gravity Sound",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Walking_on_grass_(Gravity_Sound).wav"
+  },
+  {
+   "files": [
+    "calls/step_gravel_1.mp3",
+    "calls/step_gravel_3.mp3",
+    "calls/step_gravel_5.mp3"
+   ],
+   "title": "Walking on gravel (Gravity Sound).mp3",
+   "author": "Gravity Sound",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Walking_on_gravel_(Gravity_Sound).mp3"
+  },
+  {
+   "files": [
+    "calls/step_gravel_2.mp3"
+   ],
+   "title": "OGA: footsteps-on-different-surfaces / footsteps/gravel/0.ogg",
+   "author": "congusbongus; derived from Ali_6868 (freesound)",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "source": "https://opengameart.org/content/footsteps-on-different-surfaces"
+  },
+  {
+   "files": [
+    "calls/step_gravel_4.mp3"
+   ],
+   "title": "OGA: footsteps-on-different-surfaces / footsteps/gravel/1.ogg",
+   "author": "congusbongus; derived from Ali_6868 (freesound)",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "source": "https://opengameart.org/content/footsteps-on-different-surfaces"
+  },
+  {
+   "files": [
+    "calls/step_gravel_6.mp3"
+   ],
+   "title": "OGA: footsteps-on-different-surfaces / footsteps/gravel/2.ogg",
+   "author": "congusbongus; derived from Ali_6868 (freesound)",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "source": "https://opengameart.org/content/footsteps-on-different-surfaces"
+  },
+  {
+   "files": [
+    "calls/step_leaves_1.mp3",
+    "calls/step_leaves_3.mp3",
+    "calls/step_leaves_5.mp3"
+   ],
+   "title": "Walking through leaves and sticks (Gravity Sound).wav",
+   "author": "Gravity Sound",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Walking_through_leaves_and_sticks_(Gravity_Sound).wav"
+  },
+  {
+   "files": [
+    "calls/step_leaves_2.mp3",
+    "calls/step_leaves_4.mp3",
+    "calls/step_leaves_6.mp3"
+   ],
+   "title": "Walking through leaves (Gravity Sound).wav",
+   "author": "Gravity Sound",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Walking_through_leaves_(Gravity_Sound).wav"
+  },
+  {
+   "files": [
+    "calls/step_sand_1.mp3",
+    "calls/step_sand_2.mp3",
+    "calls/step_sand_3.mp3",
+    "calls/step_sand_4.mp3",
+    "calls/step_sand_5.mp3"
+   ],
+   "title": "OGA: water-splash-and-sand-footsteps / sand_footsteps_0.mp3",
+   "author": "Peludo",
+   "license": "CC0",
+   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "source": "https://opengameart.org/content/water-splash-and-sand-footsteps"
+  },
+  {
+   "files": [
+    "calls/step_snow_1.mp3",
+    "calls/step_snow_2.mp3",
+    "calls/step_snow_3.mp3",
+    "calls/step_snow_4.mp3"
+   ],
+   "title": "Walking through snow.mp3",
+   "author": "Lukas Beck",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Walking_through_snow.mp3"
+  },
+  {
+   "files": [
+    "calls/step_water_1.mp3"
+   ],
+   "title": "OGA: water-step-splashes-yo-frankie / sfx_step_water_l.flac",
+   "author": "Blender Foundation (Yo Frankie!)",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "source": "https://opengameart.org/content/water-step-splashes-yo-frankie"
+  },
+  {
+   "files": [
+    "calls/step_water_2.mp3"
+   ],
+   "title": "OGA: footsteps-on-different-surfaces / footsteps/water/0.ogg",
+   "author": "congusbongus; derived from EminYILDIRIM and swuing (freesound)",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "source": "https://opengameart.org/content/footsteps-on-different-surfaces"
+  },
+  {
+   "files": [
+    "calls/step_water_3.mp3"
+   ],
+   "title": "OGA: water-step-splashes-yo-frankie / sfx_step_water_r.flac",
+   "author": "Blender Foundation (Yo Frankie!)",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "source": "https://opengameart.org/content/water-step-splashes-yo-frankie"
+  },
+  {
+   "files": [
+    "calls/step_water_4.mp3"
+   ],
+   "title": "OGA: footsteps-on-different-surfaces / footsteps/water/1.ogg",
+   "author": "congusbongus; derived from EminYILDIRIM and swuing (freesound)",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "source": "https://opengameart.org/content/footsteps-on-different-surfaces"
+  },
+  {
+   "files": [
+    "calls/step_water_5.mp3"
+   ],
+   "title": "OGA: footsteps-on-different-surfaces / footsteps/water/2.ogg",
+   "author": "congusbongus; derived from EminYILDIRIM and swuing (freesound)",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "source": "https://opengameart.org/content/footsteps-on-different-surfaces"
+  },
+  {
+   "files": [
+    "calls/step_wood_1.mp3",
+    "calls/step_wood_3.mp3",
+    "calls/step_wood_5.mp3"
+   ],
+   "title": "Walking on small wooden bridge (Gravity Sound).wav",
+   "author": "Gravity Sound",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Walking_on_small_wooden_bridge_(Gravity_Sound).wav"
+  },
+  {
+   "files": [
+    "calls/step_wood_2.mp3"
+   ],
+   "title": "OGA: footsteps-on-different-surfaces / footsteps/wood/0.ogg",
+   "author": "congusbongus; derived from swuing (freesound)",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "source": "https://opengameart.org/content/footsteps-on-different-surfaces"
+  },
+  {
+   "files": [
+    "calls/step_wood_4.mp3"
+   ],
+   "title": "OGA: footsteps-on-different-surfaces / footsteps/wood/1.ogg",
+   "author": "congusbongus; derived from swuing (freesound)",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "source": "https://opengameart.org/content/footsteps-on-different-surfaces"
+  },
+  {
+   "files": [
+    "calls/step_wood_6.mp3"
+   ],
+   "title": "OGA: footsteps-on-different-surfaces / footsteps/wood/2.ogg",
+   "author": "congusbongus; derived from swuing (freesound)",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0/",
+   "source": "https://opengameart.org/content/footsteps-on-different-surfaces"
+  },
+  {
+   "files": [
+    "calls/tawny_owl_1.mp3",
+    "calls/tawny_owl_3.mp3"
+   ],
+   "title": "Strix aluco - Tawny Owl XC534183.mp3",
+   "author": "Antonio",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Strix_aluco_-_Tawny_Owl_XC534183.mp3"
+  },
+  {
+   "files": [
+    "calls/tawny_owl_2.mp3",
+    "calls/tawny_owl_4.mp3"
+   ],
+   "title": "Strix aluco - Tawny Owl XC508689.mp3",
+   "author": "Alvaro Ortiz Troncoso",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Strix_aluco_-_Tawny_Owl_XC508689.mp3"
+  },
+  {
+   "files": [
+    "calls/thunder_1.mp3"
+   ],
+   "title": "Very close thunder cracks.flac",
+   "author": "Delorean76",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Very_close_thunder_cracks.flac"
+  },
+  {
+   "files": [
+    "calls/thunder_2.mp3"
+   ],
+   "title": "Lightning Recorded In Groningen 2018-05-13 02.wav",
+   "author": "A. Whyborn",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Lightning_Recorded_In_Groningen_2018-05-13_02.wav"
+  },
+  {
+   "files": [
+    "calls/thunder_3.mp3"
+   ],
+   "title": "Thunder Claps.ogg",
+   "author": "Jonathan Hunt",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Thunder_Claps.ogg"
+  },
+  {
+   "files": [
+    "calls/thunder_4.mp3"
+   ],
+   "title": "Thunder crack 2B.wav",
+   "author": "Jud McCranie",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Thunder_crack_2B.wav"
+  },
+  {
+   "files": [
+    "calls/toad_1.mp3",
+    "calls/toad_3.mp3"
+   ],
+   "title": "8 gewone pad afweerroep Bufo bufo alarm.wav",
+   "author": "Od\u00e9, Baudewijn .mw-parser-output .messagebox{margin:4px 0;width:auto;border-collapse:collapse;border:2px solid var(--bor",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:8_gewone_pad_afweerroep_Bufo_bufo_alarm.wav"
+  },
+  {
+   "files": [
+    "calls/toad_2.mp3"
+   ],
+   "title": "7 gewone pad koor Bufo bufo choir.wav",
+   "author": "Od\u00e9, Baudewijn .mw-parser-output .messagebox{margin:4px 0;width:auto;border-collapse:collapse;border:2px solid var(--bor",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:7_gewone_pad_koor_Bufo_bufo_choir.wav"
+  },
+  {
+   "files": [
+    "calls/toucan_1.mp3"
+   ],
+   "title": "Ramphastos vitellinus - Channel-billed Toucan XC251457.mp3",
+   "author": "Niels Krabbe",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Ramphastos_vitellinus_-_Channel-billed_Toucan_XC251457.mp3"
+  },
+  {
+   "files": [
+    "calls/toucan_2.mp3"
+   ],
+   "title": "Ramphastos ambiguus - Black-mandibled Toucan XC251456.mp3",
+   "author": "Niels Krabbe",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Ramphastos_ambiguus_-_Black-mandibled_Toucan_XC251456.mp3"
+  },
+  {
+   "files": [
+    "calls/toucan_3.mp3"
+   ],
+   "title": "Ramphastos tucanus - White-throated Toucan XC251458.mp3",
+   "author": "Niels Krabbe",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Ramphastos_tucanus_-_White-throated_Toucan_XC251458.mp3"
+  },
+  {
+   "files": [
+    "calls/tree_creak_1.mp3"
+   ],
+   "title": "OGA: tree-creaking / tree_creak.flac",
+   "author": "Department64 (cleaned up by AntumDeluge)",
+   "license": "CC0",
+   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "source": "https://opengameart.org/content/tree-creaking"
+  },
+  {
+   "files": [
+    "calls/tree_frog_1.mp3",
+    "calls/tree_frog_4.mp3"
+   ],
+   "title": "12 boomkikker individu Hyla arborea individual.wav",
+   "author": "Od\u00e9, Baudewijn .mw-parser-output .messagebox{margin:4px 0;width:auto;border-collapse:collapse;border:2px solid var(--bor",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:12_boomkikker_individu_Hyla_arborea_individual.wav"
+  },
+  {
+   "files": [
+    "calls/tree_frog_2.mp3"
+   ],
+   "title": "Laubfrosch Balzruf.OGG",
+   "author": "Rabe19",
+   "license": "Public domain",
+   "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+   "source": "https://commons.wikimedia.org/wiki/File:Laubfrosch_Balzruf.OGG"
+  },
+  {
+   "files": [
+    "calls/tree_frog_3.mp3"
+   ],
+   "title": "Coqu\u00ed.flac",
+   "author": "Caballero1967",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Coqu%C3%AD.flac"
+  },
+  {
+   "files": [
+    "calls/water_drip_1.mp3",
+    "calls/water_drip_2.mp3",
+    "calls/water_drip_3.mp3",
+    "calls/water_drip_4.mp3"
+   ],
+   "title": "Water drips in Treak Cliff Cavern, Derbyshire.flac",
+   "author": "Andy Mabbett",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Water_drips_in_Treak_Cliff_Cavern,_Derbyshire.flac"
+  },
+  {
+   "files": [
+    "calls/whale_blow_1.mp3",
+    "calls/whale_blow_2.mp3"
+   ],
+   "title": "Humpback whale wheezeblow.ogg",
+   "author": "U.S. National Park Service (Glacier Bay NP)",
+   "license": "Public domain",
+   "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+   "source": "https://commons.wikimedia.org/wiki/File:Humpback_whale_wheezeblow.ogg"
+  },
+  {
+   "files": [
+    "calls/wolf_howl_1.mp3",
+    "calls/wolf_howl_2.mp3",
+    "calls/wolf_howl_3.mp3"
+   ],
+   "title": "Wolf howls.ogg",
+   "author": "U.S. Fish and Wildlife Service",
+   "license": "Public domain",
+   "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+   "source": "https://commons.wikimedia.org/wiki/File:Wolf_howls.ogg"
+  },
+  {
+   "files": [
+    "calls/wood_pigeon_1.mp3",
+    "calls/wood_pigeon_3.mp3"
+   ],
+   "title": "Columba palumbus - Common Wood Pigeon XC108354.mp3",
+   "author": "Alexander Kurthy",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Columba_palumbus_-_Common_Wood_Pigeon_XC108354.mp3"
+  },
+  {
+   "files": [
+    "calls/wood_pigeon_2.mp3"
+   ],
+   "title": "Columba palumbus birdsong.ogg",
+   "author": "Oona R\u00e4is\u00e4nen ( Mysid )",
+   "license": "Public domain",
+   "license_url": "https://creativecommons.org/publicdomain/mark/1.0/",
+   "source": "https://commons.wikimedia.org/wiki/File:Columba_palumbus_birdsong.ogg"
+  },
+  {
+   "files": [
+    "calls/woodpecker_drum_1.mp3"
+   ],
+   "title": "Great Spotted Woodpecker drum.ogg",
+   "author": "T.Voekler",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Great_Spotted_Woodpecker_drum.ogg"
+  },
+  {
+   "files": [
+    "calls/woodpecker_drum_2.mp3"
+   ],
+   "title": "Black woodpecker Dryocopus martius female drumming.ogg",
+   "author": "SanoAK: Alexander K\u00fcrthy",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Black_woodpecker_Dryocopus_martius_female_drumming.ogg"
+  },
+  {
+   "files": [
+    "calls/woodpecker_drum_3.mp3",
+    "calls/woodpecker_drum_4.mp3"
+   ],
+   "title": "Dendrocopos major - Great Spotted Woodpecker XC460852.mp3",
+   "author": "Hannu Varkki",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Dendrocopos_major_-_Great_Spotted_Woodpecker_XC460852.mp3"
+  },
+  {
+   "files": [
+    "calls/wren_1.mp3"
+   ],
+   "title": "Troglodytes troglodytes - Eurasian Wren XC461185.mp3",
+   "author": "Marie-Lan Ta\u00ff Pamart",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Troglodytes_troglodytes_-_Eurasian_Wren_XC461185.mp3"
+  },
+  {
+   "files": [
+    "calls/wren_2.mp3"
+   ],
+   "title": "Troglodytes troglodytes - Eurasian Wren XC269087.mp3",
+   "author": "Alexander Kurthy",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Troglodytes_troglodytes_-_Eurasian_Wren_XC269087.mp3"
+  },
+  {
+   "files": [
+    "calls/wren_3.mp3"
+   ],
+   "title": "Troglodytes troglodytes - Eurasian Wren XC543715.mp3",
+   "author": "Beno\u00eet Van Hecke",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Troglodytes_troglodytes_-_Eurasian_Wren_XC543715.mp3"
+  }
+ ]
+}

@@ -50,7 +50,14 @@ twig/leaf textures of Poly Haven's `fir_tree_01` and `island_tree_02` models.
 | Barramundi fish (`assets/models/fish.glb`) | [Khronos glTF Sample Assets](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/BarramundiFish) — Microsoft | CC0 1.0 |
 | Water normal map (`assets/tex/waternormals.jpg`) | three.js examples | MIT |
 
-All sound in the game is synthesised at runtime (Web Audio API); no audio files are used.
+## Sound recordings
+
+The nature recordings in `assets/audio/` (birdsong, insects, frogs, mammals, water, wind, rain,
+surf, thunder, footsteps) come from Wikimedia Commons and OpenGameArt under public domain, CC0,
+CC BY and CC BY-SA licences, trimmed and re-encoded for the game. Every file is credited with
+its author, licence and source in [assets/audio/CREDITS-audio.md](assets/audio/CREDITS-audio.md).
+Edited CC BY-SA recordings remain under CC BY-SA. Sounds without a recording (e.g. mountain lion,
+elk, coyote, boar, rattlesnake) are synthesised at runtime with the Web Audio API.
 
 Mushrooms, berries and greens, fish, small animals, insects, track prints, traps and the
 specimen viewer are generated procedurally in code (`src/world/flora.js`, `fishModel.js`,

@@ -189,9 +189,14 @@ Songbirds (robin, blackbird, chaffinch, great tit) hop and peck and flush when y
 mallards dabble on still water; hares graze in the open and bolt in zig-zags; red squirrels
 forage in the woods; butterflies (peacock, brimstone, red admiral, small tortoiseshell, common
 blue), bees and dragonflies; falling leaves (thicker in autumn), drifting pollen, midges at dusk,
-fish rising and jumping; wind gusts you can see rolling through grass and trees. Sound is
-synthesised and positional: each bird species' song, woodpeckers, cuckoos, crows, buzzards,
-ducks, frogs at dusk, bees, squirrel chatter.
+fish rising and jumping; wind gusts you can see rolling through grass and trees.
+
+**Sound** uses real open-licensed field recordings placed in 3D (HRTF): crickets sit in the grass
+and fall quiet as you pass, songbirds sing a few songs from a perch and then move on (more at
+the dawn chorus), the river is heard from where the river is, a campfire crackles where it
+burns. Each land has its own voices — loons on the lakes, curlews and oystercatchers at the
+shore, howler monkeys at a jungle dawn, wolves at night. Background beds never loop audibly
+(fresh random start, crossfaded every 15–35 s) and a wandering activity level gives lulls.
 
 ### Water
 
@@ -278,7 +283,7 @@ src/world/beasts.js        mountain lion, wolves, coyotes, moose, elk, boar, goa
 src/world/waterfx.js       ripple solver and mirror reflections for the water
 src/game/building.js, buildmode.js   building & decorating your place
 src/game/              items & artifacts, save, player & input, fishing, artifact 3D models
-src/audio/audio.js     synthesised soundscape
+src/audio/audio.js     3D soundscape: recordings placed in the world, beds, synth fallbacks
 src/ui/ui.js           HUD helpers
 tools/                 offline asset pipeline
 ```

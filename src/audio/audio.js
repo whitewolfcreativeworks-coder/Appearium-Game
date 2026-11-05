@@ -29,7 +29,7 @@ const CALLS = {
   gull: ['herring_gull'], goose: ['goose'], raven: ['raven', 'crow'], parrot: ['macaw', 'parrot'], rattle: ['rattlesnake'],
   bear_huff: ['bear_huff', 'bear_growl'], bear_roar: ['bear_growl', 'bear_huff'], deer: ['deer_bark', 'red_deer_roar'], whale: ['whale_blow', 'humpback_whale'],
   horse: ['horse'], elk: ['elk_bugle'], wolf: ['wolf_howl'], coyote: ['coyote'], cougar: ['mountain_lion'], cougar_hiss: ['mountain_lion'], moose: ['moose'],
-  boar: ['wild_boar'], otter: ['otter'], seal: ['seal', 'sea_lion'], dolphin: ['dolphin'], stork: [], flamingo: [], hiss: [], bite: [],
+  boar: ['wild_boar'], otter: ['otter'], seal: ['seal', 'sea_lion', 'fur_seal'], dolphin: ['dolphin'], stork: [], flamingo: [], hiss: [], bite: [],
 };
 const CALL_VOICE = { gull: 'bigbird', goose: 'bigbird', raven: 'bigbird', parrot: 'bigbird', rattle: 'small', bear_huff: 'mammal', bear_roar: 'loud', deer: 'mammal', whale: 'loud', horse: 'mammal', elk: 'loud', wolf: 'loud', coyote: 'loud', cougar: 'loud', cougar_hiss: 'mammal', moose: 'mammal', boar: 'mammal', otter: 'small', seal: 'mammal', dolphin: 'mammal' };
 const SONGS = { robin: 'robin', blackbird: 'blackbird', chaffinch: 'chaffinch', tit: 'great_tit', wren: 'wren', thrush: 'song_thrush' };
@@ -63,7 +63,8 @@ const EVENTS = [
   ['howler_monkey', 'loud', (c) => c.tropics * (c.duskW * 2 + c.dayW * 0.25), 60],
   ['macaw', 'bigbird', (c) => c.tropics * c.dayW, 25], ['toucan', 'bigbird', (c) => c.tropics * c.dayW, 35],
   ['red_fox', 'mammal', (c) => c.temperate * c.nightW, 120],
-  ['seal', 'mammal', (c) => c.coast * c.sea, 60],
+  ['seal', 'mammal', (c) => c.coast * c.sea, 60], ['fur_seal', 'mammal', (c) => c.coast * c.sea * 0.5, 80],
+  ['water_drip', 'near', (c) => 0, 999], ['bee', 'small', (c) => c.temperate * c.dayW * (1 - c.forest) * 0.5, 40],
   ['tree_creak', 'near', (c) => c.forest * c.wind * 1.2, 35],
   ['branch_snap', 'mammal', (c) => c.forest * (0.4 + c.nightW), 80],
   ['rockfall', 'element', (c) => (c.highland + c.canyon) * 0.6, 180],
@@ -74,7 +75,9 @@ const EVENTS = [
 // ------------------------------------------------------------------ recordings
 class Bank {
   constructor(ctx) {
-    this.ctx = ctx; this.buf = new Map(); this.loading = new Map(); this.last = new Map(); this.manifest = null;
+    this.ctx = ctx; this.buf = new Map(); this.loading = new Map(); this.last = new Map(); this.used = new Map(); this.manifest = null; this.bytes = 0;
+    // decoded audio is big (≈ 4 bytes per sample): keep a budget and drop what hasn't been heard lately
+    this.budget = (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 110 : 240) * 1e6;
     this.ready = fetch(BASE + 'manifest.json').then((r) => (r.ok ? r.json() : null)).then((m) => { this.manifest = m; }).catch(() => {});
   }
   list(id) { const m = this.manifest; return m ? (m.calls?.[id] || m.beds?.[id] || []) : []; }
@@ -83,22 +86,27 @@ class Bank {
     if (this.buf.has(file)) return Promise.resolve(this.buf.get(file));
     if (this.loading.has(file)) return this.loading.get(file);
     const p = fetch(BASE + file).then((r) => r.arrayBuffer()).then((a) => new Promise((res, rej) => this.ctx.decodeAudioData(a, res, rej)))
-      .then((b) => { this.buf.set(file, b); return b; }).catch(() => { this.buf.set(file, null); return null; });
+      .then((b) => { this.buf.set(file, b); this.used.set(file, performance.now()); this.bytes += b.length * b.numberOfChannels * 4; this.trim(); return b; })
+      .catch(() => { this.buf.set(file, null); return null; }).finally(() => this.loading.delete(file));
     this.loading.set(file, p); return p;
   }
-  prefetch(ids) { for (const id of ids) for (const v of this.list(id)) this.load(v.file); }
+  trim() {
+    if (this.bytes <= this.budget) return;
+    const now = performance.now(), byAge = [...this.used.entries()].sort((a, b) => a[1] - b[1]);
+    for (const [f, t] of byAge) {
+      if (this.bytes <= this.budget * 0.8 || now - t < 20000) break;
+      const b = this.buf.get(f); if (b) this.bytes -= b.length * b.numberOfChannels * 4;
+      this.buf.delete(f); this.used.delete(f);
+    }
+  }
+  prefetch(ids, max = 2) { for (const id of ids) this.list(id).slice(0, max).forEach((v) => this.load(v.file)); }
   // a decoded variant of this id, never the same one twice running (null if none loaded yet)
   get(id) {
     const L = this.list(id); if (!L.length) return null;
-    const ready = L.filter((v) => this.buf.get(v.file)); if (!ready.length) { this.prefetch([id]); return null; }
-    if (ready.length < L.length) this.prefetch([id]);
+    const ready = L.filter((v) => this.buf.get(v.file)); if (!ready.length) { this.prefetch([id], 4); return null; }
+    if (ready.length < L.length) this.prefetch([id], 4);
     let v = pick(ready); if (ready.length > 1 && v.file === this.last.get(id)) v = pick(ready.filter((x) => x.file !== v.file));
-    this.last.set(id, v.file); return this.buf.get(v.file);
-  }
-  // free decoded audio that this land does not use
-  keepOnly(ids) {
-    const keep = new Set(); for (const id of ids) for (const v of this.list(id)) keep.add(v.file);
-    for (const f of [...this.buf.keys()]) if (!keep.has(f)) { this.buf.delete(f); this.loading.delete(f); }
+    this.last.set(id, v.file); this.used.set(v.file, performance.now()); return this.buf.get(v.file);
   }
 }
 
@@ -128,7 +136,8 @@ export class SoundScape {
   init() {
     if (this.ctx) { this.ctx.resume?.(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-    const ctx = this.ctx = new AC();
+    let ctx; try { ctx = new AC({ sampleRate: 32000, latencyHint: 'playback' }); } catch (e) { ctx = new AC(); }
+    this.ctx = ctx;
     // everything goes through a gentle limiter so a bear's roar over a river can't clip
     this.limiter = ctx.createDynamicsCompressor(); this.limiter.threshold.value = -10; this.limiter.knee.value = 8; this.limiter.ratio.value = 6; this.limiter.attack.value = 0.005; this.limiter.release.value = 0.25;
     this.master = ctx.createGain(); this.master.gain.value = this.vol; this.master.connect(this.limiter); this.limiter.connect(ctx.destination);
@@ -162,7 +171,7 @@ export class SoundScape {
     for (const id of ['stream', 'river', 'rapids_or_waterfall', 'lake_lapping', 'campfire']) this.spots[id] = this.makeSpot(id);
     this.crickets = []; this.singers = []; this.evT = {};
     this.ready = true;
-    this.bank.ready.then(() => { this.hasRec = !!this.bank.manifest; this.prefetchRegion(this.region, true); });
+    this.bank.ready.then(() => { this.hasRec = !!this.bank.manifest; this.prefetchRegion(this.region); });
     const resume = () => ctx.resume?.();
     window.addEventListener('touchend', resume, { passive: true }); window.addEventListener('click', resume);
   }
@@ -203,21 +212,10 @@ export class SoundScape {
   }
 
   // ---------------------------------------------------------------- per-land preparation
-  regionIds(region) {
-    const ids = new Set(['night_crickets', 'cricket', 'wind_soft', 'wind_strong', 'rain_light', 'rain_heavy', 'stream', 'river', 'lake_lapping', 'campfire', 'thunder', 'step_grass', 'step_gravel', 'step_leaves', 'step_water', 'step_wood', 'step_sand', 'branch_snap', 'tree_creak', 'crow', 'raven', 'bee']);
-    const S = SINGERS[region] || SINGERS.temperate; for (const [id] of [...S.forest, ...S.open]) ids.add(id);
-    const add = (...l) => l.forEach((x) => ids.add(x));
-    if (region === 'temperate') add('forest_day', 'woodpecker_drum', 'cuckoo', 'tawny_owl', 'wood_pigeon', 'buzzard', 'curlew', 'common_loon', 'heron', 'goose', 'mallard', 'red_fox', 'marmot', 'golden_eagle', 'squirrel', 'marsh_frogs', 'common_frog', 'wolf_howl', 'elk_bugle', 'moose', 'wild_boar', 'otter', 'deer_bark', 'red_deer_roar', 'bear_growl', 'bear_huff', 'mountain_lion', 'rockfall', 'horse', 'rapids_or_waterfall');
-    if (region === 'coast') add('surf_beach', 'surf_rocks', 'herring_gull', 'oystercatcher', 'curlew', 'seal', 'sea_lion', 'whale_blow', 'humpback_whale', 'dolphin', 'tawny_owl', 'goose', 'otter', 'deer_bark');
-    if (region === 'canyon') add('cicadas', 'canyon_wren', 'red_tailed_hawk', 'coyote', 'rattlesnake', 'mountain_lion', 'rockfall', 'horse', 'bear_growl', 'bear_huff', 'deer_bark');
-    if (region === 'tropics') add('rainforest_day', 'rainforest_night', 'cicadas', 'macaw', 'parrot', 'toucan', 'howler_monkey', 'tree_frog', 'bullfrog', 'surf_beach');
-    return [...ids];
-  }
-  prefetchRegion(region, first = false) {
+  prefetchRegion(region) {
     if (!this.bank?.manifest) return;
-    const ids = this.regionIds(region);
-    if (!first) this.bank.keepOnly([...ids, ...this.regionIds('temperate')]); // home is always close by
-    this.bank.prefetch(ids);
+    const S = SINGERS[region] || SINGERS.temperate;
+    this.bank.prefetch(['cricket', 'katydid', 'step_grass', 'step_leaves', 'step_gravel', 'step_water', ...[...S.forest, ...S.open].map(([id]) => id)], 2);
   }
 
   // ---------------------------------------------------------------- the frame update
@@ -236,7 +234,7 @@ export class SoundScape {
     const C = {
       temperate: region === 'temperate' ? 1 : 0, coast: region === 'coast' ? 1 : 0, canyon: region === 'canyon' ? 1 : 0, tropics: region === 'tropics' ? 1 : 0,
       highland: s.scenario === 'highlands' ? 1 : 0, heath: s.scenario === 'heath' || s.scenario === 'hamlet' ? 1 : 0, lake: (s.scenario === 'lakeland' ? 1 : 0.3) * (s.water > 0.05 ? 1 : 0.3) * (s.home ? 0.3 : 1),
-      forest: s.forest, dayW: smooth(0.3, 0.55, day) * (1 - rain * 0.7), birdW: smooth(0.06, 0.3, day) * (1 - Math.min(1, rain) * 0.75), nightW: 1 - smooth(0.12, 0.3, day), duskW: dawnDusk, rain: Math.min(1, rain), wind: Math.min(1.5, w),
+      forest: s.forest, dayW: smooth(0.3, 0.55, day) * (1 - rain * 0.7), birdW: smooth(0.01, 0.22, day) * (1 - Math.min(1, rain) * 0.75), nightW: 1 - smooth(0.12, 0.3, day), duskW: dawnDusk, rain: Math.min(1, rain), wind: Math.min(1.5, w),
       water: Math.min(1, s.water * 2), sea: s.sea || 0, home: s.home ? 1 : 0,
     };
     if (region === 'temperate' && s.home) { C.highland = 0; }
@@ -283,7 +281,7 @@ export class SoundScape {
     // a few synthesised extras that recordings don't cover
     const T = this.timers; for (const key of Object.keys(T)) T[key] -= dt;
     if (T.wave < 0) { T.wave = 6 / (0.55 + wv * 0.1) * (0.6 + Math.random() * 0.8); if (sea > 0.25 && !surfRec) this.waveCrash(sea * (0.6 + wv * 0.5)); }
-    if (T.frog < 0) { T.frog = 1.5 + Math.random() * 5; if (s.water > 0.2 && (day < 0.6 || rain > 0.3)) { const p = this.waterPoint || this.around(8, 25); if (!this.rec(pick(['common_frog', 'common_frog', 'bullfrog']), p, { voice: 'small', vol: 0.8 })) this.frog(p); } }
+    if (T.frog < 0) { T.frog = 1.5 + Math.random() * 5; if (s.water > 0.2 && (day < 0.6 || rain > 0.3)) { const p = this.waterPoint ? this.offsetFrom(this.waterPoint, 2, 15) : this.around(8, 25); if (!this.rec(pick(['common_frog', 'common_frog', 'toad', 'bullfrog'].filter((x) => this.bank.has(x)).concat(['common_frog'])), p, { voice: 'small', vol: 0.8 })) this.frog(p); } }
     if (T.treefrog < 0) { T.treefrog = 0.3 + Math.random() * 1.2; if (region === 'tropics' && day < 0.35 && !this.bank.has('rainforest_night')) this.treeFrog(); }
     if (!rec) this.updateSynthOnly(dt, s, C);
   }
@@ -353,7 +351,7 @@ export class SoundScape {
       const y = w.gen.height(x, z) + 0.05, g = this.ctx.createGain(); g.gain.value = 0;
       const p = this.panner({ x, y, z }, VOICE.insect.ref); g.connect(p); p.connect(this.master);
       const c = { x, z, y, g, p, vol: VOICE.insect.gain * rnd(0.5, 1), hush: 0 };
-      const b = this.bank.get('cricket');
+      const b = this.bank.get(Math.random() < 0.3 && this.bank.has('katydid') ? 'katydid' : 'cricket');
       if (b) { const s = this.ctx.createBufferSource(); s.buffer = b; s.loop = true; s.playbackRate.value = rnd(0.88, 1.12); s.connect(g); s.start(this.ctx.currentTime, rnd(0, b.duration)); c.src = s; }
       else { c.synth = true; c.freq = rnd(3600, 5200); c.pulses = Math.floor(rnd(2, 5)); c.period = rnd(0.35, 1.1); c.next = rnd(0, 1); }
       return c;
@@ -371,7 +369,7 @@ export class SoundScape {
     const L = this.listener; if (!L) return;
     const R = SINGERS[region] || SINGERS.temperate;
     const chorus = 1 + C.duskW * 1.6 * (s.day < 0.5 ? 1 : 0.6); // the dawn chorus
-    const want = Math.round(C.birdW * (0.6 + C.duskW) * (2 + 4 * Math.max(C.forest, 0.25)) * chorus * this.activity);
+    const want = Math.round(C.birdW * (0.8 + C.duskW) * (2.5 + 4 * Math.max(C.forest, 0.25)) * chorus * this.activity);
     while (this.singers.length > want) this.singers.pop();
     while (this.singers.length < want) {
       const open = Math.random() > C.forest + 0.15, list = open ? R.open : R.forest;
@@ -451,7 +449,7 @@ export class SoundScape {
   }
   step(intensity, surface) {
     if (!this.ready) return;
-    const id = { water: 'step_water', stone: 'step_gravel', forest: 'step_leaves', sand: 'step_sand', wood: 'step_wood' }[surface] || 'step_grass';
+    const id = { water: 'step_water', stone: 'step_gravel', forest: Math.random() < 0.5 && this.bank?.has('step_forest') ? 'step_forest' : 'step_leaves', sand: 'step_sand', wood: 'step_wood', snow: 'step_snow' }[surface] || 'step_grass';
     const b = this.bank?.get(id) || (id === 'step_leaves' ? this.bank?.get('step_grass') : null);
     if (b) { const s = this.ctx.createBufferSource(); s.buffer = b; s.playbackRate.value = rnd(0.9, 1.1); const g = this.ctx.createGain(); g.gain.value = 0.22 * intensity * rnd(0.8, 1.1); s.connect(g); g.connect(this.master); s.start(); return; }
     if (surface === 'water') { this.burst(900, 0.8, 0.22, 0.1 * intensity); return; }
