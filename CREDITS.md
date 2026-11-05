@@ -23,7 +23,8 @@ All of the following are from [Poly Haven](https://polyhaven.com) and are releas
 brown_mud_leaves_01, forrest_ground_01, aerial_rocks_02, aerial_rocks_04, rock_face,
 rocky_terrain_02, coast_sand_rocks_02, coast_land_rocks_01, mud_forest, snow_02, gravel_floor,
 dry_riverbed_rock, forest_leaves_03, forest_leaves_04, forest_floor, cliff_side, rock_wall_08,
-grass_path_2, aerial_ground_rock.
+grass_path_2, aerial_ground_rock, aerial_beach_01 (beaches), dry_ground_rocks and sandstone_cracks
+(canyon country), red_dirt_mud_01, red_sandstone_wall (cliff dwellings), gravel_road (the road).
 
 **Building & bark textures:** weathered_planks, rough_wood, thatch_roof_angled, roof_tiles_14,
 plastered_stone_wall, castle_brick_07, cobblestone_floor_08, wood_planks_grey, stone_wall,
@@ -48,5 +49,8 @@ All sound in the game is synthesised at runtime (Web Audio API); no audio files 
 
 Mushrooms, berries and greens, fish, small animals, insects, track prints, traps and the
 specimen viewer are generated procedurally in code (`src/world/flora.js`, `fishModel.js`,
-`critters.js`, `trails.js`). Species information in `src/data/species.js` was written for this
+`critters.js`, `trails.js`). Palms, tree ferns, bananas, junipers, pinyons, yuccas, dune grass,
+shells and wrack (`vegetation.js`), and the horses, gulls, geese, ravens, parrots, storks,
+flamingos and starlings (`herds.js`) are procedural too — their leaf and frond textures are drawn
+on a canvas at load time. Species information in `src/data/species.js` was written for this
 game from general natural-history knowledge and is simplified; it is not a field guide.

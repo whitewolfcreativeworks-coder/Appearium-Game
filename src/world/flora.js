@@ -96,6 +96,11 @@ const M_SPEC = {
   honey_fungus: { capR: 0.04, capH: 0.022, shape: 'flatconvex', cap: '#c09450', cap2: '#6e4e2a', pattern: 'darkCenter', under: 'gills', underCol: '#eadfc6', gillN: 48, stemH: 0.08, stemR: 0.006, stemR0: 0.006, stemCol: '#c2a274', ring: { at: 0.82, size: 2.0, col: '#f0e8d6' }, curve: 0.4, cluster: [6, 10] },
   giant_puffball: { ball: true, r: 0.14, col: '#f4f1ea', inside: '#fbfaf6', count: [1, 2] },
   earthball: { ball: true, r: 0.04, col: '#b8954e', crack: '#6a5030', inside: '#2c1e2c', marbled: true, count: [2, 4] },
+  field_mushroom: { capR: 0.045, capH: 0.03, shape: 'flatconvex', cap: '#f3f0ea', cap2: '#e2dbd0', under: 'gills', underCol: '#d99a98', gillN: 72, stemH: 0.045, stemR: 0.009, stemR0: 0.01, stemCol: '#f2eee6', ring: { at: 0.72, size: 1.6, col: '#f4f0e8' }, count: [2, 5], spread: 0.18 },
+  yellow_stainer: { capR: 0.048, capH: 0.034, shape: 'bun', cap: '#f4f2ee', cap2: '#cdbfa6', pattern: 'darkCenter', under: 'gills', underCol: '#c99090', gillN: 70, stemH: 0.07, stemR: 0.009, stemR0: 0.012, stemCol: '#f4f2ec', ring: { at: 0.75, size: 2.3, col: '#f6f2ea' }, bulb: true, stainBase: '#f0d018', count: [2, 4] },
+  termite_mushroom: { capR: 0.07, capH: 0.04, shape: 'umbo', cap: '#9a8a76', cap2: '#4e3e2e', pattern: 'darkCenter', under: 'gills', underCol: '#f2e8e2', gillN: 90, stemH: 0.14, stemR: 0.011, stemR0: 0.015, stemCol: '#f2ece4', count: [3, 7], spread: 0.3 },
+  green_spored_parasol: { capR: 0.11, capH: 0.04, shape: 'umbo', cap: '#efe9dc', cap2: '#8a6a4a', pattern: 'scales', under: 'gills', underCol: '#bcc8a4', gillN: 90, stemH: 0.16, stemR: 0.009, stemR0: 0.014, stemCol: '#f0ece2', ring: { at: 0.85, size: 2.1, col: '#ece6d8' }, bulb: true, count: [1, 3] },
+  desert_shaggy_mane: { capR: 0.028, capH: 0.11, shape: 'bell', cap: '#f0eadc', cap2: '#9a8468', pattern: 'shaggy', under: 'gills', underCol: '#3a2a22', gillN: 30, stemH: 0.13, stemR: 0.008, stemR0: 0.01, stemCol: '#d8ccb8', count: [1, 3] },
   chicken_of_the_woods: { bracket: true, r: 0.14, col: '#f2a01e', col2: '#f8d43a', count: [3, 5] },
 };
 
@@ -240,6 +245,7 @@ function agaric(s, rng, scale = 1) {
       c.copy(sC);
       if (s.stemPattern === 'snake') { const t = y / SH; c.multiplyScalar(0.75 + 0.3 * (0.5 + 0.5 * Math.sin(t * 60 + Math.atan2(z0(x), 1) * 2))); if (t > 0.8) c.copy(sC).multiplyScalar(1.1); }
       c.multiplyScalar(0.92 + 0.12 * Math.min(1, y / SH));
+      if (s.stainBase) c.lerp(C(s.stainBase), (1 - Math.min(1, y / (SH * 0.25))) * 0.85); // yellow stainer: chrome-yellow bruise at the base
     });
     parts[bodyKey].push(stem);
   }
@@ -475,6 +481,126 @@ export function buildPlant(id, seed) {
         for (let l = 0; l < 3; l++) { const g = new THREE.CircleGeometry(0.011, 8).scale(1, 1.15, 1); g.translate(0, 0.011, 0); body.push(place(solid(g, '#6aa83a'), x, h, z, a + l * 2.09, 1.35)); } }
       break;
     }
+
+    // ---------------------------------------------------------------- coast
+    case 'sea_beet': {
+      top = 0.35; gloss = true;
+      for (let i = 0; i < 16; i++) body.push(place(leaf(rng.range(0.12, 0.2), rng.range(0.07, 0.11), '#2c5420', rng, { base: 0.45 }), 0, 0.02, 0, i * 2.4, rng.range(0.9, 1.35)));
+      for (let k = 0; k < 2; k++) { const x = rng.range(-0.05, 0.05), z = rng.range(-0.05, 0.05); body.push(stemSeg(V(x, 0, z), V(x + 0.05, 0.35, z), 0.003, '#6a8a3a')); for (let q = 0; q < 10; q++) fruit.push(berry(0.004, '#7a9a4a', rng).translate(x + 0.02 + q * 0.003, 0.18 + q * 0.016, z)); }
+      break;
+    }
+    case 'marsh_samphire': {
+      top = 0.22;
+      for (let i = 0; i < 14; i++) { const x = rng.range(-0.1, 0.1), z = rng.range(-0.1, 0.1), h = rng.range(0.12, 0.22);
+        for (let j = 0; j < 4; j++) { const y0 = h * j / 4, y1 = h * (j + 1) / 4; body.push(solid(new THREE.CylinderGeometry(0.006, 0.0045, y1 - y0, 6).translate(x, (y0 + y1) / 2, z), j === 3 ? '#8aa848' : '#5f8f30'));
+          if (j === 1 || j === 2) for (const sd of [-1, 1]) body.push(solid(new THREE.CylinderGeometry(0.004, 0.0035, 0.05, 5).translate(0, 0.025, 0).rotateZ(sd * 0.6).translate(x, y1, z), '#6a9a36')); } }
+      break;
+    }
+    case 'sea_buckthorn': {
+      top = 1.1;
+      for (let i = 0; i < 6; i++) { const a = rng.next() * 6.28, b = V(Math.cos(a) * 0.05, 0, Math.sin(a) * 0.05), t = V(Math.cos(a) * 0.35, rng.range(0.8, 1.1), Math.sin(a) * 0.35);
+        body.push(stemSeg(b, t, 0.012, '#5a4a3c'));
+        for (let k = 0; k < 9; k++) { const p = b.clone().lerp(t, 0.3 + k * 0.08); for (let l = 0; l < 3; l++) body.push(place(leaf(0.06, 0.008, '#9caa94', rng), p.x, p.y, p.z, rng.next() * 6.28, rng.range(0.5, 1.2)));
+          if (k > 1 && k < 8) for (let l = 0; l < 4; l++) fruit.push(berry(0.0045, '#f08a14', rng).translate(p.x + rng.range(-0.012, 0.012), p.y + rng.range(-0.01, 0.01), p.z + rng.range(-0.012, 0.012))); } }
+      gloss = true; break;
+    }
+    case 'wild_celery': case 'hemlock_water_dropwort': {
+      const hem = id === 'hemlock_water_dropwort'; top = hem ? 1.25 : 0.6;
+      const n = hem ? 4 : 3;
+      for (let i = 0; i < n; i++) { const a = rng.next() * 6.28, h = top * rng.range(0.75, 1), x = Math.cos(a) * 0.04, z = Math.sin(a) * 0.04;
+        const tp = V(x * 3, h, z * 3); body.push(stemSeg(V(x, 0, z), tp, hem ? 0.009 : 0.005, '#5f8a3a'));
+        for (let k = 0; k < 6; k++) { const p = V(x, 0, z).lerp(tp, 0.15 + k * 0.12); const ang = rng.next() * 6.28;
+          for (let l = 0; l < (hem ? 5 : 3); l++) body.push(place(leaf(hem ? 0.05 : 0.07, hem ? 0.025 : 0.05, hem ? '#2f6a26' : '#4a8a30', rng, { base: 0.4 }), p.x + Math.cos(ang) * l * 0.025, p.y, p.z + Math.sin(ang) * l * 0.025, ang + rng.range(-0.4, 0.4), 1.2)); }
+        // compound umbel: rays from one point, each ending in a cluster of tiny flowers
+        const R = hem ? 0.09 : 0.045, rays = hem ? 14 : 9;
+        for (let r = 0; r < rays; r++) { const ra = r / rays * 6.28, e = V(tp.x + Math.cos(ra) * R, tp.y + R * (hem ? 0.45 : 0.15), tp.z + Math.sin(ra) * R); body.push(stemSeg(tp, e, 0.0015, '#6a9a44'));
+          for (let q = 0; q < (hem ? 6 : 4); q++) { const d = new THREE.Vector3().randomDirection().multiplyScalar(R * 0.25); fruit.push(berry(0.004, hem ? '#f6f6ee' : '#d8dcb8', rng).translate(e.x + d.x, e.y + Math.abs(d.y) * 0.5, e.z + d.z)); } } }
+      if (hem) for (let k = 0; k < 5; k++) { const a = k * 1.25; fruit.push(solid(new THREE.CylinderGeometry(0.012, 0.006, 0.12, 6).translate(0, -0.05, 0).rotateZ(0.9).rotateY(a).translate(Math.cos(a) * 0.05, 0.02, Math.sin(a) * 0.05), '#efe6cc')); } // "dead man's fingers"
+      break;
+    }
+    case 'mussels': {
+      top = 0.08; gloss = true;
+      for (let i = 0; i < rng.int(9, 16); i++) { const a = rng.next() * 6.28, d = rng.range(0, 0.14), L = rng.range(0.035, 0.06);
+        const g = new THREE.SphereGeometry(L / 2, 10, 6).scale(1, 0.45, 0.48).rotateZ(rng.range(0.2, 1.1)).rotateY(a).translate(Math.cos(a) * d, L * 0.25, Math.sin(a) * d);
+        fruit.push(paint(g, (c, x, y) => c.copy(C('#141822')).lerp(C('#3a4a6a'), Math.max(0, Math.sin(x * 900) * 0.3)))); }
+      body.push(solid(new THREE.CircleGeometry(0.16, 10).rotateX(-Math.PI / 2).translate(0, 0.004, 0), '#3a3a26')); // byssus & weed
+      break;
+    }
+    // ---------------------------------------------------------------- canyon
+    case 'prickly_pear': {
+      top = 0.75; gloss = true;
+      const pad = (p, a, tilt, sc) => { const g = new THREE.SphereGeometry(0.11 * sc, 12, 8).scale(0.85, 1.15, 0.18); g.translate(0, 0.11 * sc, 0).rotateZ(tilt).rotateY(a).translate(p.x, p.y, p.z); body.push(paint(g, (c, x, y, z) => c.copy(C('#5f7f3a')).multiplyScalar(0.85 + 0.25 * Math.abs(Math.sin(x * 300 + y * 280 + z * 260)) ))); return V(p.x - Math.sin(tilt) * 0.22 * sc * Math.cos(a), p.y + 0.22 * sc * Math.cos(tilt), p.z + Math.sin(tilt) * 0.22 * sc * Math.sin(a)); };
+      const tips = [];
+      for (let i = 0; i < 3; i++) { const t = pad(V(rng.range(-0.08, 0.08), 0, rng.range(-0.08, 0.08)), rng.next() * 6.28, rng.range(-0.4, 0.4), 1.1); tips.push(t);
+        const t2 = pad(t, rng.next() * 6.28, rng.range(-0.6, 0.6), 0.85); tips.push(t2); if (rng.chance(0.6)) tips.push(pad(t2, rng.next() * 6.28, rng.range(-0.6, 0.6), 0.7)); }
+      for (const t of tips) for (let k = 0; k < rng.int(1, 4); k++) { const g = new THREE.SphereGeometry(0.022, 8, 6).scale(0.85, 1.25, 0.85); fruit.push(solid(g, '#8a1838').translate(t.x + rng.range(-0.05, 0.05), t.y - 0.01, t.z + rng.range(-0.02, 0.02))); }
+      break;
+    }
+    case 'juniper': {
+      top = 0.7; 
+      for (let i = 0; i < 8; i++) { const a = rng.next() * 6.28, b = V(0, 0, 0), t = V(Math.cos(a) * 0.4, rng.range(0.35, 0.7), Math.sin(a) * 0.4); body.push(stemSeg(b, t, 0.012, '#6a5040'));
+        for (let k = 0; k < 7; k++) { const p = b.clone().lerp(t, 0.3 + k * 0.1); body.push(place(new THREE.IcosahedronGeometry(0.05, 0).scale(1, 0.7, 1), p.x, p.y, p.z, rng.next() * 6)); paint(body[body.length - 1], (c) => c.copy(C('#3e5a40')).offsetHSL(0, 0, rng.range(-0.05, 0.05)));
+          for (let l = 0; l < 2; l++) fruit.push(berry(0.0055, '#56658a', rng, true).translate(p.x + rng.range(-0.04, 0.04), p.y + rng.range(-0.02, 0.03), p.z + rng.range(-0.04, 0.04))); } }
+      break;
+    }
+    case 'pinyon': {
+      top = 0.08;
+      for (let i = 0; i < rng.int(4, 8); i++) { const a = rng.next() * 6.28, d = rng.range(0, 0.25);
+        const g = new THREE.IcosahedronGeometry(0.03, 1).scale(1, 0.8, 1); paint(g, (c, x, y, z) => c.copy(C('#7a5634')).multiplyScalar(0.7 + 0.45 * Math.abs(Math.sin(x * 400) * Math.cos(z * 400))));
+        fruit.push(g.translate(Math.cos(a) * d, 0.022, Math.sin(a) * d));
+        for (let k = 0; k < 4; k++) fruit.push(berry(0.006, '#5a3e24', rng).scale(1.3, 0.7, 1).translate(Math.cos(a) * d + rng.range(-0.05, 0.05), 0.004, Math.sin(a) * d + rng.range(-0.05, 0.05))); }
+      for (let i = 0; i < 20; i++) { const x = rng.range(-0.3, 0.3), z = rng.range(-0.3, 0.3); body.push(stemSeg(V(x, 0.002, z), V(x + rng.range(-0.04, 0.04), 0.004, z + rng.range(-0.04, 0.04)), 0.001, '#6a7a4a')); }
+      break;
+    }
+    case 'wild_onion': case 'death_camas': {
+      const camas = id === 'death_camas'; top = camas ? 0.4 : 0.32;
+      for (let i = 0; i < rng.int(5, 9); i++) body.push(place(leaf(rng.range(0.16, 0.26), camas ? 0.012 : 0.006, camas ? '#5a7a46' : '#4f7a3a', rng, { base: 0.5 }), rng.range(-0.02, 0.02), 0, rng.range(-0.02, 0.02), rng.next() * 6.28, rng.range(0.15, 0.5)));
+      for (let k = 0; k < rng.int(1, 3); k++) { const x = rng.range(-0.04, 0.04), z = rng.range(-0.04, 0.04), h = top * rng.range(0.8, 1);
+        body.push(stemSeg(V(x, 0, z), V(x, h, z), 0.0022, '#6a8a44'));
+        if (camas) for (let q = 0; q < 14; q++) { const y = h - 0.09 + q * 0.007, a = q * 2.4; body.push(stemSeg(V(x, y, z), V(x + Math.cos(a) * 0.012, y + 0.004, z + Math.sin(a) * 0.012), 0.0007, '#6a8a44')); fruit.push(star(0.005, '#f2ecc8').rotateX(-0.9).translate(x + Math.cos(a) * 0.014, y + 0.005, z + Math.sin(a) * 0.014)); }
+        else for (let q = 0; q < 18; q++) { const d = new THREE.Vector3().randomDirection(); if (d.y < -0.1) d.y = -d.y; fruit.push(star(0.004, '#e2a6c4').translate(x + d.x * 0.018, h + d.y * 0.016, z + d.z * 0.018)); } }
+      break;
+    }
+    case 'datura': {
+      top = 0.6;
+      for (let i = 0; i < 7; i++) { const a = i * 0.9 + rng.next() * 0.3, e = V(Math.cos(a) * 0.45, rng.range(0.25, 0.45), Math.sin(a) * 0.45); body.push(stemSeg(V(0, 0, 0), e, 0.008, '#5a6a4e'));
+        for (let k = 0; k < 3; k++) { const p = V(0, 0, 0).lerp(e, 0.4 + k * 0.25); body.push(place(leaf(0.14, 0.1, '#5d7354', rng, { base: 0.45 }), p.x, p.y, p.z, a + rng.range(-0.6, 0.6), 1.05)); }
+        if (i % 2 === 0) { const tr = new THREE.CylinderGeometry(0.045, 0.006, 0.13, 10, 1, true).translate(0, 0.065, 0).rotateZ(-0.9).rotateY(-a).translate(e.x, e.y, e.z); fruit.push(paint(tr, (c, x, y) => c.copy(C('#f6f4ec')).lerp(C('#c8b8d8'), 0.15))); }
+        else { const pod = new THREE.IcosahedronGeometry(0.022, 1); paint(pod, (c, x, y, z) => c.copy(C('#5a6a3a')).multiplyScalar(0.8 + 0.4 * (Math.sin(x * 900) * Math.sin(z * 900) > 0.6 ? 1 : 0))); fruit.push(pod.translate(e.x, e.y, e.z)); } }
+      break;
+    }
+    // ---------------------------------------------------------------- tropics
+    case 'wild_banana': {
+      top = 0.2; gloss = true;
+      body.push(stemSeg(V(-0.12, 0.03, 0), V(0.14, 0.05, 0.02), 0.012, '#6a6a3a'));
+      for (let h = 0; h < 4; h++) for (let k = 0; k < 6; k++) { const x = -0.08 + h * 0.06, a = k / 6 * 3.0 - 1.5;
+        const g = new THREE.CylinderGeometry(0.009, 0.011, 0.1, 6).translate(0, 0.05, 0).rotateX(0.5).rotateY(a).translate(x, 0.05, 0);
+        fruit.push(paint(g, (c, X, Y) => c.copy(C(h < 2 ? '#c8c03a' : '#a8b03a')).multiplyScalar(0.85 + Y * 2))); }
+      break;
+    }
+    case 'guava': case 'manchineel': {
+      const man = id === 'manchineel'; top = 1.6; gloss = man;
+      const trunkTop = V(0, 0.8, 0); body.push(stemSeg(V(0, 0, 0), trunkTop, 0.04, man ? '#6a5a4a' : '#a08870'));
+      for (let i = 0; i < 6; i++) { const a = i * 1.05 + rng.next() * 0.4, e = V(Math.cos(a) * 0.6, rng.range(1.2, 1.6), Math.sin(a) * 0.6); body.push(stemSeg(trunkTop, e, 0.015, man ? '#6a5a4a' : '#a08870'));
+        for (let k = 0; k < 8; k++) { const p = trunkTop.clone().lerp(e, 0.3 + k * 0.09); body.push(place(leaf(man ? 0.09 : 0.11, man ? 0.06 : 0.055, man ? '#2c5a22' : '#4f7f2e', rng, { base: 0.45 }), p.x, p.y, p.z, rng.next() * 6.28, rng.range(0.8, 1.4))); }
+        for (let k = 0; k < 2; k++) { const p = trunkTop.clone().lerp(e, rng.range(0.5, 0.95)); fruit.push(berry(man ? 0.02 : 0.03, man ? '#b8c040' : '#d0d060', rng).translate(p.x, p.y - 0.04, p.z)); } }
+      for (let k = 0; k < (man ? 4 : 2); k++) fruit.push(berry(man ? 0.02 : 0.03, man ? '#c8c848' : '#d8c860', rng).translate(rng.range(-0.5, 0.5), 0.018, rng.range(-0.5, 0.5))); // fallen fruit
+      break;
+    }
+    case 'coconut': {
+      top = 0.25;
+      for (let i = 0; i < rng.int(2, 4); i++) { const a = rng.next() * 6.28, d = rng.range(0, 0.3), green = i === 0 && rng.chance(0.5);
+        const g = new THREE.SphereGeometry(0.11, 12, 9).scale(1, 0.85, 1.15); paint(g, (c, x, y, z) => c.copy(C(green ? '#6a8a30' : '#8a6a42')).multiplyScalar(0.8 + 0.3 * Math.abs(Math.sin(z * 80 + x * 30))));
+        fruit.push(g.rotateY(a).rotateX(rng.range(-0.3, 0.3)).translate(Math.cos(a) * d, 0.08, Math.sin(a) * d)); }
+      break;
+    }
+    case 'physic_nut': {
+      top = 1.2;
+      for (let i = 0; i < 4; i++) { const a = rng.next() * 6.28, e = V(Math.cos(a) * 0.3, rng.range(0.9, 1.2), Math.sin(a) * 0.3); body.push(stemSeg(V(0, 0, 0), e, 0.02, '#8a8070'));
+        for (let k = 0; k < 4; k++) { const p = V(0, 0, 0).lerp(e, 0.6 + k * 0.12); body.push(place(leaf(0.16, 0.16, '#4f7a34', rng, { tip: 0.85, base: 0.5 }), p.x, p.y, p.z, rng.next() * 6.28, rng.range(0.9, 1.4))); }
+        for (let k = 0; k < 3; k++) { const g = new THREE.IcosahedronGeometry(0.022, 1).scale(1, 1.15, 1); fruit.push(paint(g, (c, x, y, z) => c.copy(C('#d8b830')).multiplyScalar(0.85 + 0.2 * Math.cos(Math.atan2(z, x) * 3))).translate(e.x + rng.range(-0.05, 0.05), e.y - 0.05, e.z + rng.range(-0.05, 0.05))); } }
+      break;
+    }
   }
   const M = floraMaterials();
   const parts = [];
@@ -483,4 +609,7 @@ export function buildPlant(id, seed) {
   const gf = merge(fruit); if (gf) parts.push({ geometry: gf, material: gloss ? M.berryGloss : M.berryMatte, key: 'fruit' });
   return { parts, top };
 }
-export const PROCEDURAL_PLANTS = ['bilberry', 'lingonberry', 'cloudberry', 'raspberry', 'deadly_nightshade', 'bittersweet', 'ramsons', 'lily_of_the_valley', 'wood_sorrel'];
+export const PROCEDURAL_PLANTS = ['bilberry', 'lingonberry', 'cloudberry', 'raspberry', 'deadly_nightshade', 'bittersweet', 'ramsons', 'lily_of_the_valley', 'wood_sorrel',
+  'sea_beet', 'marsh_samphire', 'sea_buckthorn', 'wild_celery', 'hemlock_water_dropwort', 'mussels',
+  'prickly_pear', 'juniper', 'pinyon', 'wild_onion', 'death_camas', 'datura',
+  'wild_banana', 'guava', 'coconut', 'manchineel', 'physic_nut'];

@@ -133,6 +133,7 @@ export class Ambience {
   depth(x, z) { return this.world.depthAt(x, z); }
   rndAround(p, r0, r1) { const a = Math.random() * 6.283, d = rand(r0, r1); return [p.x + Math.cos(a) * d, p.z + Math.sin(a) * d]; }
   near(list, p, r) { return list.some((o) => o.pos.distanceTo(p) < r); }
+  regionAt(x, z) { const w = this.world; return w.exp && w.gen.biomeT(x, z) > 0.5 ? w.exp.region : 'temperate'; }
   risesNear(p, r) { const now = this.t; return this.rises.some((rr) => now - rr.t0 < 6 && Math.hypot(rr.x - p.x, rr.z - p.z) < r); }
 
   // ---------------------------------------------------------------- songbirds on the ground
@@ -140,6 +141,7 @@ export class Ambience {
     for (let k = 0; k < 6; k++) {
       const [x, z] = this.rndAround(p, 10, 32); if (this.depth(x, z) > -0.3) continue;
       const s = this.world.gen.sample(x, z); if (s.forest > 0.85) continue;
+      const reg = this.regionAt(x, z); if (reg === 'canyon' || reg === 'tropics') continue; // European songbirds belong at home
       const kind = this.birdKinds[Math.floor(Math.random() * this.birdKinds.length)];
       if (kind.id === 'blackbird' && s.forest < 0.2 && Math.random() < 0.6) continue;
       const g = new THREE.Group(); const body = new THREE.Mesh(kind.body, kind.mat); const wings = new THREE.Mesh(kind.wings, kind.mat);
@@ -222,7 +224,8 @@ export class Ambience {
     if (this.hares.length < 2 && Math.random() < dt * 0.15) {
       for (let k = 0; k < 6; k++) {
         const [x, z] = this.rndAround(p, 25, 55); const s = gen.sample(x, z);
-        if (s.h - gen.p.water < 0.8 || s.forest > 0.35) continue;
+        if (s.h - gen.p.water < 0.8 || s.forest > 0.35 || s.beach > 0.4) continue;
+        if (this.regionAt(x, z) === 'tropics') continue;
         const m = new THREE.Mesh(this.hareGeo, this.animalMat); m.castShadow = true; m.position.set(x, s.h, z); m.rotation.y = Math.random() * 6; this.group.add(m);
         this.hares.push({ m, pos: m.position, state: 'graze', t: rand(2, 6), heading: m.rotation.y, speed: 0, phase: 0, seen: false });
         break;
@@ -251,6 +254,7 @@ export class Ambience {
     if (this.squirrels.length < 2 && day > 0.3 && Math.random() < dt * 0.2) {
       for (let k = 0; k < 6; k++) {
         const [x, z] = this.rndAround(p, 12, 30); const s = gen.sample(x, z); if (s.forest < 0.45 || s.h - gen.p.water < 0.8) continue;
+        if (this.regionAt(x, z) !== 'temperate') continue;
         const m = new THREE.Mesh(this.squirrelGeo, this.animalMat); m.position.set(x, s.h, z); this.group.add(m);
         this.squirrels.push({ m, pos: m.position, state: 'forage', t: rand(1, 3), heading: Math.random() * 6, phase: 0 });
         break;

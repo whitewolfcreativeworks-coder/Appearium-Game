@@ -9,8 +9,8 @@ import { viewer } from './specimen.js';
 import { buildFish } from '../world/fishModel.js';
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const SPOT_NAMES = { riffle: 'a fast, shallow riffle', pool: 'a deep river pool', weeds: 'the edge of a reed bed', lilies: 'among lily pads', deep: 'deep open water', shore: 'open shallows' };
-const WATER_NAMES = { river: 'flowing water', lake: 'a lake', pond: 'a still pond' };
+const SPOT_NAMES = { riffle: 'a fast, shallow riffle', pool: 'a deep river pool', weeds: 'the edge of a reed bed', lilies: 'among lily pads', deep: 'deep open water', shore: 'open shallows', surf: 'the surf line', rocks: 'deep water off the rocks' };
+const WATER_NAMES = { river: 'flowing water', lake: 'a lake', pond: 'a still pond', sea: 'the sea' };
 
 export function timeOfDay(t) { return t >= 4.5 && t < 8 ? 'dawn' : t >= 8 && t < 17 ? 'day' : t >= 17 && t < 21 ? 'dusk' : 'night'; }
 
@@ -55,6 +55,13 @@ export class Fishing {
         let cx = x, cz = z, cd = depth;
         for (let e = 1; e <= 4; e++) { const x2 = x + f.x * e, z2 = z + f.z * e, d2 = water - world.heightAt(x2, z2); if (d2 > 0.5) { cx = x2; cz = z2; cd = d2; } else break; }
         const s = gen.sample(cx, cz);
+        const region = s.biome > 0.5 ? world.exp?.region || 'temperate' : 'temperate';
+        if (gen.seaAt(cx, cz) > 0.35) {
+          // the sea: surf over sand, deep water off rocks and headlands, or open water
+          let rocky = s.cliff > 0.1; for (let a = 0; a < 6.28 && !rocky; a += 1.05) { const q = gen.sample(cx + Math.cos(a) * 9, cz + Math.sin(a) * 9); if (q.cliff > 0.2) rocky = true; }
+          const spot = rocky && cd > 1.5 ? 'rocks' : cd < 2.8 ? 'surf' : 'deep';
+          return { pos: new THREE.Vector3(cx, water, cz), type: 'sea', spot, depth: cd, region };
+        }
         const flowing = s.river > 0.2;
         const type = flowing ? 'river' : (s.pond > 0.15 || world.eco.fungi > 1.5) ? 'pond' : 'lake';
         let spot;
@@ -64,7 +71,7 @@ export class Fishing {
           const near = this.nearbyFeature(world, cx, cz, 8);
           if (near) spot = near;
         }
-        return { pos: new THREE.Vector3(cx, water, cz), type, spot, depth: cd };
+        return { pos: new THREE.Vector3(cx, water, cz), type, spot, depth: cd, region };
       }
     }
     return null;
@@ -83,8 +90,11 @@ export class Fishing {
     const g = this.game, exp = g.expedition;
     const tod = timeOfDay(g.sky.time), weather = g.sky.weatherName;
     const out = [];
+    const region = spot.region || 'temperate';
     for (const [id, f] of Object.entries(FISH)) {
       const wW = f.water[spot.type] || 0; if (!wW) continue;
+      // each land has its own fish; the temperate freshwater species also live in coastal rivers
+      if (!(f.regions || ['temperate', 'coast']).includes(region)) continue;
       const anySpot = Object.keys(f.spots).length;
       let w = wW * (anySpot ? (f.spots[spot.spot] ?? 0.45) : 1) * (f.time[tod] ?? 1) * (f.weather[weather] ?? 1) * (f.bait[bait] ?? 0.08);
       if (f.rare) w *= 0.35;
@@ -111,14 +121,18 @@ export class Fishing {
     (act, d) => { if (act === 'bait') { g.lastBait = d.id; g.ui.closePanel(); this.start(spot, d.id); } });
   }
   hint(spot, tod) {
-    const tips = {
+    let tips = {
       riffle: 'Trout and grayling hold in fast, oxygen-rich riffles, facing upstream to catch drifting insects.',
       pool: 'Big fish rest in deep pools out of the current. Salmon lie here when the river is up.',
       weeds: 'Reed beds give cover: perch hunt the edges and pike wait in ambush.',
       lilies: 'Lily pads shade the water — tench, rudd and carp feed beneath them.',
-      deep: 'Deep, cold water holds char, bream and, at dusk, zander.',
+      deep: spot.type === 'sea' ? 'Deep, open sea: mackerel shoals pass through, and cod feed near the bottom.' : 'Deep, cold water holds char, bream and, at dusk, zander.',
       shore: 'Open shallows: roach and perch, and bream moving in at dawn and dusk.',
+      surf: 'Breaking waves stir up sand-eels and crabs. Bass patrol the white water — rough days are best — and flounder lie on the sand.',
+      rocks: 'Kelp and rock: pollock and wrasse hide in the weed, and mackerel chase bait-fish past the point.',
     }[spot.spot];
+    if (spot.region === 'canyon' && spot.type === 'river') tips = 'A cold green river at the bottom of the canyon. Rainbow trout in the riffles; big catfish in the deep pools, especially at night.';
+    if (spot.region === 'tropics') tips = 'Warm, dark water. Peacock bass hunt by sight in daylight; tilapia graze the shallows; giant catfish prowl the deep pools after dark.';
     const t = tod === 'night' ? ' At night, eels and burbot hunt.' : tod === 'dawn' || tod === 'dusk' ? ' Dawn and dusk are prime feeding times.' : ' Midday is slow for many fish.';
     return tips + t;
   }
@@ -266,10 +280,10 @@ export class Fishing {
       <div class="sub">${size} cm · about ${kg < 1 ? Math.round(kg * 1000) + ' g' : kg.toFixed(1) + ' kg'}${best ? ' · <b style="color:var(--accent)">your best yet</b>' : ''}</div>
       <div class="examine"><div class="viewwrap"><div id="spec-view"></div><div class="hint">Drag to turn it</div></div>
       <div class="notes"><ul class="obs"><li><b>Look:</b> ${esc(f.look)}</li><li>${esc(f.facts)}</li></ul>
-      ${f.endangered ? '<div class="tell">Critically endangered. Anglers are asked to return every eel to the water.</div>' : ''}</div></div>
+      ${f.endangered ? `<div class="tell">${this.species === 'eel' ? 'Critically endangered. Anglers are asked to return every eel to the water.' : 'Endangered and protected. It must be released.'}</div>` : ''}</div></div>
       <div class="actions"><button class="btn ghost" data-act="release">Release it</button>${small ? '<button class="btn ghost" data-act="bait">Keep as bait</button>' : ''}<button class="btn primary" data-act="keep">Keep it</button></div>`,
     (act) => {
-      if (act === 'release') { k.released++; g.ui.closePanel(); g.audio.splash(0.5); g.ui.toast(f.endangered ? 'You slip the eel back into the water. A small kindness to a long journey.' : `You release the ${f.name.toLowerCase()}.`); }
+      if (act === 'release') { k.released++; g.ui.closePanel(); g.audio.splash(0.5); g.ui.toast(f.endangered ? (this.species === 'eel' ? 'You slip the eel back into the water. A small kindness to a long journey.' : `You hold the ${f.name.toLowerCase()} in the current until it swims off strongly.`) : `You release the ${f.name.toLowerCase()}.`); }
       if (act === 'bait') { g.save.bait.minnow = (g.save.bait.minnow || 0) + 2; g.ui.closePanel(); g.ui.toast('+2 minnow-sized baits'); }
       if (act === 'keep') { const ok = g.addToPack(id, 1, true); g.ui.closePanel(); g.ui.toast(ok ? `${f.name} added to your pack.` : 'Your pack is full — you let it go.'); }
       g.persist();

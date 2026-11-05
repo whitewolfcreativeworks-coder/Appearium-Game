@@ -195,6 +195,224 @@ export function buildSnag(seed) {
   return { trunk: g, height: H, radius: r0 };
 }
 
+
+// ------------------------------------------------------------------ warm & dry lands: palms, tree ferns, bananas, junipers
+function canvasTex(w, h, draw) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+// a pinnate leaf seen flat: midrib along u (0 = base), leaflets on both sides
+function pinnateTexture({ leaflet = 52, gap = 7, col = [70, 110, 40], droop = 0.5, fine = false, seed = 1 } = {}) {
+  const rng = new RNG(seed);
+  return canvasTex(512, 128, (k, W, H) => {
+    k.clearRect(0, 0, W, H);
+    const mid = H / 2;
+    for (let x = 14; x < W - 6; x += gap * rng.range(0.8, 1.2)) {
+      const t = x / W, L = leaflet * (fine ? Math.sin(Math.PI * Math.min(1, t * 1.1)) : (1 - t * 0.55)) * rng.range(0.85, 1.1);
+      for (const sd of [-1, 1]) {
+        const g = rng.range(-12, 18);
+        k.strokeStyle = `rgb(${col[0] + g},${col[1] + g},${col[2] + g * 0.5})`;
+        k.lineWidth = fine ? 3 : 5 - t * 2; k.lineCap = 'round';
+        k.beginPath(); k.moveTo(x, mid); k.quadraticCurveTo(x + L * 0.35, mid + sd * L * 0.55, x + L * (0.55 + droop * 0.2), mid + sd * L * 0.92); k.stroke();
+        if (fine) for (let q = 0.25; q < 0.9; q += 0.16) { const px = x + L * 0.35 * q * 1.4, py = mid + sd * L * 0.8 * q; k.lineWidth = 2; k.beginPath(); k.moveTo(px, py); k.lineTo(px + 7, py + sd * 2); k.moveTo(px, py); k.lineTo(px - 2, py + sd * 7); k.stroke(); }
+      }
+    }
+    k.strokeStyle = `rgb(${col[0] + 40},${col[1] + 35},${col[2]})`; k.lineWidth = 5; k.beginPath(); k.moveTo(0, mid); k.lineTo(W, mid); k.stroke();
+  });
+}
+function bananaTexture(seed = 3) {
+  const rng = new RNG(seed);
+  return canvasTex(512, 160, (k, W, H) => {
+    k.clearRect(0, 0, W, H); const mid = H / 2;
+    k.fillStyle = '#4f7f2a'; k.beginPath(); k.moveTo(0, mid);
+    for (let x = 0; x <= W; x += 8) k.lineTo(x, mid - Math.sin(Math.PI * Math.min(1, x / W * 1.08)) * H * 0.46);
+    for (let x = W; x >= 0; x -= 8) k.lineTo(x, mid + Math.sin(Math.PI * Math.min(1, x / W * 1.08)) * H * 0.46);
+    k.fill();
+    for (let x = 6; x < W; x += 3) { k.strokeStyle = `rgba(30,60,15,${0.15 + rng.next() * 0.2})`; k.lineWidth = 1; k.beginPath(); k.moveTo(x, mid); k.lineTo(x + 30, 2); k.moveTo(x, mid); k.lineTo(x + 30, H - 2); k.stroke(); }
+    // wind-torn slits, and dry brown edges
+    k.globalCompositeOperation = 'destination-out';
+    for (let i = 0; i < 14; i++) { const x = rng.range(60, W - 30), sd = rng.chance(0.5) ? -1 : 1; k.lineWidth = rng.range(2, 5); k.beginPath(); k.moveTo(x + 32, mid + sd * H * 0.5); k.lineTo(x + 4, mid + sd * 10); k.stroke(); }
+    k.globalCompositeOperation = 'source-atop'; k.strokeStyle = 'rgba(140,110,50,0.7)'; k.lineWidth = 6; k.beginPath();
+    for (let x = 0; x <= W; x += 8) k.lineTo(x, mid - Math.sin(Math.PI * Math.min(1, x / W * 1.08)) * H * 0.46); k.stroke();
+    k.globalCompositeOperation = 'source-over'; k.strokeStyle = '#a8b860'; k.lineWidth = 6; k.beginPath(); k.moveTo(0, mid); k.lineTo(W, mid); k.stroke();
+  });
+}
+
+// a frond: a strip that arches out from `base` towards azimuth a, then droops; slightly folded along the midrib
+function frond(f, base, a, len, width, { rise = 0.6, droop = 1.2, segs = 6, fold = 0.25, sway0 = 0.2 } = {}) {
+  const dir = new THREE.Vector3(Math.cos(a), 0, Math.sin(a)), side = new THREE.Vector3(-Math.sin(a), 0, Math.cos(a));
+  const pts = [];
+  for (let i = 0; i <= segs; i++) {
+    const t = i / segs, d = len * t;
+    pts.push(base.clone().addScaledVector(dir, d * Math.cos(rise * (1 - t) * 0.6)).add(new THREE.Vector3(0, len * (Math.sin(rise) * t - droop * t * t * 0.5), 0)));
+  }
+  for (let i = 0; i < segs; i++) {
+    const t0 = i / segs, t1 = (i + 1) / segs;
+    const w0 = width * Math.sin(Math.PI * Math.min(1, 0.15 + t0 * 0.95)), w1 = width * Math.sin(Math.PI * Math.min(1, 0.15 + t1 * 0.95));
+    const p0 = pts[i], p1 = pts[i + 1];
+    const up0 = new THREE.Vector3(0, w0 * fold, 0), up1 = new THREE.Vector3(0, w1 * fold, 0);
+    const n = new THREE.Vector3().subVectors(p1, p0).cross(side).normalize(); if (n.y < 0) n.negate();
+    for (const sd of [-1, 1]) { // two halves, each tilted down from the midrib
+      const a0 = p0.clone().addScaledVector(side, sd * w0 / 2).sub(up0), a1 = p1.clone().addScaledVector(side, sd * w1 / 2).sub(up1);
+      const vMid = 0.5, vEdge = sd < 0 ? 0 : 1;
+      const P = sd < 0 ? [p0, p1, a1, a0] : [a0, a1, p1, p0];
+      const uv = sd < 0 ? [t0, vMid, t1, vEdge] : [t0, vEdge, t1, vMid];
+      // quad(P, out, [u0,v0,u1,v1]) maps corners base-left,tip-left,tip-right,base-right
+      const base0 = f.pos.length / 3;
+      for (const q of P) f.pos.push(q.x, q.y, q.z);
+      if (sd < 0) f.uv.push(t0, vMid, t1, vMid, t1, vEdge, t0, vEdge); else f.uv.push(t0, vEdge, t1, vEdge, t1, vMid, t0, vMid);
+      const sA = sway0 + t0 * (1 - sway0), sB = sway0 + t1 * (1 - sway0);
+      f.sway.push(sA, sB, sB, sA);
+      for (let k = 0; k < 4; k++) f.nrm.push(n.x, n.y, n.z);
+      f.idx.push(base0, base0 + 1, base0 + 2, base0, base0 + 2, base0 + 3);
+    }
+  }
+}
+
+export function buildPalm(seed, { height = 11, lod = 0 } = {}) {
+  const rng = new RNG(seed);
+  const H = height * rng.range(0.85, 1.15), r0 = 0.2, lean = rng.range(0.6, 1.6);
+  const trunk = trunkGeo(H, r0 * 1.15, r0 * 0.75, lod ? 6 : 9, lod ? 3 : 8, lean, rng, 0.8);
+  // ringed trunk: bulge rings
+  const p = trunk.attributes.position;
+  for (let i = 0; i < p.count; i++) { const y = p.getY(i), k = 1 + 0.06 * Math.max(0, Math.sin(y * 9)); p.setX(i, (p.getX(i) - Math.sin(y / H * 2.2) * lean) * k + Math.sin(y / H * 2.2) * lean); p.setZ(i, p.getZ(i) * k); }
+  trunk.computeVertexNormals();
+  const top = new THREE.Vector3(Math.sin(2.2) * lean, H, 0);
+  const f = newBuf();
+  const n = lod ? 9 : 16;
+  for (let i = 0; i < n; i++) {
+    const a = i * 2.39996 + rng.range(-0.2, 0.2), young = i < 4;
+    frond(f, top, a, H * rng.range(0.38, 0.5) * (young ? 0.8 : 1), rng.range(1.5, 1.9), { rise: young ? 1.2 : rng.range(0.2, 0.7), droop: young ? 0.6 : rng.range(1.3, 2.1), segs: lod ? 3 : 6, fold: 0.35 });
+  }
+  return { trunk, foliage: toGeometry(f), height: H, radius: r0 + 0.1 };
+}
+
+export function buildTreeFern(seed, { lod = 0 } = {}) {
+  const rng = new RNG(seed);
+  const H = rng.range(2.2, 4.5), r0 = 0.17;
+  const trunk = trunkGeo(H, r0 * 1.3, r0, lod ? 6 : 8, 3, rng.range(-0.2, 0.2), rng, 1.6);
+  const f = newBuf(), top = new THREE.Vector3(Math.sin(2.2) * 0, H, 0);
+  const n = lod ? 8 : 14;
+  for (let i = 0; i < n; i++) frond(f, top, i * 2.39996 + rng.range(-0.2, 0.2), rng.range(2.0, 2.8), rng.range(0.9, 1.2), { rise: rng.range(0.7, 1.1), droop: rng.range(1.1, 1.6), segs: lod ? 3 : 6, fold: 0.15 });
+  return { trunk, foliage: toGeometry(f), height: H + 1.5, radius: r0 + 0.1 };
+}
+
+export function buildBanana(seed, { lod = 0 } = {}) {
+  const rng = new RNG(seed);
+  const parts = [];
+  const stems = rng.int(2, 4);
+  const f = newBuf();
+  for (let sI = 0; sI < stems; sI++) {
+    const H = rng.range(2.2, 4.0) * (sI ? 0.75 : 1), ox = sI ? rng.range(-0.7, 0.7) : 0, oz = sI ? rng.range(-0.7, 0.7) : 0;
+    const g = trunkGeo(H, 0.16, 0.11, 7, 2, rng.range(-0.1, 0.1), rng, 1); g.translate(ox, 0, oz); parts.push(g);
+    const top = new THREE.Vector3(ox, H, oz);
+    for (let i = 0; i < (lod ? 4 : 7); i++) frond(f, top, i * 2.4 + rng.next(), rng.range(1.8, 2.6), rng.range(0.55, 0.7), { rise: rng.range(0.6, 1.2), droop: rng.range(0.9, 1.6), segs: lod ? 2 : 4, fold: 0.08 });
+  }
+  const trunk = BGU.mergeGeometries(parts.map((g) => { g.deleteAttribute('normal'); return g; })); trunk.computeVertexNormals();
+  return { trunk, foliage: toGeometry(f), height: 4, radius: 0.3 };
+}
+
+// juniper / pinyon: short, gnarled trunks with dense clumped crowns of scale-leaf foliage
+export function buildJuniper(seed, { lod = 0, pinyon = false } = {}) {
+  const rng = new RNG(seed);
+  const H = pinyon ? rng.range(5, 8) : rng.range(3, 6), r0 = pinyon ? 0.16 : 0.2;
+  const parts = [trunkGeo(H * 0.55, r0, r0 * 0.5, 6, 4, rng.range(-0.5, 0.5))];
+  const clumps = [];
+  const nC = pinyon ? 5 : rng.int(3, 5);
+  for (let i = 0; i < nC; i++) {
+    const a = rng.next() * 6.28, d = rng.range(0.4, 1.4) * (H / 5), y = H * rng.range(0.45, 0.85);
+    const c = new THREE.Vector3(Math.cos(a) * d, y, Math.sin(a) * d);
+    parts.push(limbGeo(new THREE.Vector3(0, H * 0.4, 0), c, r0 * 0.5, r0 * 0.15));
+    clumps.push({ c, R: (pinyon ? 1.5 : 1.2) * rng.range(0.7, 1.2) * (H / 5) });
+  }
+  clumps.push({ c: new THREE.Vector3(0, H * 0.8, 0), R: (pinyon ? 1.7 : 1.1) * (H / 5) });
+  const trunk = BGU.mergeGeometries(parts.map((g) => { g.deleteAttribute('normal'); return g; })); trunk.computeVertexNormals();
+  const f = newBuf();
+  for (const { c: C0, R } of clumps) {
+    const N = lod ? 6 : 14;
+    for (let i = 0; i < N; i++) {
+      const u = rng.next() * 2 - 1, th = rng.next() * 6.28, s = Math.sqrt(1 - u * u);
+      const n = new THREE.Vector3(s * Math.cos(th), u * 0.7 + 0.25, s * Math.sin(th)).normalize();
+      const c = C0.clone().addScaledVector(n, R * rng.range(0.4, 0.9));
+      const size = R * (lod ? 1.5 : 1.05) * rng.range(0.8, 1.2);
+      const upv = new THREE.Vector3(n.x, n.y + 0.6, n.z).normalize();
+      const side = new THREE.Vector3().crossVectors(upv, n).normalize();
+      const base = c.clone().addScaledVector(upv, -size * 0.45), tip = c.clone().addScaledVector(upv, size * 0.55);
+      const P = [base.clone().addScaledVector(side, -size / 2), tip.clone().addScaledVector(side, -size / 2), tip.clone().addScaledVector(side, size / 2), base.clone().addScaledVector(side, size / 2)];
+      const nn = n.clone().lerp(new THREE.Vector3(0, 1, 0), 0.3).normalize();
+      quad(P, f, [0, 0, 1, 1], 0.4, 0.8, [nn, nn, nn, nn]);
+    }
+  }
+  return { trunk, foliage: toGeometry(f), height: H, radius: r0 + 0.05 };
+}
+
+// yucca: a rosette of stiff, sword-like leaves (vertex-coloured)
+export function buildYucca(seed) {
+  const rng = new RNG(seed); const pos = [], col = [], sway = [], idx = [];
+  const N = rng.int(30, 46), c0 = new THREE.Color(0.32, 0.4, 0.24), c1 = new THREE.Color(0.55, 0.62, 0.42);
+  for (let i = 0; i < N; i++) {
+    const a = i * 2.39996, el = rng.range(0.25, 1.3), L = rng.range(0.45, 0.8), w = 0.025;
+    const dx = Math.cos(a) * Math.cos(el), dy = Math.sin(el), dz = Math.sin(a) * Math.cos(el), sx = -Math.sin(a), sz = Math.cos(a);
+    const v0 = pos.length / 3;
+    pos.push(-sx * w, 0.05, -sz * w, sx * w, 0.05, sz * w, dx * L, 0.05 + dy * L, dz * L);
+    const cc = c0.clone().lerp(c1, rng.next()); col.push(c0.r, c0.g, c0.b, c0.r, c0.g, c0.b, cc.r, cc.g, cc.b); sway.push(0, 0, 0.08);
+    idx.push(v0, v0 + 1, v0 + 2);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setAttribute('aSway', new THREE.Float32BufferAttribute(sway, 1));
+  g.setIndex(idx); g.computeVertexNormals(); return g;
+}
+
+// tall, pale, rigid dune grass (marram)
+export function buildMarram(seed) {
+  const rng = new RNG(seed); const pos = [], nrm = [], col = [], sway = [], idx = [];
+  for (let b = 0; b < 34; b++) {
+    const r = Math.sqrt(rng.next()) * 0.4, a = rng.next() * 6.283, ox = Math.cos(a) * r, oz = Math.sin(a) * r;
+    const h = rng.range(0.5, 1.0), w = rng.range(0.006, 0.011), dir = a + rng.range(-0.5, 0.5), lean = rng.range(0.15, 0.5);
+    const dx = Math.cos(dir), dz = Math.sin(dir), sx = -dz, sz = dx;
+    const base = new THREE.Color(0.42, 0.44, 0.3), tip = new THREE.Color(0.78, 0.74, 0.55).offsetHSL(0, 0, rng.range(-0.06, 0.06));
+    const v0 = pos.length / 3;
+    for (let s = 0; s <= 3; s++) {
+      const t = s / 3, off = lean * t * t * h, ww = w * (1 - t * 0.9);
+      const cx = ox + dx * off, cz = oz + dz * off, cy = h * t;
+      pos.push(cx - sx * ww, cy, cz - sz * ww, cx + sx * ww, cy, cz + sz * ww);
+      nrm.push(dx * 0.3, 1, dz * 0.3, dx * 0.3, 1, dz * 0.3);
+      const c = base.clone().lerp(tip, Math.pow(t, 0.6)); col.push(c.r, c.g, c.b, c.r, c.g, c.b); sway.push(t * t * 1.4, t * t * 1.4);
+    }
+    for (let s = 0; s < 3; s++) { const i0 = v0 + s * 2; idx.push(i0, i0 + 1, i0 + 3, i0, i0 + 3, i0 + 2); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setAttribute('aSway', new THREE.Float32BufferAttribute(sway, 1));
+  g.setIndex(idx); return g;
+}
+
+// seashells and a strand-line of washed-up wrack (vertex-coloured)
+export function buildShells(seed) {
+  const rng = new RNG(seed); const parts = [];
+  for (let i = 0; i < rng.int(3, 6); i++) {
+    const kind = rng.next(), r = rng.range(0.018, 0.035);
+    let g;
+    if (kind < 0.5) { g = new THREE.SphereGeometry(r, 10, 4, 0, Math.PI * 2, 0, Math.PI * 0.42).scale(1, 0.45, 1.15); } // cockle / scallop
+    else if (kind < 0.8) { g = new THREE.ConeGeometry(r * 0.6, r * 2.2, 8).rotateZ(Math.PI / 2 + rng.range(-0.3, 0.3)).translate(0, r * 0.4, 0); } // whelk
+    else { g = new THREE.SphereGeometry(r, 8, 4).scale(1.6, 0.35, 0.7).translate(0, r * 0.2, 0); } // mussel valve
+    const c = kind > 0.8 ? new THREE.Color(0.12, 0.13, 0.2) : new THREE.Color().setHSL(rng.range(0.05, 0.1), rng.range(0.15, 0.4), rng.range(0.7, 0.86));
+    g.rotateY(rng.next() * 6.28).translate(rng.range(-0.25, 0.25), 0, rng.range(-0.25, 0.25));
+    parts.push(colorize(g.toNonIndexed(), c));
+  }
+  const g = BGU.mergeGeometries(parts.map((x) => { if (x.attributes.normal) x.deleteAttribute('normal'); return x; })); g.computeVertexNormals(); return g;
+}
+export function buildWrack(seed) {
+  const rng = new RNG(seed); const parts = [];
+  for (let i = 0; i < 9; i++) {
+    const L = rng.range(0.4, 1.2), w = rng.range(0.03, 0.07), a = rng.next() * 6.28;
+    const g = new THREE.PlaneGeometry(L, w, 6, 1).rotateX(-Math.PI / 2);
+    const p = g.attributes.position; for (let k = 0; k < p.count; k++) p.setZ(k, p.getZ(k) + Math.sin(p.getX(k) * 7 + i) * 0.04);
+    g.rotateY(a).translate(rng.range(-0.4, 0.4), 0.006 + i * 0.002, rng.range(-0.4, 0.4));
+    parts.push(colorize(g.toNonIndexed(), new THREE.Color().setHSL(rng.range(0.1, 0.2), 0.4, rng.range(0.1, 0.18))));
+  }
+  const g = BGU.mergeGeometries(parts.map((x) => { x.deleteAttribute('normal'); return x; })); g.computeVertexNormals(); return g;
+}
+
 // ------------------------------------------------------------------ grass, mushrooms, crystals, branches
 export function buildGrassClump(seed, blades = 18) {
   const rng = new RNG(seed);
@@ -328,6 +546,9 @@ export const KIND_INFO = {}; // key -> { radius (collider), modelHeight }
 
 function prepModelMaterial(mat, { wind = false, amp = 0.05 } = {}) {
   const m = mat.clone();
+  // geometry is re-packed without its COLOR_0 attribute (see dequantize), so vertex colours must be off —
+  // otherwise the missing attribute reads as black (this is what made the rocks black)
+  m.vertexColors = false;
   if (m.transparent || m.alphaTest > 0) {
     if (m.transparent) { m.transparent = false; m.alphaTest = 0.5; }
     m.alphaTest = Math.max(m.alphaTest, 0.4);
@@ -386,6 +607,44 @@ export async function defineKinds(pools, quality) {
     KIND_INFO[`snag${v}`] = { radius: s.radius + 0.05, tree: true };
   }
 
+
+  // warm & dry lands -------------------------------------------------------
+  const palmMat = addWind(new THREE.MeshStandardMaterial({ map: pinnateTexture({ col: [78, 112, 44], seed: 5 }), alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.7, emissive: 0x25351a, emissiveIntensity: 0.4 }), { amp: 0.22, flutter: 0.06, keepNormals: true });
+  palmMat.emissiveMap = palmMat.map;
+  const tfernMat = addWind(new THREE.MeshStandardMaterial({ map: pinnateTexture({ col: [62, 112, 40], fine: true, gap: 9, leaflet: 46, seed: 9 }), alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.75, emissive: 0x24381a, emissiveIntensity: 0.45 }), { amp: 0.12, flutter: 0.04, keepNormals: true });
+  tfernMat.emissiveMap = tfernMat.map;
+  const bananaMat = addWind(new THREE.MeshStandardMaterial({ map: bananaTexture(), alphaTest: 0.4, side: THREE.DoubleSide, roughness: 0.55, emissive: 0x24381a, emissiveIntensity: 0.35 }), { amp: 0.16, flutter: 0.08, keepNormals: true });
+  bananaMat.emissiveMap = bananaMat.map;
+  const juniperMat = addWind(new THREE.MeshStandardMaterial({ map: firTex, alphaTest: 0.42, side: THREE.DoubleSide, roughness: 0.9, color: 0xa8b8a4, emissive: 0x24301e, emissiveMap: firTex, emissiveIntensity: 0.4 }), { amp: 0.05, flutter: 0.015, keepNormals: true });
+  const pinyonMat = addWind(new THREE.MeshStandardMaterial({ map: firTex, alphaTest: 0.42, side: THREE.DoubleSide, roughness: 0.85, color: 0xc8d4b8, emissive: 0x2a3a1c, emissiveMap: firTex, emissiveIntensity: 0.5 }), { amp: 0.07, flutter: 0.02, keepNormals: true });
+  const barkPalm = barkBroad.clone(); barkPalm.color = new THREE.Color(0.95, 0.88, 0.76);
+  const barkFern = barkBroad.clone(); barkFern.color = new THREE.Color(0.45, 0.36, 0.28);
+  const stemBanana = new THREE.MeshStandardMaterial({ color: 0x7c8a46, roughness: 0.7, map: tex('build/bark_brown_02_diff.jpg') }); stemBanana.color.multiplyScalar(1.4);
+  const barkJuniper = barkSnag.clone(); barkJuniper.color = new THREE.Color(0.85, 0.74, 0.62);
+  for (const m of [barkPalm, barkFern, barkJuniper]) addWind(m, { amp: 0.05, flutter: 0 });
+  addWind(stemBanana, { amp: 0.06, flutter: 0 });
+  const defTree = (key, n, build, bark, leaf, capN = treeCap.near * 0.5, capF = treeCap.far * 0.5) => {
+    for (let v = 0; v < n; v++) {
+      const near = build(4000 + key.length * 100 + v, 0), far = build(4000 + key.length * 100 + v, 1);
+      pools.defineKind(`${key}${v}@near`, [{ geometry: near.trunk, material: bark, castShadow: true }, { geometry: near.foliage, material: leaf, castShadow: true, colored: true }], Math.round(capN));
+      pools.defineKind(`${key}${v}@far`, [{ geometry: far.trunk, material: bark }, { geometry: far.foliage, material: leaf, colored: true }], Math.round(capF));
+      KIND_INFO[`${key}${v}`] = { radius: near.radius + 0.05, height: near.height, tree: true };
+    }
+  };
+  defTree('palm', 3, (sd, lod) => buildPalm(sd, { height: [12, 9, 15][sd % 3], lod }), barkPalm, palmMat);
+  defTree('treefern', 2, (sd, lod) => buildTreeFern(sd, { lod }), barkFern, tfernMat);
+  defTree('banana', 2, (sd, lod) => buildBanana(sd, { lod }), stemBanana, bananaMat);
+  defTree('juniper', 3, (sd, lod) => buildJuniper(sd, { lod }), barkJuniper, juniperMat);
+  defTree('pinyon', 2, (sd, lod) => buildJuniper(sd, { lod, pinyon: true }), barkConifer, pinyonMat);
+  const plantVC = addWind(new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.85 }), { amp: 0.05, flutter: 0.02, keepNormals: true });
+  for (let v = 0; v < 2; v++) pools.defineKind(`yucca${v}`, [{ geometry: buildYucca(700 + v), material: plantVC, castShadow: true }], 900);
+  KIND_INFO.yucca = { variants: 2 };
+  const marramMat = addWind(new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 1, envMapIntensity: 0.5 }), { amp: 0.12, flutter: 0.04, keepNormals: true });
+  for (let v = 0; v < 2; v++) pools.defineKind(`marram${v}`, [{ geometry: buildMarram(710 + v), material: marramMat, colored: true }], 2600);
+  const beachMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 });
+  pools.defineKind('shells0', [{ geometry: buildShells(720), material: beachMat }], 500);
+  pools.defineKind('wrack0', [{ geometry: buildWrack(721), material: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.35, side: THREE.DoubleSide }) }], 600);
+
   // grass ----------------------------------------------------------------------
   const grassMat = addWind(new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 1, envMapIntensity: 0.45 }), { amp: 0.07, flutter: 0.025, keepNormals: true, fadeDist: quality.grassRadius });
   for (let v = 0; v < 2; v++) pools.defineKind(`grass${v}`, [{ geometry: buildGrassClump(77 + v, quality.grassBlades), material: grassMat, castShadow: false, colored: true }], cap.grass);
@@ -421,6 +680,15 @@ export async function defineKinds(pools, quality) {
     defineModel('dead_tree_trunk', 'log', { capacity: 400, castShadow: true }),
   ]);
   await defineModel('shrub_02', 'shrub', { split: true, wind: true, amp: 0.04, capacity: cap.small, castShadow: true });
+  // sagebrush: the same shrub scan, silvered and kept low; driftwood: a bleached log
+  await defineModel('shrub_02', 'sage', { split: true, wind: true, amp: 0.03, capacity: 1600, castShadow: true, colored: true, scale: 0.7 });
+  await defineModel('dead_tree_trunk', 'drift', { capacity: 300, castShadow: true, colored: true, gain: 1.7 });
+  await defineModel('rock_07', 'tintrock', { capacity: 900, castShadow: true, radius: 0.9, scale: 9, gain: 2.0, colored: true });
+  // termite mound: a ribbed spire of red earth
+  { const g = new THREE.LatheGeometry([[0.9, 0], [0.85, 0.3], [0.6, 0.9], [0.42, 1.5], [0.22, 2.1], [0.05, 2.4]].map(([r, y]) => new THREE.Vector2(r, y)), 10);
+    const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const a = Math.atan2(p.getZ(i), p.getX(i)), k = 1 + 0.12 * Math.sin(a * 5 + p.getY(i) * 2); p.setX(i, p.getX(i) * k); p.setZ(i, p.getZ(i) * k); }
+    colorize(g, new THREE.Color(0.62, 0.34, 0.2)); g.computeVertexNormals();
+    pools.defineKind('mound0', [{ geometry: g, material: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, map: tex('terrain/red_dirt_mud_01_diff.jpg') }), castShadow: true }], 200); }
 
   // species-accurate mushrooms & forage plants (see flora.js) -----------------
   const FM = floraMaterials();

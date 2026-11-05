@@ -8,11 +8,14 @@ import { clamp, smoothstep, lerp } from '../core/rng.js';
 const DEG = Math.PI / 180;
 
 export const WEATHER = {
-  clear:    { turbidity: 2.6, rayleigh: 1.4, clouds: 0.25, fog: 0.0035, rain: 0, light: 1.0, wind: 0.8 },
-  hazy:     { turbidity: 7, rayleigh: 1.8, clouds: 0.35, fog: 0.0065, rain: 0, light: 0.92, wind: 0.6 },
-  mist:     { turbidity: 9, rayleigh: 2.0, clouds: 0.5, fog: 0.016, rain: 0, light: 0.75, wind: 0.35 },
-  overcast: { turbidity: 10, rayleigh: 2.2, clouds: 0.85, fog: 0.0075, rain: 0, light: 0.6, wind: 1.1 },
-  rain:     { turbidity: 12, rayleigh: 2.4, clouds: 0.95, fog: 0.011, rain: 1, light: 0.48, wind: 1.5 },
+  clear:    { turbidity: 2.6, rayleigh: 1.4, clouds: 0.25, fog: 0.0035, rain: 0, snow: 0, light: 1.0, wind: 0.8, waves: 0.45, storm: 0 },
+  hazy:     { turbidity: 7, rayleigh: 1.8, clouds: 0.35, fog: 0.0065, rain: 0, snow: 0, light: 0.92, wind: 0.6, waves: 0.35, storm: 0 },
+  mist:     { turbidity: 9, rayleigh: 2.0, clouds: 0.5, fog: 0.016, rain: 0, snow: 0, light: 0.75, wind: 0.35, waves: 0.3, storm: 0 },
+  overcast: { turbidity: 10, rayleigh: 2.2, clouds: 0.85, fog: 0.0075, rain: 0, snow: 0, light: 0.6, wind: 1.1, waves: 0.7, storm: 0 },
+  rain:     { turbidity: 12, rayleigh: 2.4, clouds: 0.95, fog: 0.011, rain: 1, snow: 0, light: 0.48, wind: 1.5, waves: 0.9, storm: 0 },
+  windy:    { turbidity: 4, rayleigh: 1.6, clouds: 0.55, fog: 0.005, rain: 0, snow: 0, light: 0.9, wind: 2.1, waves: 1.3, storm: 0 },
+  storm:    { turbidity: 14, rayleigh: 2.6, clouds: 1.0, fog: 0.014, rain: 1.6, snow: 0, light: 0.32, wind: 2.6, waves: 1.9, storm: 1 },
+  snow:     { turbidity: 10, rayleigh: 2.2, clouds: 0.92, fog: 0.012, rain: 0, snow: 1, light: 0.62, wind: 0.9, waves: 0.6, storm: 0 },
 };
 
 export class SkySystem {
@@ -54,8 +57,10 @@ export class SkySystem {
     this.horizon = new THREE.Color(); this.zenith = new THREE.Color();
   }
 
-  setWeather(name, instant = false) {
-    this.weatherName = name; this.wTarget = { ...WEATHER[name] };
+  // rate: how fast the sky eases towards the new weather (per second)
+  setWeather(name, instant = false, rate = 0.3) {
+    if (!WEATHER[name]) name = 'clear';
+    this.weatherName = name; this.wTarget = { ...WEATHER[name] }; this.wRate = rate;
     if (instant) this.w = { ...this.wTarget };
   }
 
@@ -124,9 +129,17 @@ export class SkySystem {
 
   update(dt, camera, focus) {
     // ease weather
-    const k = 1 - Math.exp(-dt * 0.3);
+    const k = 1 - Math.exp(-dt * (this.wRate ?? 0.3));
     for (const key of Object.keys(this.w)) this.w[key] = lerp(this.w[key], this.wTarget[key], k);
     const w = this.w;
+    // lightning in a storm: a flicker of flashes, then thunder a few seconds later (sound by distance)
+    this.flash = Math.max(0, (this.flash || 0) - dt * 5);
+    if (w.storm > 0.6 && Math.random() < dt * 0.06 * w.storm) {
+      this.flash = 1; const dist = 300 + Math.random() * 2500;
+      this.onLightning && this.onLightning(dist);
+      this.flashT = [0.08, 0.2 + Math.random() * 0.2];
+    }
+    if (this.flashT) { this.flashT[0] -= dt; this.flashT[1] -= dt; if (this.flashT[0] < 0 && this.flashT[0] > -dt * 1.5) this.flash = 0.7; if (this.flashT[1] < 0) { this.flash = Math.max(this.flash, 0.5); this.flashT = null; } }
     const elev = this.computeSun(this.time);
     const day = smoothstep(-0.12, 0.12, Math.sin(elev));
     const golden = smoothstep(0.45, 0.05, Math.sin(elev)) * day;
@@ -150,7 +163,7 @@ export class SkySystem {
     const fx = Math.round(focus.x / texel) * texel, fz = Math.round(focus.z / texel) * texel;
     this.sun.target.position.set(fx, focus.y, fz);
     this.sun.position.copy(lightDir).multiplyScalar(160).add(this.sun.target.position);
-    this.hemi.intensity = (0.22 + 0.36 * day) * (0.85 + w.clouds * 0.4);
+    this.hemi.intensity = (0.22 + 0.36 * day) * (0.85 + w.clouds * 0.4) + this.flash * 2.5;
     this.hemi.color.setRGB(lerp(0.25, 0.72, day), lerp(0.3, 0.8, day), lerp(0.45, 0.95, day));
     this.hemi.groundColor.setRGB(lerp(0.05, 0.3, day), lerp(0.05, 0.27, day), lerp(0.06, 0.2, day));
 
@@ -158,6 +171,7 @@ export class SkySystem {
     const dayH = new THREE.Color(0.66, 0.74, 0.82), goldH = new THREE.Color(0.86, 0.66, 0.48), nightH = new THREE.Color(0.03, 0.045, 0.07), grey = new THREE.Color(0.58, 0.6, 0.62);
     this.horizon.copy(nightH).lerp(dayH, day).lerp(goldH, golden * 0.75).lerp(grey.clone().multiplyScalar(0.25 + 0.75 * day), w.clouds * 0.75);
     this.zenith.setRGB(lerp(0.01, 0.22, day), lerp(0.015, 0.4, day), lerp(0.03, 0.72, day)).lerp(grey.clone().multiplyScalar(0.25 + 0.6 * day), w.clouds * 0.7);
+    if (this.flash > 0) { this.horizon.lerp(new THREE.Color(0.75, 0.78, 0.9), this.flash * 0.6); this.zenith.lerp(new THREE.Color(0.6, 0.62, 0.8), this.flash * 0.5); }
     this.fog.color.copy(this.horizon);
     this.fog.density = w.fog * this.q.fogScale;
 
@@ -168,18 +182,28 @@ export class SkySystem {
     this.cloudMat.uniforms.uShade.value.copy(this.horizon).multiplyScalar(0.55 + 0.2 * day);
     this.cloudMat.uniforms.uNight.value = 1 - day;
     this.starMat.opacity = (1 - smoothstep(0.0, 0.25, day)) * (1 - w.clouds * 0.9);
-    this.renderer.toneMappingExposure = lerp(1.35, 0.64, day);
+    this.renderer.toneMappingExposure = lerp(1.35, 0.64, day) * (1 + this.flash * 0.8);
+    // ground: wet in rain, white in lasting snow
+    this.wetness = clamp((this.wetness || 0) + dt * (w.rain > 0.3 ? 0.02 : -0.004), 0, 1);
+    this.snowCover = clamp((this.snowCover || 0) + dt * (w.snow > 0.5 ? 0.006 : -0.003), 0, 1);
 
     // rain
-    this.rainMat.opacity = w.rain * 0.45;
-    this.rain.visible = w.rain > 0.02;
+    const snowing = w.snow > w.rain;
+    const precip = Math.max(w.rain, w.snow);
+    this.rainMat.opacity = snowing ? Math.min(0.9, w.snow * 0.85) : Math.min(0.6, w.rain * 0.45);
+    this.rainMat.color.setRGB(snowing ? 0.95 : 0.67, snowing ? 0.96 : 0.71, snowing ? 1 : 0.75);
+    this.rain.visible = precip > 0.02;
     if (this.rain.visible) {
       const a = this.rain.geometry.attributes.position.array, s = this.rainSeed, n = s.length / 3;
-      const cp = camera.position;
+      const cp = camera.position, fall = snowing ? 1.4 : 14, slant = (w.wind - 0.6) * (snowing ? 0.9 : 0.35);
+      const len = snowing ? 0.06 : 0.45, t = this.cloudMat.uniforms.uTime.value;
+      const active = Math.floor(n * Math.min(1, precip));
       for (let i = 0; i < n; i++) {
-        s[i * 3 + 1] -= dt * 14; if (s[i * 3 + 1] < -2) { s[i * 3 + 1] += 22; s[i * 3] = Math.random() * 40 - 20; s[i * 3 + 2] = Math.random() * 40 - 20; }
-        const x = cp.x + s[i * 3], y = cp.y + s[i * 3 + 1] - 4, z = cp.z + s[i * 3 + 2];
-        a[i * 6] = x; a[i * 6 + 1] = y; a[i * 6 + 2] = z; a[i * 6 + 3] = x + 0.03; a[i * 6 + 4] = y - 0.45; a[i * 6 + 5] = z + 0.02;
+        if (i >= active) { a[i * 6 + 1] = a[i * 6 + 4] = -9999; continue; }
+        s[i * 3 + 1] -= dt * fall; if (s[i * 3 + 1] < -2) { s[i * 3 + 1] += 22; s[i * 3] = Math.random() * 40 - 20; s[i * 3 + 2] = Math.random() * 40 - 20; }
+        let x = cp.x + s[i * 3] + slant * s[i * 3 + 1], y = cp.y + s[i * 3 + 1] - 4, z = cp.z + s[i * 3 + 2];
+        if (snowing) { x += Math.sin(t * 0.9 + i) * 0.4; z += Math.cos(t * 0.7 + i * 1.3) * 0.4; }
+        a[i * 6] = x; a[i * 6 + 1] = y; a[i * 6 + 2] = z; a[i * 6 + 3] = x + 0.03 + slant * len * 0.5 + (snowing ? 0.04 : 0); a[i * 6 + 4] = y - len; a[i * 6 + 5] = z + 0.02;
       }
       this.rain.geometry.attributes.position.needsUpdate = true;
     }
@@ -207,7 +231,8 @@ export class SkySystem {
     u.uSunDir.value.copy(this.dayFactor > 0.02 ? this.sunDir : this.sun.position.clone().normalize());
     u.uSunColor.value.copy(this.sun.color).multiplyScalar(Math.min(1.4, this.sun.intensity / 2.5));
     u.uSkyZenith.value.copy(this.zenith); u.uSkyHorizon.value.copy(this.horizon);
-    u.uRain.value = this.w.rain; u.uLight.value = 0.25 + 0.75 * this.dayFactor * this.w.light;
+    u.uRain.value = Math.min(1, this.w.rain); u.uLight.value = 0.25 + 0.75 * this.dayFactor * this.w.light + (this.flash || 0) * 0.5;
+    u.uWave.value = this.w.waves;
     u.fogColor.value.copy(this.fog.color); u.fogDensity.value = this.fog.density;
   }
 }

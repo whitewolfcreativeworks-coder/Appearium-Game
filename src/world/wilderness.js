@@ -10,62 +10,159 @@ import { generateArtifact } from '../game/items.js';
 import { buildArtifactMesh } from '../game/artifacts3d.js';
 import { Wildlife } from './wildlife.js';
 import { Ambience } from './critters.js';
+import { WorldGen, makeHomeGen, homeRoadCurve, HOME_R, ROAD_START } from './generator.js';
+import { Village, HOME_LAYERS, HOME_ECO, filterYard } from './village.js';
+import { buildRoadMesh, roadPoint } from './road.js';
+import { Herds } from './herds.js';
+import { smoothstep } from '../core/rng.js';
 
-const LABEL = { hamlet: (n) => n, ruins: (n) => `Ruins of ${n}`, stones: (n) => `The ${n} Stones`, grotto: (n) => `${n} Grotto`, cabin: (n) => `${n} Cabin`, find: () => 'Something glinting' };
+const LABEL = { hamlet: (n) => n, ruins: (n) => `Ruins of ${n}`, stones: (n) => `The ${n} Stones`, grotto: (n) => `${n} Grotto`, cabin: (n) => `${n} Cabin`, find: () => 'Something glinting', wreck: (n) => `Wreck at ${n}`, alcove: (n) => `${n} Cliff Dwellings`, carvings: (n) => `${n} Rock Carvings` };
+function petroglyphTexture(seed) {
+  const rng = new RNG(seed), c = document.createElement('canvas'); c.width = 512; c.height = 320; const k = c.getContext('2d');
+  k.strokeStyle = 'rgba(232,214,190,0.85)'; k.fillStyle = 'rgba(232,214,190,0.85)'; k.lineWidth = 7; k.lineCap = 'round';
+  const fig = (x, y, s) => { // a horned human figure
+    k.beginPath(); k.moveTo(x, y - s); k.lineTo(x, y + s * 0.6); k.moveTo(x - s * 0.6, y - s * 0.3); k.lineTo(x + s * 0.6, y - s * 0.3); k.moveTo(x, y + s * 0.6); k.lineTo(x - s * 0.4, y + s * 1.3); k.moveTo(x, y + s * 0.6); k.lineTo(x + s * 0.4, y + s * 1.3);
+    k.moveTo(x - s * 0.2, y - s * 1.2); k.lineTo(x - s * 0.45, y - s * 1.6); k.moveTo(x + s * 0.2, y - s * 1.2); k.lineTo(x + s * 0.45, y - s * 1.6); k.stroke(); k.beginPath(); k.arc(x, y - s * 1.1, s * 0.22, 0, 7); k.fill(); };
+  const sheep = (x, y, s) => { k.beginPath(); k.ellipse(x, y, s, s * 0.45, 0, 0, 7); k.stroke(); for (const d of [-0.6, -0.2, 0.2, 0.6]) { k.beginPath(); k.moveTo(x + d * s, y + s * 0.4); k.lineTo(x + d * s, y + s * 1.0); k.stroke(); } k.beginPath(); k.arc(x + s * 1.1, y - s * 0.5, s * 0.45, 3.4, 6.0); k.stroke(); };
+  const spiral = (x, y, s) => { k.beginPath(); for (let t = 0; t < 18; t += 0.2) { const r = t / 18 * s; k.lineTo(x + Math.cos(t) * r, y + Math.sin(t) * r); } k.stroke(); };
+  for (let i = 0; i < 9; i++) { const x = rng.range(40, 470), y = rng.range(60, 260), sz = rng.range(18, 34); [fig, sheep, spiral, fig, sheep][i % 5](x, y, sz); }
+  // weathering: pits and lichen-free patches
+  k.globalCompositeOperation = 'destination-out'; for (let i = 0; i < 900; i++) { k.fillStyle = `rgba(0,0,0,${Math.random() * 0.6})`; k.fillRect(Math.random() * 512, Math.random() * 320, 3, 3); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
 const SPECIALTY_COLOR = { potters: 0x8a3b2a, smiths: 0x2f3e52, carvers: 0x5a6b2e, weavers: 0x6b3f72 };
 
 export class Wilderness extends World {
   constructor(game, exp) {
-    super(game, { seed: `exp-${exp.seed}`, terrain: exp.terrain, layers: exp.layers, extraMode: exp.extraMode, eco: exp.eco, autumn: exp.autumn, dryGrass: exp.scenario === 'heath' ? 0.6 : exp.autumn * 0.5, collected: [] });
+    const homeGen = makeHomeGen();
+    const gen = new WorldGen(`exp-${exp.seed}`, exp.terrain, { homeGen, start: ROAD_START, dir: { x: 0, z: -1 }, blend: [130, 340] });
+    super(game, {
+      gen, eco: exp.eco, autumn: exp.autumn, dryGrass: exp.scenario === 'heath' ? 0.6 : exp.autumn * 0.5, collected: [],
+      layers: { home: HOME_LAYERS.home, forest: HOME_LAYERS.forest, rock: exp.layers.rock, shore: exp.layers.shore, dest: exp.layers.ground },
+      mode: exp.mode, strata: exp.strata, tints: exp.tints,
+    });
     this.kind = 'wild'; this.exp = exp;
+    this.homeEco = HOME_ECO; this.R = HOME_R;
     this.rng = new RNG(exp.seed ^ 0xabc);
   }
 
   slope(x, z) { const g = this.gen, h = g.baseHeight(x, z); return Math.hypot(g.baseHeight(x + 2, z) - h, g.baseHeight(x, z + 2) - h) / 2; }
 
-  findSite(cx, cz, { radius = 40, minAbove = 1.8, maxSlope = 0.18, prefer = 'flat', tries = 70 } = {}) {
+  findSite(cx, cz, { radius = 40, minAbove = 1.8, maxAbove = 1e9, maxSlope = 0.18, prefer = 'flat', tries = 70, avoidRoad = 9 } = {}) {
     const g = this.gen, w = g.p.water;
     let best = null, bestScore = -1e9;
     for (let i = 0; i < tries; i++) {
       const a = i * 2.39996, r = radius * Math.sqrt(i / tries);
       const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
-      const h = g.baseHeight(x, z); if (h - w < minAbove) continue;
+      if (x * x + z * z < (HOME_R + 30) ** 2) continue;
+      const h = g.baseHeight(x, z); if (h - w < minAbove || h - w > maxAbove) continue;
+      const ri = g.roadInfo(x, z); if (ri && ri.d < avoidRoad) continue;
       const s = this.slope(x, z);
       let score = -s * 20 - r * 0.02;
       if (prefer === 'high') score += h * 0.25;
       if (prefer === 'crag') score += (s > 0.25 && s < 0.7 ? 6 : 0) + h * 0.1;
+      if (prefer === 'ledge') { const s2 = this.slope(x + 7, z) + this.slope(x - 7, z) + this.slope(x, z + 7) + this.slope(x, z - 7); score += Math.min(s2, 2.5) * 6; }
+      if (prefer === 'beach') { const sm = g.sample(x, z); score += sm.beach * 12 - Math.abs(h - w - 1.2) * 3; }
       if (prefer !== 'crag' && s > maxSlope) score -= 50;
       if (score > bestScore) { bestScore = score; best = { x, z, h }; }
     }
     return best;
   }
 
+  // the road: the same as it leaves the gate, then wandering off towards this expedition's land
+  layRoad() {
+    const g = this.gen, home = homeRoadCurve(g.homeGen), mine = (s) => g.nMask.noise(s * 0.009 + 7, 2.2) * 0.07;
+    const curve = (s) => { const k = smoothstep(150, 270, s); return home(s) * (1 - k) + mine(s) * k; };
+    let len = 760;
+    g.buildRoad(ROAD_START, 0, len, curve);
+    // the road stops where the land does: at the dunes, at the canyon rim, at a lake shore
+    const P = g.road.pts, stop = (i) => { len = i * 4; g.road.pts = P.slice(0, i + 1); };
+    for (let i = 60; i < P.length; i++) {
+      const [x, z] = P[i], s = g.sample(x, z), bh = g.baseHeight(x, z);
+      if (s.beach > 0.35 || s.sea > 0.05) { stop(Math.max(60, i - 6)); break; }
+      if (this.exp.region === 'canyon' && bh < g.p.water + g.p.plateau - 7) { stop(Math.max(60, i - 8)); break; }
+      if (bh < g.p.water - 0.4 && i > 80) { stop(i - 2); break; } // a lake
+    }
+    g.buildRoad(ROAD_START, 0, len, curve); // rebuild so the grid and smoothing match the final length
+    this.roadLen = len;
+  }
+
   async build() {
     const exp = this.exp, g = this.gen;
-    // trailhead camp
-    const t = this.findSite(0, 0, { radius: 120, minAbove: 2.0, maxSlope: 0.12, tries: 160 }) || { x: 0, z: 0, h: g.p.water + 2 };
+    this.layRoad();
+    // camp where the new land begins, a little off the road
+    const cp = roadPoint(g, Math.min(330, this.roadLen - 30));
+    const side = this.rng.chance(0.5) ? 1 : -1;
+    const t = this.findSite(cp.x + Math.cos(cp.angle) * 13 * side, cp.z + Math.sin(cp.angle) * 13 * side, { radius: 30, minAbove: 1.6, maxSlope: 0.12, tries: 120, avoidRoad: 5 })
+      || { x: cp.x + Math.cos(cp.angle) * 10 * side, z: cp.z + Math.sin(cp.angle) * 10 * side, h: g.p.water + 2 };
     this.trail = new THREE.Vector3(t.x, 0, t.z);
-    g.addZone(t.x, t.z, 7, 12, { clear: 1, h: Math.max(t.h, g.p.water + 1.8) });
-    // POIs
+    g.addZone(t.x, t.z, 6, 10, { clear: 1, h: Math.max(t.h, g.p.water + 1.6) });
+    // points of interest ahead, in the new land, on either side of the road
+    const end = roadPoint(g, this.roadLen);
     const sites = [];
     for (const p of exp.pois) {
-      const cx = t.x + Math.cos(p.angle) * p.dist, cz = t.z + Math.sin(p.angle) * p.dist;
-      const prefer = p.type === 'stones' ? 'high' : p.type === 'grotto' ? 'crag' : 'flat';
-      const s = this.findSite(cx, cz, { radius: 60, prefer, maxSlope: p.type === 'hamlet' ? 0.1 : 0.2 });
+      const ang = Math.PI * 0 + p.side; // relative to straight ahead (north)
+      const sx = ROAD_START.x + Math.sin(ang) * p.dist, sz = ROAD_START.z - Math.cos(ang) * p.dist;
+      const prefer = { stones: 'high', grotto: 'crag', alcove: 'ledge', carvings: 'crag', wreck: 'beach' }[p.type] || 'flat';
+      const opt = { radius: 70, prefer, maxSlope: p.type === 'hamlet' ? 0.1 : 0.2 };
+      if (p.type === 'wreck') Object.assign(opt, { minAbove: 0.4, maxAbove: 2.6, radius: 120, tries: 160 });
+      if (p.type === 'alcove') Object.assign(opt, { minAbove: 3, maxAbove: exp.terrain.plateau - 6, radius: 110, tries: 180, maxSlope: 0.14 });
+      const s = this.findSite(p.type === 'wreck' ? end.x + (sx - end.x) * 0.5 : sx, p.type === 'wreck' ? end.z - 60 + (sz - end.z) * 0.3 : sz, opt);
       if (!s) continue;
-      const r = { hamlet: 20, ruins: 9, stones: 8, grotto: 6, cabin: 7, find: 0 }[p.type];
-      if (r) g.addZone(s.x, s.z, r, 14, { clear: p.type === 'grotto' ? 0.6 : 1 });
+      const r = { hamlet: 20, ruins: 9, stones: 8, grotto: 6, cabin: 7, find: 0, wreck: 0, alcove: 7, carvings: 4 }[p.type];
+      if (r) g.addZone(s.x, s.z, r, 12, { clear: p.type === 'grotto' ? 0.6 : 1 });
       sites.push({ ...p, x: s.x, z: s.z });
     }
+    // the village you just left stands behind you
+    this.home = new Village(this.game);
+    this.home.buildBackdrop();
+    for (const c of this.home.colliders.items.values()) this.colliders.add({ ...c });
+    this.noGrass.push(...this.home.noGrass);
     this.initStreaming();
-    this.spawn = { x: t.x + 2.5, z: t.z + 2.5, yaw: Math.atan2(-(sites[0]?.x ?? 1) + t.x, -(sites[0]?.z ?? 1) + t.z) };
+    this.add(buildRoadMesh(this, { fadeEnd: 30 }));
+    this.spawn = { x: ROAD_START.x, z: ROAD_START.z - 4, yaw: 0 };
+    this.buildSignpost();
     this.buildCamp();
     for (const s of sites) this.buildPOI(s);
     // wildlife & ambience
     this.wildlife = new Wildlife(this.scene, this, { foxes: exp.foxes });
     await this.wildlife.init();
     this.ambience = new Ambience(this.game, this);
+    this.herds = new Herds(this.game, this, exp.herds);
     if (exp.eco.fireflies) this.emitters.add(fireflies(this.trail, 60, 90, (x, z) => this.heightAt(x, z)));
+  }
+
+  populate(c, base) { return filterYard(base(c), this.R); }
+
+  // a fingerpost outside the gate: home one way, the unknown the other
+  buildSignpost() {
+    const g = this.gen, p = roadPoint(g, 10), x = p.x + 3.1, z = p.z, h = this.heightAt(x, z);
+    const b = new Builder();
+    b.cyl(M.darkwood, 0.09, 0.08, 2.6, 0, 1.3, 0, { seg: 7 });
+    const sign = (text, y, dir) => {
+      const c = document.createElement('canvas'); c.width = 512; c.height = 96; const k = c.getContext('2d');
+      k.fillStyle = '#6a5440'; k.fillRect(0, 0, 512, 96);
+      for (let i = 0; i < 40; i++) { k.fillStyle = `rgba(30,20,10,${Math.random() * 0.15})`; k.fillRect(0, Math.random() * 96, 512, 1 + Math.random() * 2); }
+      k.fillStyle = '#efe4cc'; k.font = 'bold 50px Georgia, serif'; k.textAlign = 'center'; k.textBaseline = 'middle'; k.fillText(text, 256, 52);
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.28, 0.05), [M.darkwood, M.darkwood, M.darkwood, M.darkwood, new THREE.MeshStandardMaterial({ map: t, roughness: 0.9 }), new THREE.MeshStandardMaterial({ map: t, roughness: 0.9 })]);
+      // fingers stick out along the road (local −z is the way ahead)
+      m.position.set(0, y, dir * 0.66); m.rotation.y = Math.PI / 2; m.castShadow = true;
+      return m;
+    };
+    const grp = b.finish('signpost');
+    grp.add(sign(this.exp.place, 2.25, -1), sign('Home', 1.9, 1));
+    grp.position.set(x, h, z); grp.rotation.y = -p.angle; this.add(grp);
+    this.colliders.add({ x, z, r: 0.3 });
+    this.addStatic({ type: 'signpost', pos: new THREE.Vector3(x, h + 1.6, z), radius: 2.2, label: 'Read the signpost' });
+  }
+
+  // walking back in through the North Gate takes you home
+  constrain(p, prev) {
+    const r = Math.hypot(p.x, p.z);
+    if (r > HOME_R + 3) { this.gateArmed = true; return; }
+    const ang = Math.atan2(p.z, p.x), da = Math.atan2(Math.sin(ang + Math.PI / 2), Math.cos(ang + Math.PI / 2));
+    if (Math.abs(da) < 0.2 && r < HOME_R + 1.5) { p.x = prev.x; p.z = prev.z; if (this.gateArmed) { this.gateArmed = false; this.game.confirmReturnHome(true); } }
   }
 
   buildCamp() {
@@ -74,11 +171,9 @@ export class Wilderness extends World {
     const ring = new InstanceList(); for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283; ring.push(p.x + Math.cos(a) * 0.62, h, p.z + Math.sin(a) * 0.62, a * 3, 2.4); }
     this.game.pools.set('pebble0', 'camp', ring.build());
     const b = new Builder();
-    // bedroll & pack
     b.box(cloth(0x5b4a3a), 0.8, 0.12, 2.0, 1.9, 0.06, -0.4, { ry: 0.3 });
     b.box(cloth(0x3f4a3a), 0.82, 0.2, 0.5, 1.6, 0.1, -1.3, { ry: 0.3 });
     b.cyl(M.logs, 0.18, 0.18, 1.6, -1.6, 0.18, 0.6, { rz: Math.PI / 2, ry: 0.8 });
-    // waymarker with a lantern: the way home
     b.cyl(M.darkwood, 0.07, 0.06, 1.8, -1.2, 0.9, -1.4);
     b.box(M.glow, 0.18, 0.24, 0.18, -1.2, 1.9, -1.4);
     const grp = b.finish('camp'); grp.position.set(p.x, h, p.z); this.add(grp);
@@ -91,7 +186,7 @@ export class Wilderness extends World {
     const rng = new RNG(s.seed);
     const h = this.heightAt(s.x, s.z);
     const name = s.name ? LABEL[s.type](s.name) : LABEL.find();
-    const poi = { type: s.type, name, pos: new THREE.Vector3(s.x, h, s.z), discovered: false, known: s === this.exp.pois.find((q) => q.type !== 'find') || false, radius: { hamlet: 30, ruins: 16, stones: 14, grotto: 12, cabin: 12, find: 4 }[s.type], seed: s.seed, specialty: s.specialty };
+    const poi = { type: s.type, name, pos: new THREE.Vector3(s.x, h, s.z), discovered: false, known: s === this.exp.pois.find((q) => q.type !== 'find') || false, radius: { hamlet: 30, ruins: 16, stones: 14, grotto: 12, cabin: 12, find: 4, wreck: 14, alcove: 14, carvings: 8 }[s.type], seed: s.seed, specialty: s.specialty };
     poi.known = this.exp.pois.filter((q) => q.type !== 'find')[0]?.seed === s.seed;
     this.pois.push(poi);
     const ctx = { expedition: this.exp.no, region: this.exp.name, scenario: this.exp.title, place: s.name ? LABEL[s.type](s.name) : null, specialty: s.specialty };
@@ -183,6 +278,70 @@ export class Wilderness extends World {
         const bucket = prop('wooden_bucket_01'); bucket.position.set(s.x + (-0.8) * cs + 2.7 * sn, h + 0.4, s.z - (-0.8) * sn + 2.7 * cs); this.add(bucket);
         break;
       }
+      case 'wreck': {
+        // the bones of a wooden ship, heeled over and half sunk in the sand
+        const ry = rng.range(0, 6.28), L = rng.range(12, 16), heel = rng.range(0.25, 0.45);
+        const wood = M.grey, dark = M.darkwood;
+        b.box(dark, 0.45, 0.5, L, 0, 0.0, 0, { ts: 1.5 }); // keel
+        b.box(dark, 0.4, 2.4, 0.45, 0, 1.0, L / 2 - 0.2, { rx: -0.35 }); // stem post
+        b.box(dark, 0.4, 2.0, 0.45, 0, 0.8, -L / 2 + 0.2, { rx: 0.2 }); // sternpost
+        for (let i = 0; i < 11; i++) {
+          const zz = -L / 2 + 1 + i * (L - 2) / 10, t = (i + 0.5) / 11, w = Math.sin(t * Math.PI) * 2.4 + 0.5;
+          for (const sd of [-1, 1]) {
+            if (rng.chance(sd > 0 ? 0.12 : 0.3)) continue;
+            const arc = Math.PI / 2 * (sd > 0 ? rng.range(0.75, 1) : rng.range(0.45, 0.85));
+            const tor = new THREE.TorusGeometry(w, 0.16, 5, 9, arc);
+            tor.rotateZ(sd > 0 ? -Math.PI / 2 : Math.PI + Math.PI / 2 - arc); tor.rotateY(Math.PI / 2); tor.translate(0, w, zz);
+            b.add(dark, tor);
+          }
+        }
+        // surviving planking on the high side
+        for (let k = 0; k < 7; k++) {
+          const a = -Math.PI / 2 + k * 0.17, len = L * rng.range(0.45, 0.8), z0 = rng.range(-L * 0.15, L * 0.15);
+          for (let q = 0; q < 1; q++) b.box(wood, 0.08, 0.3, len, Math.cos(a) * 2.6 * -1 * -1, 2.6 + Math.sin(a) * 2.6, z0, { rz: a, ts: 1.2 });
+        }
+        for (let k = 0; k < 6; k++) b.box(wood, 0.08, 0.3, rng.range(1.5, 4), rng.range(-3, 3), 0.1, rng.range(-L / 2, L / 2), { ry: rng.range(-0.6, 0.6), rz: rng.range(-0.3, 0.3), ts: 1.2 });
+        b.cyl(dark, 0.18, 0.14, rng.range(5, 8), 0, 2.4, L * 0.12, { rz: rng.range(0.9, 1.3), seg: 7 }); // broken mast
+        const grp = b.finish('wreck'); grp.rotation.set(0, ry, 0); grp.rotateZ(heel); grp.position.set(s.x, h - 0.6, s.z); this.add(grp);
+        const cs = Math.cos(ry), sn = Math.sin(ry);
+        for (let i = -2; i <= 2; i++) this.colliders.add({ x: s.x + (i * L / 5) * sn, z: s.z + (i * L / 5) * cs, r: 1.2 });
+        const cx = s.x + 3.4 * cs, cz = s.z - 3.4 * sn;
+        const chest = prop('wooden_crate_01'); chest.position.set(cx, this.heightAt(cx, cz) - 0.15, cz); chest.rotation.set(0.15, ry, 0.1); this.add(chest);
+        placeArtifact(3.4 * cs, -3.4 * sn, null, 'wreck', 'Search the sea chest');
+        break;
+      }
+      case 'alcove': {
+        // small stone rooms built into a canyon ledge, long abandoned
+        const sand = M.sandstone, ry = rng.range(0, 6.28);
+        const rooms = rng.int(3, 5);
+        for (let i = 0; i < rooms; i++) {
+          const x = (i - (rooms - 1) / 2) * 3.1 + rng.range(-0.3, 0.3), z = rng.range(-0.6, 0.6), H = rng.range(1.6, 2.6) * (i % 2 ? 1 : 1.25), W = rng.range(2.3, 2.9), D = rng.range(2.2, 2.8);
+          b.box(sand, W, H, 0.32, x, H / 2, z - D / 2, { ts: 1.2 });
+          b.box(sand, 0.32, H, D, x - W / 2, H / 2, z, { ts: 1.2 }); b.box(sand, 0.32, H, D, x + W / 2, H / 2, z, { ts: 1.2 });
+          // front wall with a small T-shaped doorway
+          b.box(sand, W * 0.3, H, 0.32, x - W * 0.35, H / 2, z + D / 2, { ts: 1.2 }); b.box(sand, W * 0.3, H, 0.32, x + W * 0.35, H / 2, z + D / 2, { ts: 1.2 });
+          b.box(sand, W * 0.4, H * 0.35, 0.32, x, H * 0.82, z + D / 2, { ts: 1.2 });
+          if (i % 2 === 0) for (let k = 0; k < 6; k++) b.cyl(M.darkwood, 0.05, 0.05, W + 0.5, x, H + 0.02, z - D / 2 + 0.2 + k * D / 6, { rz: Math.PI / 2, seg: 5 }); // roof beams
+          b.colliders.push({ x, z: z - D / 2, hw: W / 2, hd: 0.2, rot: 0 }, { x: x - W / 2, z, hw: 0.2, hd: D / 2, rot: 0 }, { x: x + W / 2, z, hw: 0.2, hd: D / 2, rot: 0 });
+        }
+        const grp = b.finish('alcove'); grp.rotation.y = ry; grp.position.set(s.x, h - 0.1, s.z); this.add(grp);
+        const cs = Math.cos(ry), sn = Math.sin(ry);
+        for (const c of b.colliders) this.colliders.add({ ...c, x: s.x + c.x * cs + c.z * sn, z: s.z - c.x * sn + c.z * cs, rot: (c.rot || 0) - ry });
+        const pot = prop('antique_ceramic_vase_01'); pot.position.set(s.x + 0.5 * cs, h, s.z - 0.5 * sn); pot.scale.setScalar(0.9); this.add(pot);
+        placeArtifact(-0.4 * cs, 0.4 * sn, h + 0.02, 'alcove');
+        break;
+      }
+      case 'carvings': {
+        // figures pecked into a dark, varnished rock face
+        const ry = rng.range(0, 6.28);
+        const rock = rockMesh('boulder0', 2.6, ry, 1.2); rock.position.set(s.x, h - 0.6, s.z); this.add(rock);
+        this.colliders.add({ x: s.x, z: s.z, r: 2.2 });
+        const panel = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.6), new THREE.MeshStandardMaterial({ map: petroglyphTexture(s.seed), transparent: true, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, depthWrite: false }));
+        const fx = Math.sin(ry), fz = Math.cos(ry);
+        panel.position.set(s.x + fx * 2.05, h + 0.9, s.z + fz * 2.05); panel.rotation.y = ry; this.add(panel);
+        placeArtifact(fx * 3.2, fz * 3.2, null, 'carvings', 'Look at what lies beneath the carvings');
+        break;
+      }
       case 'find': {
         const wx = s.x, wz = s.z;
         this.emitters.add(sparkle(new THREE.Vector3(wx, this.heightAt(wx, wz) + 0.25, wz)));
@@ -207,6 +366,8 @@ export class Wilderness extends World {
 
   update(dt, ctx) {
     super.update(dt, ctx);
+    this.home?.update(dt, ctx);
+    this.herds?.update(dt, ctx);
     this.wildlife?.update(dt, ctx.player, ctx);
     // discovery
     const p = ctx.player.pos;
@@ -216,5 +377,5 @@ export class Wilderness extends World {
     }
   }
 
-  dispose() { this.wildlife?.dispose(); super.dispose(); }
+  dispose() { this.wildlife?.dispose(); this.herds?.dispose(); if (this.home) { for (const o of this.home.objects) this.scene.remove(o); this.home.emitters.clear(); } super.dispose(); }
 }

@@ -17,6 +17,20 @@ const SHAPES = {
   tench:   { depth: 0.27, width: 0.13, dorsal: [0.44, 0.58, 0.11], tail: 0.05, back: '#2e3a1e', side: '#5a6a30', belly: '#b0a868', pattern: 'none', fin: '#3a4424', eye: '#c82a1c', round: true },
   carp:    { depth: 0.32, width: 0.13, dorsal: [0.3, 0.7, 0.1], tail: 0.35, back: '#4a4020', side: '#a8843a', belly: '#e8d090', pattern: 'scales', fin: '#7a5a2a', barbels: 2 },
   eel:     { depth: 0.07, width: 0.06, eel: true, back: '#3a3a20', side: '#5a5a30', belly: '#d8cc80', pattern: 'none', fin: '#4a4a2a' },
+  // sea
+  mackerel:{ depth: 0.18, width: 0.11, dorsal: [0.4, 0.52, 0.07], dorsal2: [0.6, 0.7, 0.05], tail: 0.9, back: '#1e5a5a', side: '#7aa8a8', belly: '#f2f4f2', pattern: 'wavy', spotCol: ['#0e2426'], fin: '#5a7070' },
+  sea_bass:{ depth: 0.24, width: 0.11, dorsal: [0.36, 0.5, 0.1], dorsal2: [0.55, 0.7, 0.07], spiny: true, tail: 0.35, back: '#3e4a52', side: '#b8c0c4', belly: '#f0f2f0', pattern: 'none', fin: '#6a7478' },
+  cod:     { depth: 0.2, width: 0.13, dorsal: [0.36, 0.48, 0.07], dorsal2: [0.52, 0.66, 0.06], tail: 0.05, back: '#5a5a38', side: '#9a9468', belly: '#ecead8', pattern: 'mottle', spotCol: ['#5a4a2a'], fin: '#7a7454', barbels: 1 },
+  flounder:{ depth: 0.46, width: 0.045, dorsal: [0.12, 0.86, 0.04], tail: 0.05, back: '#5a4a34', side: '#7a6a4a', belly: '#7a6a4a', pattern: 'mottle', spotCol: ['#e2c890', '#3a2a1a'], fin: '#6a5a3a', flat: true },
+  pollock: { depth: 0.2, width: 0.11, dorsal: [0.3, 0.44, 0.07], dorsal2: [0.5, 0.66, 0.06], tail: 0.25, back: '#4a4a26', side: '#a89a5a', belly: '#e8e2c4', pattern: 'none', fin: '#6a5a3a', snout: 0.3 },
+  // canyon rivers
+  channel_catfish: { depth: 0.17, width: 0.13, dorsal: [0.62, 0.7, 0.09], adipose: true, tail: 0.7, back: '#4a5058', side: '#8a929a', belly: '#e8e8e2', pattern: 'fleck', spotCol: ['#20242a'], fin: '#5a6068', barbels: 3 },
+  rainbow_trout: { depth: 0.22, width: 0.12, dorsal: [0.42, 0.58, 0.09], adipose: true, tail: 0.15, back: '#4a5a3a', side: '#c8c8b8', belly: '#f2efe6', pattern: 'rainbow', spotCol: ['#1a1a1a'], fin: '#8a8a7a' },
+  pikeminnow: { depth: 0.16, width: 0.1, snout: 0.6, dorsal: [0.42, 0.54, 0.09], tail: 0.6, back: '#4a5a40', side: '#a8b098', belly: '#ecece2', pattern: 'none', fin: '#8a8a6a' },
+  // tropical rivers
+  peacock_bass: { depth: 0.28, width: 0.12, dorsal: [0.3, 0.72, 0.12], spiny: true, tail: 0.15, back: '#4a6a2a', side: '#c8b83a', belly: '#f0d8a0', pattern: 'peacock', spotCol: ['#1a2010'], fin: '#c8501c' },
+  tilapia: { depth: 0.36, width: 0.1, dorsal: [0.26, 0.74, 0.12], spiny: true, tail: 0.05, back: '#4a5a52', side: '#8a9a90', belly: '#d8dcd0', pattern: 'bars', spotCol: ['#3a4440'], fin: '#7a6a6a' },
+  redtail_catfish: { depth: 0.17, width: 0.15, dorsal: [0.6, 0.68, 0.1], adipose: true, tail: 0.4, back: '#2a2a2e', side: '#3a3a3e', belly: '#f2f0e8', pattern: 'band', spotCol: ['#f2efe2'], fin: '#3a3a3e', tailCol: '#d8401c', barbels: 3 },
   burbot:  { depth: 0.14, width: 0.11, dorsal: [0.3, 0.42, 0.06], dorsal2: [0.45, 0.95, 0.07], tail: 0, back: '#3a3020', side: '#7a6a40', belly: '#d8cc9a', pattern: 'mottle', spotCol: ['#2a2014'], fin: '#5a4a2a', barbels: 1 },
 };
 
@@ -50,6 +64,20 @@ function paintTexture(sp) {
       break;
     case 'mottle':
       for (let i = 0; i < 160; i++) { g.fillStyle = sp.spotCol[0]; g.globalAlpha = 0.35; g.beginPath(); g.arc(R(0, W), R(H * 0.2, H * 0.8), R(4, 12), 0, 7); g.fill(); g.globalAlpha = 1; }
+      break;
+    case 'wavy':
+      both((m) => { g.strokeStyle = sp.spotCol[0]; g.lineWidth = 5; for (let i = 0; i < 22; i++) { const u = 0.1 + i * 0.037; g.beginPath(); g.moveTo(u * W, yy(0.5, m)); for (let k = 1; k <= 6; k++) g.lineTo((u + Math.sin(k * 1.4 + i) * 0.012) * W, yy(0.5 - k * 0.028, m)); g.stroke(); } });
+      break;
+    case 'rainbow':
+      both((m) => { g.fillStyle = 'rgba(214,80,110,0.55)'; g.fillRect(0.05 * W, yy(0.4, m) - 9, 0.85 * W, 18);
+        for (let i = 0; i < 90; i++) { g.fillStyle = sp.spotCol[0]; g.beginPath(); g.arc(R(0.05, 0.92) * W, yy(R(0.35, 0.5), m), R(1.5, 3), 0, 7); g.fill(); } });
+      break;
+    case 'peacock':
+      both((m) => { for (let i = 0; i < 3; i++) { g.fillStyle = sp.spotCol[0]; g.globalAlpha = 0.65; g.fillRect((0.35 + i * 0.16) * W, yy(0.5, m) - (m ? 0 : 70), 22, 70); g.globalAlpha = 1; }
+        g.fillStyle = '#e8a020'; g.beginPath(); g.arc(0.06 * W, yy(0.42, m), 12, 0, 7); g.fill(); g.fillStyle = '#101010'; g.beginPath(); g.arc(0.06 * W, yy(0.42, m), 7, 0, 7); g.fill(); });
+      break;
+    case 'band':
+      both((m) => { g.fillStyle = sp.spotCol[0]; g.fillRect(0.12 * W, yy(0.3, m) - (m ? 0 : 14), 0.82 * W, 14); });
       break;
     case 'scales':
       g.strokeStyle = 'rgba(60,40,10,0.35)'; g.lineWidth = 1.2;
@@ -100,7 +128,8 @@ export function buildFish(id) {
     fin([[-0.5, 0], [-0.05, -topAt(0.45) - 0.02], [0.05, -topAt(0.55)], [-0.5, 0.01]]);
   } else {
     // tail
-    const f = sp.tail; fin([[-0.46, 0.02], [-0.56, 0.13 + f * 0.02], [-0.53 + f * 0.04, 0], [-0.56, -0.13 - f * 0.02], [-0.46, -0.02]]);
+    const f = sp.tail; fin([[-0.46, 0.02], [-0.56, 0.13 + f * 0.02], [-0.53 + f * 0.04, 0], [-0.56, -0.13 - f * 0.02], [-0.46, -0.02]], sp.tailCol ? new THREE.MeshStandardMaterial({ color: sp.tailCol, side: THREE.DoubleSide, roughness: 0.6 }) : finMat);
+    if (sp.flat) fin([[0.36 - 0.5, -topAt(0.36) + 0.005], [0.5 - 0.5, -topAt(0.5) - 0.035], [0.86 - 0.5, -topAt(0.86) - 0.02], [0.86 - 0.5, -topAt(0.86) + 0.005]]); // long fringe below as well
     // dorsal
     const [d0, d1, dh] = sp.dorsal;
     const dm = fin([[d0 - 0.5, topAt(d0) - 0.005], [d0 - 0.5 + (d1 - d0) * 0.25, topAt(d0) + dh], [d1 - 0.5, topAt(d1) + dh * (sp.spiny ? 0.5 : 0.3)], [d1 - 0.5, topAt(d1) - 0.005]], sp.dorsalCol ? new THREE.MeshStandardMaterial({ color: sp.dorsalCol, side: THREE.DoubleSide, roughness: 0.6 }) : finMat);
@@ -122,7 +151,8 @@ export function buildFish(id) {
     const iris = new THREE.Mesh(new THREE.CircleGeometry(er, 14), new THREE.MeshStandardMaterial({ color: sp.eye || '#c8b070', roughness: 0.3, metalness: 0.3 }));
     const pupil = new THREE.Mesh(new THREE.CircleGeometry(er * 0.55, 12), new THREE.MeshStandardMaterial({ color: '#060606', roughness: 0.1 }));
     iris.position.set(eyeX, hh * 0.3, s * ww * 0.92); iris.rotation.y = s > 0 ? 0 : Math.PI;
-    pupil.position.copy(iris.position).add(new THREE.Vector3(0, 0, s * 0.001)); pupil.rotation.copy(iris.rotation);
+    if (sp.flat) { iris.position.set(eyeX - (s > 0 ? 0 : 0.03), hh * (s > 0 ? 0.15 : 0.45), ww * 0.95); iris.rotation.y = 0; } // a flatfish: both eyes on the upper side
+    pupil.position.copy(iris.position).add(new THREE.Vector3(0, 0, (sp.flat ? 1 : s) * 0.001)); pupil.rotation.copy(iris.rotation);
     group.add(iris, pupil);
   }
   if (sp.barbels) for (const s of [-1, 1]) for (let b = 0; b < sp.barbels; b++) {

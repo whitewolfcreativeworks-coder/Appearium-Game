@@ -9,7 +9,7 @@ import { Emitters } from './effects.js';
 export class World {
   constructor(game, cfg) {
     this.game = game; this.scene = game.scene; this.cfg = cfg;
-    this.gen = new WorldGen(cfg.seed, cfg.terrain);
+    this.gen = cfg.gen || new WorldGen(cfg.seed, cfg.terrain);
     this.eco = cfg.eco; this.autumn = cfg.autumn || 0; this.dryGrass = cfg.dryGrass || 0;
     this.collected = new Set(cfg.collected || []);
     this.colliders = new Colliders();
@@ -23,12 +23,11 @@ export class World {
 
   initStreaming() {
     const g = this.game;
-    this.terrainMat = createTerrainMaterial(this.cfg.layers, { water: this.gen.p.water, snowLine: this.gen.p.snowLine, extraMode: this.cfg.extraMode, grassTint: this.cfg.grassTint });
+    this.terrainMat = createTerrainMaterial(this.cfg.layers, { water: this.gen.p.water, snowLine: this.gen.p.snowLine, mode: this.cfg.mode, hasDest: !!this.gen.homeGen, strata: this.cfg.strata, tints: this.cfg.tints });
     const populate = makePopulator(this);
     this.chunks = new ChunkManager({ scene: this.scene, gen: this.gen, pools: g.pools, terrainMat: this.terrainMat, waterMat: g.waterMat, radius: g.quality.chunkRadius, colliders: this.colliders,
       populate: (c) => this.populate(c, populate) });
     this.grass = new GrassField(this, g.pools, g.quality);
-    const origSample = this.gen.sample.bind(this.gen);
     if (this.noGrass.length) this.grassBlocked = (x, z) => this.noGrass.some((n) => (x - n.x) ** 2 + (z - n.z) ** 2 < n.r * n.r);
   }
 

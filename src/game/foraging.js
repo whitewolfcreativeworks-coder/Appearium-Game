@@ -9,6 +9,11 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const firstSentence = (t) => t.split(/\. |\.$/)[0];
 
 const BASE_NOTE = {
+  field_mushroom: 'You scratch the base of the stem: it stays white, perhaps blushing faintly pink.',
+  yellow_stainer: 'You scratch the base of the stem: it turns bright CHROME-YELLOW at once, and there is an inky, chemical smell.',
+  termite_mushroom: 'A long, tapering root plunges down into an old termite mound.',
+  green_spored_parasol: 'A slightly swollen base — no sac, no snakeskin pattern on the stem.',
+  desert_shaggy_mane: 'A tough, woody stem rooted deep in the sand.',
   death_cap: 'A white, sac-like cup (volva) wraps the base of the stem.',
   fly_agaric: 'A bulbous base ringed with white scales.',
   parasol: 'A bulbous base — no sac.',
@@ -30,9 +35,22 @@ function observations(id, seen) {
     out.push(['Plant', L.plant]);
     out.push(['Fruit / flowers', L.fruit]);
     out.push(['Growing', L.grows]);
-    if (seen.smell) out.push(['Crushed leaf', id === 'ramsons' ? 'Smells strongly of garlic.' : id === 'wood_sorrel' ? 'Sharp and lemony.' : id === 'nettle' ? 'Grassy — and it stings!' : 'No garlic smell at all.']);
+    if (seen.smell) out.push(['Crushed leaf', SMELL[id] || 'No particular smell.']);
   }
   return out;
+}
+
+const SMELL = {
+  ramsons: 'Smells strongly of garlic.', lily_of_the_valley: 'No garlic smell at all.', wood_sorrel: 'Sharp and lemony.', nettle: 'Grassy — and it stings!',
+  wild_onion: 'Smells strongly of onion.', death_camas: 'No onion smell at all.', wild_celery: 'A strong smell of celery.', hemlock_water_dropwort: 'Pleasant, rather like parsley — which proves nothing.',
+  sea_beet: 'Mild, like spinach.', marsh_samphire: 'Salty and fresh.', datura: 'Rank and unpleasant.', physic_nut: 'Faint, green.',
+};
+// the handbook shows the species of this land (and the lookalikes of what you found)
+function handbookFor(game, list, id) {
+  const region = game.expedition?.region || 'temperate';
+  const ok = (c) => { const r = c.regions || ['temperate']; return r.includes(region) || (region === 'coast' && r.includes('temperate')); };
+  const look = new Set([id, ...(list[id]?.lookalikes || [])]);
+  return Object.entries(list).filter(([cid, c]) => look.has(cid) || ok(c));
 }
 
 export function startExamine(game, inter) {
@@ -45,7 +63,7 @@ export function startExamine(game, inter) {
 
   const render = () => {
     const obs = observations(id, seen).map(([a, b]) => `<li><b>${a}:</b> ${esc(b)}</li>`).join('');
-    const cands = Object.entries(list).map(([cid, c]) => `<button class="chip ${selected === cid ? 'on' : ''}" data-act="sel" data-id="${cid}">${esc(c.name)}</button>`).join('');
+    const cands = handbookFor(game, list, id).map(([cid, c]) => `<button class="chip ${selected === cid ? 'on' : ''}" data-act="sel" data-id="${cid}">${esc(c.name)}</button>`).join('');
     let cmp = '';
     if (selected) {
       const c = list[selected], st = STATUS[c.status];
@@ -131,7 +149,7 @@ export function eatRaw(game, key) {
   if (sp.effect || (sp.raw && isM) || sp.raw) res = applyEffect(game.body, sp, { raw: true });
   else if (isM) game.body.add('queasy', { onset: 10, dur: 40 });
   if (res === 'bitter') { game.ui.toast('Unbearably bitter — you spit it out.'); }
-  else if (res === 'stung') { game.ui.toast('Raw nettle stings your mouth! Cook nettles first.'); }
+  else if (res === 'stung') { game.ui.toast(p.trueId === 'prickly_pear' ? 'Tiny barbed spines in your lips and tongue! Singe or peel prickly pears first.' : 'Raw nettle stings your mouth! Cook nettles first.'); }
   else {
     const food = sp.status === 'edible' || sp.status === 'caution' ? (sp.rawFood ?? (isM ? Math.ceil((sp.food || 1) / 2) : 1)) : 0;
     game.body.eat(food);

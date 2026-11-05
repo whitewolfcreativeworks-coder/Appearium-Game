@@ -176,7 +176,7 @@ export class ChunkManager {
     const H = new Float32Array(W * W);
     for (let j = 0; j < W; j++) for (let i = 0; i < W; i++) H[j * W + i] = gen.height(c.x0 + (i - 1) * step, c.z0 + (j - 1) * step);
     const V = (N + 1) * (N + 1), E = 4 * (N + 1);
-    const pos = new Float32Array((V + E) * 3), nrm = new Float32Array((V + E) * 3), eco = new Float32Array((V + E) * 3);
+    const pos = new Float32Array((V + E) * 3), nrm = new Float32Array((V + E) * 3), eco = new Float32Array((V + E) * 3), eco2 = new Float32Array((V + E) * 3);
     let minH = Infinity;
     for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
       const v = j * (N + 1) + i;
@@ -189,6 +189,7 @@ export class ChunkManager {
       nrm[v * 3] = nx / l; nrm[v * 3 + 1] = ny / l; nrm[v * 3 + 2] = nz / l;
       const s = gen.sample(x, z);
       eco[v * 3] = s.moist; eco[v * 3 + 1] = s.forest; eco[v * 3 + 2] = s.river;
+      eco2[v * 3] = s.biome; eco2[v * 3 + 1] = s.beach; eco2[v * 3 + 2] = s.cliff;
     }
     const idx = [];
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
@@ -204,7 +205,7 @@ export class ChunkManager {
     ring.forEach((v, k) => {
       const s = V + k;
       pos[s * 3] = pos[v * 3]; pos[s * 3 + 1] = pos[v * 3 + 1] - 4; pos[s * 3 + 2] = pos[v * 3 + 2];
-      for (let q = 0; q < 3; q++) { nrm[s * 3 + q] = nrm[v * 3 + q]; eco[s * 3 + q] = eco[v * 3 + q]; }
+      for (let q = 0; q < 3; q++) { nrm[s * 3 + q] = nrm[v * 3 + q]; eco[s * 3 + q] = eco[v * 3 + q]; eco2[s * 3 + q] = eco2[v * 3 + q]; }
     });
     for (let k = 0; k < ring.length; k++) {
       const a = ring[k], b = ring[(k + 1) % ring.length], sa = V + k, sb = V + (k + 1) % ring.length;
@@ -214,18 +215,23 @@ export class ChunkManager {
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geo.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
     geo.setAttribute('aEco', new THREE.BufferAttribute(eco, 3));
+    geo.setAttribute('aEco2', new THREE.BufferAttribute(eco2, 3));
     geo.setIndex(idx);
     geo.computeBoundingSphere(); geo.computeBoundingBox();
     return { geo, minH };
   }
 
   buildWater(c) {
-    const N = 16, S = this.size, step = S / N, w = this.gen.p.water;
-    const pos = [], depth = [], idx = [];
+    const S = this.size, w = this.gen.p.water;
+    // the sea gets a finer grid so swell can be displaced in the vertex shader
+    let seaProbe = 0; for (const [a, b] of [[0.5, 0.5], [0, 0], [1, 0], [0, 1], [1, 1]]) seaProbe += this.gen.seaAt(c.x0 + S * a, c.z0 + S * b);
+    const N = seaProbe > 0.01 ? 32 : 16, step = S / N;
+    const pos = [], depth = [], sea = [], idx = [];
     for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
       const x = c.x0 + i * step, z = c.z0 + j * step;
       pos.push(x, w, z);
       depth.push(w - this.gen.height(x, z));
+      sea.push(seaProbe > 0.01 ? this.gen.seaAt(x, z) : 0);
     }
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
       const a = j * (N + 1) + i, b = a + 1, d = a + N + 1, e = d + 1;
@@ -235,6 +241,7 @@ export class ChunkManager {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     g.setAttribute('aDepth', new THREE.Float32BufferAttribute(depth, 1));
+    g.setAttribute('aSea', new THREE.Float32BufferAttribute(sea, 1));
     g.setIndex(idx); g.computeBoundingSphere();
     return g;
   }

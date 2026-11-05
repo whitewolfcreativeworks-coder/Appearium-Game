@@ -11,44 +11,54 @@ import { buildArtifactMesh } from '../game/artifacts3d.js';
 import { tex } from '../core/assets.js';
 import { KIND_INFO } from './vegetation.js';
 import { ITEMS } from '../game/items.js';
+import { makeHomeGen, homeRoadCurve, HOME_R, ROAD_START } from './generator.js';
+import { buildRoadMesh } from './road.js';
 
-const HOME_ECO = { treeDensity: 0.026, conifer: 0.55, broad: 0.45, snag: 0.02, fern: 0.5, grass: 1.1, flowers: 0.6, rocks: 0.3, logs: 0.3, minerals: [], fungi: 0.6, flora: 0.8 };
+export const HOME_LAYERS = { home: 'rocky_terrain_02', forest: 'forest_leaves_03', rock: 'aerial_rocks_02', shore: 'coast_sand_rocks_02', dest: 'rocky_terrain_02' };
+export const HOME_ECO = { treeDensity: 0.026, conifer: 0.55, broad: 0.45, snag: 0.02, fern: 0.5, grass: 1.1, flowers: 0.6, rocks: 0.3, logs: 0.3, minerals: [], fungi: 0.6, flora: 0.8 };
+
+// keep scatter out of the village yard (the palisade ring is the boundary)
+export function filterYard(res, R) {
+  const inside = (x, z) => x * x + z * z < (R + 6) ** 2;
+  res.interactables = res.interactables.filter((i) => !inside(i.pos.x, i.pos.z));
+  res.colliders = res.colliders.filter((col) => !inside(col.x, col.z));
+  for (const [k, v] of res.veg) {
+    const b = v.built, keep = [];
+    for (let i = 0; i < b.count; i++) if (!inside(b.mats[i * 16 + 12], b.mats[i * 16 + 14])) keep.push(i);
+    if (keep.length === b.count) continue;
+    const mats = new Float32Array(keep.length * 16), cols = b.cols ? new Float32Array(keep.length * 3) : null;
+    keep.forEach((i, n) => { mats.set(b.mats.subarray(i * 16, i * 16 + 16), n * 16); if (cols) cols.set(b.cols.subarray(i * 3, i * 3 + 3), n * 3); });
+    v.built = { mats, cols, count: keep.length };
+  }
+  return res;
+}
 
 export class Village extends World {
   constructor(game) {
     super(game, {
-      seed: 'appearium-home-v1',
-      terrain: { base: 6, hills: 11, rivers: 0.75, riverWidth: 0.026, lakes: 0.2, forest: 0.12, moisture: 0.05, streams: 0.5, ponds: 0.3 },
-      layers: { grass: 'rocky_terrain_02', forest: 'forest_leaves_03', rock: 'aerial_rocks_02', shore: 'coast_sand_rocks_02', extra: 'forrest_ground_01' },
-      extraMode: 3, eco: HOME_ECO,
+      gen: makeHomeGen(),
+      layers: HOME_LAYERS, eco: HOME_ECO,
     });
     this.kind = 'village';
-    this.R = 34;
-    this.gen.addZone(0, 0, this.R + 10, 26, { clear: 1, h: Math.max(this.gen.baseHeight(0, 0), this.gen.p.water + 3) });
+    this.R = HOME_R;
     this.h0 = this.gen.zones[0].h;
+    // the road out of the North Gate (the same road every expedition starts on)
+    this.gen.buildRoad(ROAD_START, 0, 320, homeRoadCurve(this.gen));
     this.grassInClearings = true;
     this.gateAngle = -Math.PI / 2;
     this.spawn = { x: 0, z: 9, yaw: 0 };
   }
 
-  populate(c, base) {
-    const res = base(c);
-    // keep scatter out of the village yard (the palisade ring is the boundary)
-    const inside = (x, z) => x * x + z * z < (this.R + 6) ** 2;
-    res.interactables = res.interactables.filter((i) => !inside(i.pos.x, i.pos.z));
-    res.colliders = res.colliders.filter((col) => !inside(col.x, col.z));
-    for (const [k, v] of res.veg) {
-      const b = v.built, keep = [];
-      for (let i = 0; i < b.count; i++) if (!inside(b.mats[i * 16 + 12], b.mats[i * 16 + 14])) keep.push(i);
-      if (keep.length === b.count) continue;
-      const mats = new Float32Array(keep.length * 16), cols = b.cols ? new Float32Array(keep.length * 3) : null;
-      keep.forEach((i, n) => { mats.set(b.mats.subarray(i * 16, i * 16 + 16), n * 16); if (cols) cols.set(b.cols.subarray(i * 3, i * 3 + 3), n * 3); });
-      v.built = { mats, cols, count: keep.length };
-    }
-    return res;
-  }
+  populate(c, base) { return filterYard(base(c), this.R); }
 
   async build() {
+    this.buildBackdrop();
+    this.initStreaming();
+    this.ambience = new Ambience(this.game, this);
+  }
+
+  // everything you can see of the village (also shown behind you as you set out on an expedition)
+  buildBackdrop() {
     const h0 = this.h0;
     this.noGrass.push({ x: 0, z: 0, r: 7.5 });
     // ------------------------------------------------ static structures
@@ -115,7 +125,8 @@ export class Village extends World {
       const m = new THREE.Mesh(geo, gravel); m.receiveShadow = true; m.userData.disposable = true; this.add(m);
       const n = Math.ceil(L / 3); for (let i = 0; i <= n; i++) this.noGrass.push({ x: x0 + (x1 - x0) * i / n, z: z0 + (z1 - z0) * i / n, r: w * 0.6 });
     };
-    path(0, -7, 0, -this.R + 0.5, 2.6); path(-6, 2.5, homeP.x + 3, homeP.z - 1); path(6, 2.5, stP.x - 2.6, stP.z - 1); path(-5, -4.5, wsP.x + 2, wsP.z + 1.5); path(5, -4.5, 12, -8.5); path(0, 7, 0, 19.2, 2);
+    path(0, -7, 0, -this.R + 0.5, 2.6);
+    this.add(buildRoadMesh(this, { to: 330, fadeEnd: 80 })); path(-6, 2.5, homeP.x + 3, homeP.z - 1); path(6, 2.5, stP.x - 2.6, stP.z - 1); path(-5, -4.5, wsP.x + 2, wsP.z + 1.5); path(5, -4.5, 12, -8.5); path(0, 7, 0, 19.2, 2);
 
     // ------------------------------------------------ trees inside the yard (hand placed)
     const trees = new Map();
@@ -149,9 +160,7 @@ export class Village extends World {
     this.hall = { x: 14, z: -11, ry: Math.atan2(-14, 11) };
     this.store = { x: stP.x, z: stP.z, ry: stRy };
     this.buildDynamic();
-    this.initStreaming();
     this.emitters.add(chimneySmoke(this.herbChimney.clone().setY(this.herbChimney.y + h0), 0.8));
-    this.ambience = new Ambience(this.game, this);
   }
 
   // parts that depend on the save: Hall pedestals + artifacts, store piles, upgrades

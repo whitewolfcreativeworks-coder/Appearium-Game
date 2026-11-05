@@ -23,6 +23,8 @@ export const ITEMS = {
   squirrel:    { name: 'Squirrel', cat: 'game', value: 2, food: 2, cook: true, desc: 'Caught in a deadfall. Must be cooked.' },
   crayfish:    { name: 'Crayfish', cat: 'game', value: 3, food: 2, cook: true, desc: 'From a fish trap. Turns red when cooked.' },
   pelt:        { name: 'Hare pelt', cat: 'game', value: 4, desc: 'Soft fur, useful for packs, clothing and fly-tying.' },
+  shell:       { name: 'Seashells', cat: 'material', value: 1, desc: 'Cockles, whelks and scallops from the strand line. Traders like them.' },
+  driftwood:   { name: 'Driftwood', cat: 'material', value: 2, desc: 'Silver, salt-hardened wood from the beach.' },
   feather:     { name: 'Feathers', cat: 'material', value: 1, desc: 'Moulted feathers, picked up near water. Used to tie flies.' },
 };
 
@@ -41,7 +43,7 @@ export const RECIPES = [
 
 // ---------------------------------------------------------------- artifacts
 const ADJ = ['Weathered', 'Ash-glazed', 'Smoke-dark', 'Lichen-stained', 'Finely made', 'Cracked', 'Salt-white', 'Ochre-painted', 'Time-worn', 'Delicate'];
-const ANIMALS = ['fox', 'hare', 'heron', 'elk', 'owl', 'salmon', 'wolf', 'lynx', 'crow'];
+const ANIMALS = ['fox', 'hare', 'heron', 'elk', 'owl', 'salmon', 'wolf', 'lynx', 'crow', 'raven', 'seal', 'gull', 'parrot', 'coyote', 'bighorn'];
 const KINDS = {
   vessel: { model: 'ceramic_vase_01', nouns: ['jar', 'vessel', 'urn', 'water pot'] },
   amphora: { model: 'antique_ceramic_vase_01', nouns: ['amphora', 'oil jar', 'flask'] },
@@ -61,6 +63,9 @@ const STORIES = {
   cabin: ['Left behind in {place}, along with a cold hearth.', 'Hanging on a peg inside {place}.'],
   trade: ['Traded for at {place}. The keeper\'s mark is pressed into it.', 'Made by the folk of {place}, who asked for a fair exchange.'],
   find: ['Glinting in the undergrowth of {region}.', 'Lying where someone dropped it, long ago, in {region}.'],
+  wreck: ['From a sea chest in the wreck at {place}, swollen with salt.', 'Wedged between the ribs of the ship that lies at {place}.'],
+  alcove: ['Left in a dusty room of {place}, high in the canyon wall.', 'Found by the cold hearth of {place}, where no one has lived for centuries.'],
+  carvings: ['Lying at the foot of {place}, as if left for the figures on the rock.', 'Buried in the sand beneath {place}.'],
 };
 const TINTS = { vessel: ['#c9b9a3', '#8f6a52', '#5b6b70', '#b59a74', '#6e5948'], amphora: ['#c8a47a', '#a07050', '#7c6a5a'], brass: ['#ffffff', '#d8c8a0', '#b8a888'] };
 
@@ -74,7 +79,10 @@ export function generateArtifact(seed, ctx) {
     cabin: ['tool', 'flute', 'vessel', 'compass'],
     trade: ctx.specialty === 'potters' ? ['vessel', 'amphora'] : ctx.specialty === 'smiths' ? ['brass', 'tool', 'compass'] : ctx.specialty === 'carvers' ? ['figurine', 'flute', 'amulet'] : ['vessel', 'figurine'],
     find: ['amulet', 'flute', 'compass', 'figurine', 'tool'],
-  }[source];
+    wreck: ['compass', 'brass', 'amphora', 'compass'],
+    alcove: ['vessel', 'vessel', 'figurine', 'flute'],
+    carvings: ['rune', 'amulet', 'figurine'],
+  }[source] || ['amulet'];
   const type = rng.pick(pool);
   const K = KINDS[type];
   let noun = rng.pick(K.nouns), name;

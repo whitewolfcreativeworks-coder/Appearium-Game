@@ -25,6 +25,7 @@ export const M = {
   get cobble() { return surf('cobblestone_floor_08'); },
   get grey() { return surf('wood_planks_grey', { gain: 2.2 }); },
   get stone() { return surf('stone_wall'); },
+  get sandstone() { return surf('red_sandstone_wall', { folder: 'terrain', color: 0xe0a478, gain: 1.25 }); },
   get darkwood() { return surf('weathered_planks', { color: 0x8a7462 }); },
   glass: new THREE.MeshStandardMaterial({ color: 0x1a1d1c, roughness: 0.12, metalness: 0.2, emissive: 0x000000 }),
   glow: new THREE.MeshStandardMaterial({ color: 0x332211, emissive: 0xffb25a, emissiveIntensity: 0.0, roughness: 0.6 }),

@@ -34,6 +34,7 @@ TERRAIN = [  # name -> poly haven id
     "leafy_grass", "sparse_grass", "aerial_grass_rock", "forest_ground_04", "brown_mud_leaves_01",
     "forrest_ground_01", "aerial_rocks_02", "rock_face", "rocky_terrain_02", "coast_sand_rocks_02",
     "mud_forest", "snow_02", "gravel_floor", "dry_riverbed_rock",
+    "red_sandstone_wall", "sandstone_cracks", "aerial_beach_01", "red_dirt_mud_01", "dry_ground_rocks", "gravel_road",
     "forest_leaves_04", "forest_floor", "cliff_side", "rock_wall_08", "aerial_rocks_04", "grass_path_2", "forest_leaves_03", "aerial_ground_rock", "coast_land_rocks_01",
 ]
 BUILD = [

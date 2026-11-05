@@ -15,25 +15,45 @@ export function createWaterMaterial() {
     uDeep: { value: new THREE.Color(0.02, 0.06, 0.08) },
     uRain: { value: 0 },
     uLight: { value: 1 },
+    uWave: { value: 0.6 },                          // sea state: 0.3 calm … 1.8 storm
+    uWaveDir: { value: new THREE.Vector2(0, 1) },   // direction the swell travels (towards the shore)
   }]);
   uniforms.tNormal.value = tex('waternormals.jpg', { srgb: false });
   const mat = new THREE.ShaderMaterial({
     uniforms, fog: true, transparent: true, depthWrite: false,
     vertexShader: /* glsl */`
-      attribute float aDepth;
-      varying vec3 vWPos; varying float vDepth;
+      attribute float aDepth; attribute float aSea;
+      uniform float uTime, uWave; uniform vec2 uWaveDir;
+      varying vec3 vWPos; varying float vDepth; varying float vSea; varying vec3 vWN; varying float vCrest;
       #include <fog_pars_vertex>
+      // a few Gerstner-like swells (height + slope), travelling shoreward
+      void wave(vec2 p, vec2 d, float L, float A, float spd, inout float h, inout vec2 g){
+        float k = 6.2832 / L; float ph = k * dot(d, p) - uTime * spd * k;
+        h += A * sin(ph); g += A * k * cos(ph) * d;
+      }
       void main(){
         vec4 wp = modelMatrix * vec4(position, 1.0);
-        vWPos = wp.xyz; vDepth = aDepth;
+        vDepth = aDepth; vSea = aSea;
+        float h = 0.0; vec2 g = vec2(0.0);
+        if (aSea > 0.001) {
+          float amp = uWave * aSea * smoothstep(0.2, 3.5, aDepth);
+          vec2 d0 = uWaveDir, d1 = normalize(uWaveDir + vec2(0.35, 0.1)), d2 = normalize(uWaveDir + vec2(-0.3, 0.2));
+          wave(wp.xz, d0, 26.0, 0.42 * amp, 1.2, h, g);
+          wave(wp.xz, d1, 15.0, 0.22 * amp, 1.1, h, g);
+          wave(wp.xz, d2, 9.0, 0.12 * amp, 1.0, h, g);
+          wave(wp.xz, normalize(vec2(d0.y, -d0.x)), 6.0, 0.05 * amp, 0.9, h, g);
+        }
+        wp.y += h; vCrest = h / max(0.05, uWave * 0.6);
+        vWN = normalize(vec3(-g.x, 1.0, -g.y));
+        vWPos = wp.xyz;
         vec4 mvPosition = viewMatrix * wp;
         gl_Position = projectionMatrix * mvPosition;
         #include <fog_vertex>
       }`,
     fragmentShader: /* glsl */`
-      uniform float uTime, uRain, uLight; uniform sampler2D tNormal;
+      uniform float uTime, uRain, uLight, uWave; uniform sampler2D tNormal;
       uniform vec3 uSunDir, uSunColor, uSkyZenith, uSkyHorizon, uShallow, uDeep;
-      varying vec3 vWPos; varying float vDepth;
+      varying vec3 vWPos; varying float vDepth; varying float vSea; varying vec3 vWN; varying float vCrest;
       #include <fog_pars_fragment>
       float h21(vec2 p){ p = fract(p*vec2(123.34,456.21)); p += dot(p,p+45.32); return fract(p.x*p.y); }
       void main(){
@@ -41,8 +61,9 @@ export function createWaterMaterial() {
         vec3 n1 = texture2D(tNormal, p * 0.045 + vec2(uTime * 0.011, uTime * 0.007)).rgb * 2.0 - 1.0;
         vec3 n2 = texture2D(tNormal, p * 0.13 + vec2(-uTime * 0.016, uTime * 0.012)).rgb * 2.0 - 1.0;
         vec3 n3 = texture2D(tNormal, p * 0.37 + vec2(uTime * 0.03, -uTime * 0.025)).rgb * 2.0 - 1.0;
-        vec3 nn = n1 + n2 * 0.7 + n3 * (0.35 + uRain * 0.8);
-        vec3 n = normalize(vec3(nn.x, 3.2, nn.y));
+        vec3 nn = n1 + n2 * 0.7 + n3 * (0.35 + uRain * 0.8 + vSea * uWave * 0.5);
+        vec3 n = normalize(vec3(nn.x, 3.2 - vSea * min(uWave, 1.5) * 0.9, nn.y));
+        n = normalize(vec3(n.x + vWN.x * 2.0, n.y, n.z + vWN.z * 2.0));
         vec3 V = normalize(cameraPosition - vWPos);
         float ndv = max(dot(n, V), 0.0);
         float fres = 0.02 + 0.98 * pow(1.0 - ndv, 5.0);
@@ -52,12 +73,24 @@ export function createWaterMaterial() {
         vec3 spec = uSunColor * (pow(sd, 600.0) * 6.0 + pow(sd, 60.0) * 0.25) * step(0.0, uSunDir.y);
         float dT = smoothstep(0.0, 4.5, vDepth);
         vec3 body = mix(uShallow, uDeep, dT) * uLight;
+        // the sea: clear turquoise over sand in the shallows, deep blue offshore
+        vec3 seaShallow = vec3(0.12, 0.36, 0.34), seaDeep = vec3(0.015, 0.07, 0.11);
+        body = mix(body, mix(seaShallow, seaDeep, smoothstep(0.0, 9.0, vDepth)) * uLight, vSea);
         // light scattering through shallow water picks up some sky colour
         body += uSkyHorizon * 0.06 * (1.0 - dT);
         vec3 col = mix(body, sky, fres * 0.9) + spec;
         float foamN = h21(floor(p * 9.0) + floor(uTime * 2.0)) * 0.5 + 0.5 * (n2.x * 0.5 + 0.5);
         float foam = (1.0 - smoothstep(0.0, 0.28, vDepth)) * smoothstep(0.35, 0.8, foamN);
         col = mix(col, vec3(0.78, 0.8, 0.78) * uLight, foam * 0.35);
+        if (vSea > 0.01) {
+          // breaking surf: foam lines rolling in towards the beach, and whitecaps on crests in a blow
+          float br = h21(floor(p * 3.0)) * 0.6;
+          float surf = smoothstep(0.55, 0.95, sin(vDepth * 2.3 + uTime * 1.6 + n1.x * 1.5 + br)) * (1.0 - smoothstep(0.4, 3.0 + uWave, vDepth));
+          surf += (1.0 - smoothstep(0.0, 0.5, vDepth)) * 0.6;
+          float caps = smoothstep(0.55, 1.1, vCrest + n2.y * 0.4) * smoothstep(0.7, 1.6, uWave);
+          float fm = clamp((surf * (0.5 + 0.4 * uWave) + caps) * smoothstep(0.3, 0.75, foamN + 0.15), 0.0, 1.0) * vSea;
+          col = mix(col, vec3(0.88, 0.9, 0.9) * (0.35 + 0.65 * uLight), fm * 0.85);
+        }
         float alpha = mix(0.35, 0.94, smoothstep(0.0, 2.4, vDepth));
         alpha = clamp(alpha + fres * 0.4, 0.0, 1.0) * smoothstep(-0.02, 0.12, vDepth);
         gl_FragColor = vec4(col, alpha);

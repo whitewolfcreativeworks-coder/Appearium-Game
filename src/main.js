@@ -35,6 +35,27 @@ const $ = (id) => document.getElementById(id);
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 if (isTouch) document.body.classList.add('touch');
 
+// species grouped by the lands they belong to (for the field guide)
+const REGION_TITLES = { temperate: 'Woods, meadows & rivers', coast: 'The coast', canyon: 'Canyon country', tropics: 'The tropics' };
+function byRegion(list) {
+  const out = [];
+  for (const r of Object.keys(REGION_TITLES)) {
+    const items = Object.entries(list).filter(([, sp]) => (sp.regions || ['temperate'])[0] === r);
+    items.forEach(([id, sp], i) => out.push([id, sp, i === 0 ? REGION_TITLES[r] : null]));
+  }
+  return out;
+}
+
+// weather drifts towards what is typical for the land, one step at a time
+function weatherShift(exp, cur) {
+  const W = exp.weathers || [[exp.weather, 1]];
+  const NEAR = { clear: ['hazy', 'windy', 'overcast'], hazy: ['clear', 'overcast', 'mist'], mist: ['hazy', 'overcast', 'rain'], overcast: ['rain', 'clear', 'windy', 'mist', 'snow'], rain: ['overcast', 'storm', 'mist'], windy: ['clear', 'overcast', 'storm'], storm: ['rain', 'windy', 'overcast'], snow: ['overcast', 'clear'] };
+  const opts = W.filter(([n]) => n === cur || (NEAR[cur] || []).includes(n));
+  let tot = 0; for (const [, w] of opts) tot += w; let r = Math.random() * tot;
+  for (const [n, w] of opts) { r -= w; if (r <= 0) return n; }
+  return cur;
+}
+
 class Game {
   constructor() {
     this.save = loadSave();
@@ -85,6 +106,7 @@ class Game {
     this.pools = new PoolManager(this.scene);
     this.waterMat = createWaterMaterial();
     this.sky = new SkySystem(renderer, this.scene, this.quality);
+    this.sky.onLightning = (d) => this.audio?.thunder?.(d);
     this.postfx = new PostFX(renderer, this.quality.antialias ? 4 : 0);
     this.lantern = new THREE.PointLight(0xffc88a, 0, 18, 1.6); this.lantern.position.set(0.25, -0.3, -0.3); this.camera.add(this.lantern);
 
@@ -171,8 +193,10 @@ class Game {
     const v = new Village(this);
     const spawn = fromExpedition ? { x: 0, z: -v.R + 6, yaw: Math.PI } : v.spawn;
     await this.loadWorld(v, spawn);
-    this.sky.setWeather(Math.random() < 0.75 ? 'clear' : 'hazy', true);
-    this.sky.time = this.save.time;
+    // home weather: whatever you walked back in with slowly settles; a fresh start is fair
+    const homeW = Math.random() < 0.7 ? 'clear' : Math.random() < 0.6 ? 'hazy' : 'overcast';
+    if (fromExpedition) this.sky.setWeather(this.sky.weatherName === 'storm' ? 'overcast' : homeW, false, 0.02);
+    else { this.sky.setWeather(homeW, true); this.sky.time = this.save.time; }
     this.ui.region('Home', `Your village · ${this.save.expeditionCount} expedition${this.save.expeditionCount === 1 ? '' : 's'} so far`);
     $('btn-home').classList.add('hidden');
     $('packmeter').classList.add('hidden');
@@ -207,15 +231,17 @@ class Game {
       this.expedition = exp; exp.discovered = []; exp.started = Date.now();
       this.pack = { items: {}, artifacts: [] };
       writeSave(this.save);
-      await this.ui.fade(true, { kicker: `Expedition ${no} · ${exp.title}`, title: exp.name, sub: exp.blurb, rumor: exp.rumor });
+      await this.ui.fade(true, { kicker: `Expedition ${no}`, title: 'The road north', sub: `Beyond the village woods, the road leads somewhere new: ${exp.title.toLowerCase().replace(/^the /, 'the ')}.`, rumor: exp.rumor });
       const w = new Wilderness(this, exp);
       await this.loadWorld(w);
-      this.sky.time = exp.time; this.sky.setWeather(exp.weather, true);
-      this.ui.region(exp.name, `Expedition ${no} · ${exp.title}`);
+      // same hour, same sky as when you left the gate; the new land's weather rolls in as you walk
+      this.sky.setWeather(exp.weather, false, 0.008);
+      exp.arrived = false; this.weatherClock = 0;
+      this.ui.region('The road north', `Expedition ${no} · the village is behind you`);
       $('btn-home').classList.remove('hidden');
       $('packmeter').classList.remove('hidden');
       this.updatePackMeter();
-      await new Promise((r) => setTimeout(r, 2200));
+      await new Promise((r) => setTimeout(r, 1200));
       await this.ui.fade(false);
       if (!this.save.tutorial.firstExpedition) {
         this.save.tutorial.firstExpedition = true; writeSave(this.save);
@@ -225,10 +251,10 @@ class Game {
     } finally { this.transitioning = false; }
   }
 
-  confirmReturnHome() {
-    if (!this.expedition || this.transitioning) return;
+  confirmReturnHome(atGate = false) {
+    if (!this.expedition || this.transitioning || this.ui.panelOpen) return;
     const n = this.packCount(), a = this.pack.artifacts.length, traps = this.traps.length;
-    this.ui.showPanel(`<button class="close" data-act="close">Stay</button><h2>Return home?</h2>
+    this.ui.showPanel(`<button class="close" data-act="close">Stay</button><h2>${atGate ? 'Back at the North Gate' : 'Return home?'}</h2>
       <div class="sub">${this.ui.esc(this.expedition.name)} will be lost once you leave — no one will ever walk it again.</div>
       <div class="kv">You carry <b>${n}</b> item${n === 1 ? '' : 's'}${a ? ` and <b>${a}</b> artifact${a === 1 ? '' : 's'}` : ''}.${traps ? ` <br><span style="color:var(--bad)">${traps} snare${traps > 1 ? 's are' : ' is'} still set and will be left behind.</span>` : ''}</div>
       <div class="actions"><button class="btn ghost" data-act="close">Keep exploring</button><button class="btn primary" data-act="home">⌂ Return home</button></div>`,
@@ -321,6 +347,11 @@ class Game {
         if (look.dot(dir) > 0.93) return { type: 'observe', fox: nf.fox, label: `Observe the red fox (${Math.round(d)} m) — keep still` };
       }
     }
+    if (this.world.herds) {
+      const look = new THREE.Vector3(); this.camera.getWorldDirection(look);
+      const ob = this.world.herds.observable(p, look, this.camera.position);
+      if (ob) return { type: 'observe', herd: ob, label: `Observe the ${ANIMALS[ob.kind].name.toLowerCase()}${ob.kind === 'horse' ? 's' : ''} (${Math.round(ob.dist)} m) — keep still` };
+    }
     if (this.world.ambience) {
       const look = new THREE.Vector3(); this.camera.getWorldDirection(look);
       for (const h of this.world.ambience.hares) {
@@ -372,8 +403,9 @@ class Game {
       case 'artifact-view': this.showArtifactCard(i.artifact); break;
       case 'well': this.audio.splash(0.4); this.ui.toast('The well water is cold and clear.'); break;
       case 'camp': this.openCamp(); break;
+      case 'signpost': this.ui.toast(`The fingerpost reads <b>${this.ui.esc(this.expedition.place)}</b> to the north, and <b>Home</b> back the way you came.`); break;
       case 'trap': checkTrap(this, i); break;
-      case 'observe': this.observing = i.fox ? { fox: i.fox, t: 0 } : { hare: i.hare, t: 0 }; break;
+      case 'observe': this.observing = i.fox ? { fox: i.fox, t: 0 } : i.herd ? { herd: i.herd, t: 0 } : { hare: i.hare, t: 0 }; break;
       case 'fish': this.fishing.prepare(i.spot); break;
       case 'forage': interactForage(this, i); break;
       case 'tracks': this.examineTracks(i); break;
@@ -576,12 +608,14 @@ class Game {
       ${this.guideView === id ? '<div class="guideview"><div id="spec-view"></div></div>' : ''}<ul class="obs">${lines}</ul><div class="o">Your notes: ${notes(id)}</div></div>`;
     if (sec === 'fungi' || sec === 'plants') {
       const list = sec === 'fungi' ? MUSHROOMS : PLANTS;
-      for (const [id, sp] of Object.entries(list)) {
+      for (const [id, sp, hd] of byRegion(list)) {
+        if (hd) out += `<h3 class="guide-h">${hd}</h3>`;
         const lines = Object.entries(sp.look).map(([k, v]) => `<li><b>${{ cap: 'Cap', under: 'Underneath', stem: 'Stem', flesh: 'Flesh', smell: 'Smell', spore: 'Spore print', grows: 'Grows', plant: 'Plant', fruit: 'Fruit' }[k] || k}:</b> ${e(v)}</li>`).join('') + `<li>${e(sp.facts)}</li>` + (sp.lookalikes?.length ? `<li><b>Lookalikes:</b> ${sp.lookalikes.map((l) => e(list[l].name)).join(', ')}. ${e(sp.tell || '')}</li>` : '');
         out += entry(id, sp, lines, true);
       }
     } else if (sec === 'fish') {
-      for (const [id, f] of Object.entries(FISH)) {
+      for (const [id, f, hd] of byRegion(FISH)) {
+        if (hd) out += `<h3 class="guide-h">${hd}</h3>`;
         const where = Object.keys(f.water).join(', '), baits = Object.entries(f.bait).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([b]) => BAIT[b].name.toLowerCase()).join(', ');
         const best = Object.entries(f.time).sort((a, b) => b[1] - a[1])[0][0];
         out += entry(id, f, `<li><b>Look:</b> ${e(f.look)}</li><li><b>Water:</b> ${where} · <b>Best at:</b> ${best} · <b>Bait:</b> ${baits} · ${f.size[0]}–${f.size[1]} cm</li><li>${e(f.facts)}</li>`, true);
@@ -660,6 +694,35 @@ class Game {
     this.lantern.intensity = this.lantern.intensity > 0 ? 0 : 7;
   }
 
+  // how close the open sea is (for the sound of the surf)
+  seaNear(p) {
+    const g = this.world.gen; if (g.p.kind !== 'coast') return 0;
+    this.seaT = (this.seaT || 0) - 1; if (this.seaT > 0) return this.seaV || 0;
+    this.seaT = 20; let best = 0;
+    for (let r = 0; r <= 120; r += 20) for (let a = 0; a < 6.28; a += 0.785) { if (g.seaAt(p.x + Math.cos(a) * r, p.z + Math.sin(a) * r) > 0.5) { best = Math.max(best, 1 - r / 140); } }
+    return (this.seaV = best);
+  }
+
+  // arriving in the new land, and weather that changes during the journey
+  expeditionTick(dt, s) {
+    const exp = this.expedition;
+    if (!exp.arrived && s.biome > 0.55) {
+      exp.arrived = true;
+      this.ui.region(exp.name, `Expedition ${exp.no} · ${exp.title}`);
+      this.ui.toast(`<b>${this.ui.esc(exp.name)}</b> — ${this.ui.esc(exp.blurb)}`, true);
+    }
+    this.weatherClock = (this.weatherClock || 0) + dt;
+    if (this.weatherClock > 150 && Math.random() < dt / 120) { // every few minutes the sky may turn
+      this.weatherClock = 0;
+      const next = weatherShift(exp, this.sky.weatherName);
+      if (next !== this.sky.weatherName) {
+        this.sky.setWeather(next, false, 0.015);
+        const msg = { storm: 'The sky darkens fast. A storm is coming in.', rain: 'Clouds gather; the first drops of rain.', windy: 'The wind is rising.', clear: 'The clouds break up.', mist: 'Mist creeps in.', snow: 'Snow begins to fall.', overcast: 'The sky clouds over.', hazy: 'A warm haze settles.' }[next];
+        if (msg) this.ui.toast(msg);
+      }
+    }
+  }
+
   onDiscover(poi) {
     if (poi.type === 'camp') return;
     this.audio.discover();
@@ -697,14 +760,22 @@ class Game {
       this.fishing.update(dt, input);
       // wildlife observation
       if (this.observing) {
-        const o = this.observing, a = o.fox || o.hare, d = a.pos.distanceTo(this.player.pos);
-        if (a.state === 'flee' || d > 32 || this.player.speed > 0.6) { this.ui.observe(null); this.observing = null; if (a.state === 'flee') this.ui.toast(o.fox ? 'The fox noticed you and bolted.' : 'The hare bolts away in a zig-zag.'); }
+        const o = this.observing, a = o.fox || o.hare || o.herd.ref, d = a.pos.distanceTo(this.player.pos);
+        if (a.state === 'flee' || a.state === 'fly' || d > (o.herd ? 65 : 32) || this.player.speed > 0.6) { this.ui.observe(null); this.observing = null; if (a.state === 'flee' || a.state === 'fly') this.ui.toast(o.fox ? 'The fox noticed you and bolted.' : o.hare ? 'The hare bolts away in a zig-zag.' : o.herd.kind === 'horse' ? 'The herd wheels away at a gallop.' : 'They lift off, legs trailing.'); }
+        else if (o.herd && o.t > 3) {
+          this.ui.observe(null); this.observing = null; const kind = o.herd.kind, k = know(this.save, kind); const first = !k.seen; k.seen++;
+          const notes = { horse: ['The lead mare lifts her head, ears on you, then goes back to grazing.', 'A foal sticks close to its mother\'s flank.', 'Two of them stand nose to tail, flicking flies off each other\'s faces.'],
+            flamingo: ['They feed with their heads upside down, sieving the water through their bills.', 'One stands on a single leg, the other tucked up under its body.'],
+            stork: ['It stalks slowly through the grass, then stabs down at something.', 'It clatters its long red bill.'] }[kind] || ['You watch quietly.'];
+          this.showCard(`<div class="k">Field note${first ? ' — new species' : ''}</div><div class="n">${this.ui.esc(ANIMALS[kind].name)}</div><div class="s">${notes[Math.floor(Math.random() * notes.length)]}</div><div class="o">${this.ui.esc(ANIMALS[kind].facts)}</div>`, 5000);
+          this.persist();
+        }
         else if (o.hare && o.t > 2.6) {
           this.ui.observe(null); this.observing = null; const k = know(this.save, 'hare'); k.seen++;
           this.showCard(`<div class="k">Field note</div><div class="n">European hare</div><div class="s">${['It sits up, long black-tipped ears turning like radar dishes.', 'It nibbles at the grass, one eye always on you.', 'Its long hind legs are folded beneath it, ready to bolt.'][Math.floor(Math.random() * 3)]}</div><div class="o">${this.ui.esc(ANIMALS.hare.facts)}</div>`, 4200); this.persist();
         }
         else {
-          o.t += dt; this.ui.observe(Math.min(1, o.t / 2.6), 'Watching…');
+          o.t += dt; this.ui.observe(Math.min(1, o.t / (o.herd ? 3 : 2.6)), 'Watching…');
           if (o.fox && o.t > 2.6) {
             this.ui.observe(null); this.observing = null;
             const j = { fox: know(this.save, 'fox') }; const first = !j.fox.seen; j.fox.seen++;
@@ -726,6 +797,7 @@ class Game {
       this.sky.time = (this.sky.time + dt / 120) % 24;
       this.sky.update(dt, this.camera, p);
       this.sky.applyToWater(this.waterMat);
+      const tu = this.world.terrainMat?.userData.uniforms; if (tu) { tu.uWetness.value = this.sky.wetness; tu.uSnowCover.value = this.sky.snowCover; }
       this.waterMat.uniforms.uTime.value += dt;
       windUniforms.uTime.value += dt; windUniforms.uWind.value = this.sky.w.wind;
       const fm = KIND_INFO.materials; if (fm) { fm.firMat.emissiveIntensity = 0.55 * this.sky.dayFactor * this.sky.w.light; fm.leafMat.emissiveIntensity = 0.5 * this.sky.dayFactor * this.sky.w.light; }
@@ -737,8 +809,10 @@ class Game {
       this.audio.listener = this.player;
       // the wind sound swells as the same rolling gusts that move the grass pass over you
       const wave = 0.5 + 0.5 * Math.sin(p.x * 0.045 + p.z * 0.026 - windUniforms.uTime.value * 0.85);
-      this.audio.update(dt, { wind: this.sky.w.wind * (0.6 + 0.9 * wave * wave * wave), forest: s.forest, water: water + Math.max(0, this.world.depthAt(p.x, p.z)), rain: this.sky.w.rain, day: this.sky.dayFactor, bees: this.world.ambience?.beeNear, home: this.world.kind === 'village' });
+      this.audio.update(dt, { wind: this.sky.w.wind * (0.6 + 0.9 * wave * wave * wave), forest: s.forest, water: water + Math.max(0, this.world.depthAt(p.x, p.z)), rain: Math.min(1.4, this.sky.w.rain), day: this.sky.dayFactor, bees: this.world.ambience?.beeNear, home: this.world.kind === 'village',
+        sea: this.seaNear(p), waves: this.sky.w.waves, region: this.expedition && s.biome > 0.5 ? this.expedition.region : 'temperate' });
       if (this.state === 'play') this.updateCompass();
+      if (this.expedition && this.state === 'play') this.expeditionTick(dt, s);
       if (this.state === 'title') { this.player.yaw += dt * 0.03; this.player.syncCamera(); }
     }
     // body effects on the camera: nausea sway, staggering, collapse

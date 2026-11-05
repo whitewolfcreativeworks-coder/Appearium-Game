@@ -23,7 +23,9 @@ export class SoundScape {
     this.rain = loop('highpass', 2400, 0.4);
     this.leaves = loop('bandpass', 3800, 0.9);
     this.bees = loop('bandpass', 230, 6);
-    this.timers = { wood: 20, cuckoo: 30, crow: 15, buzz: 40, frog: 4 };
+    this.surf = loop('lowpass', 600, 0.6);      // the sea: a breathing roar
+    this.cicada = loop('bandpass', 4600, 9);   // tropical insects by day
+    this.timers = { wood: 20, cuckoo: 30, crow: 15, buzz: 40, frog: 4, wave: 3, gull: 6, wren: 12, coyote: 30, parrot: 8, treefrog: 2 };
     this.ready = true;
     const resume = () => ctx.resume?.();
     window.addEventListener('touchend', resume, { passive: true }); window.addEventListener('click', resume);
@@ -41,15 +43,29 @@ export class SoundScape {
     this.water.g.gain.setTargetAtTime(Math.min(0.2, s.water * 0.2), t, k);
     this.rain.g.gain.setTargetAtTime(s.rain * 0.12, t, k);
     this.bees.g.gain.setTargetAtTime(s.bees ? 0.05 : 0, t, 0.3);
+    // the sea: surf breathes with the swell; bigger seas are louder and lower
+    const sea = s.sea || 0, wv = s.waves || 0.5;
+    this.surfPhase = (this.surfPhase || 0) + dt * (0.55 + wv * 0.1);
+    const breathe = 0.55 + 0.45 * Math.pow(0.5 + 0.5 * Math.sin(this.surfPhase), 2);
+    this.surf.g.gain.setTargetAtTime(sea * (0.05 + wv * 0.09) * breathe, t, 0.3);
+    this.surf.f.frequency.setTargetAtTime(380 + 500 * breathe - wv * 80, t, 0.3);
+    this.cicada.g.gain.setTargetAtTime(s.region === 'tropics' && s.day > 0.4 && s.rain < 0.5 ? 0.012 * (0.7 + 0.3 * Math.sin(t * 0.8)) : s.region === 'canyon' && s.day > 0.6 ? 0.004 : 0, t, 0.8);
     const T = this.timers; for (const key of Object.keys(T)) T[key] -= dt;
+    if (T.wave < 0) { T.wave = 6 / (0.55 + wv * 0.1) * (0.6 + Math.random() * 0.8); if (sea > 0.25) this.waveCrash(sea * (0.6 + wv * 0.5)); }
+    if (T.gull < 0) { T.gull = 5 + Math.random() * 12; if (sea > 0.1 && s.day > 0.25) this.call('gull', null, 0.5 + sea * 0.5); }
+    if (T.wren < 0) { T.wren = 25 + Math.random() * 40; if (s.region === 'canyon' && s.day > 0.4) this.canyonWren(); }
+    if (T.coyote < 0) { T.coyote = 50 + Math.random() * 80; if (s.region === 'canyon' && s.day < 0.25) this.coyote(); }
+    if (T.parrot < 0) { T.parrot = 6 + Math.random() * 14; if (s.region === 'tropics' && s.day > 0.3) this.call('parrot', null, 0.5); }
+    if (T.treefrog < 0) { T.treefrog = 0.3 + Math.random() * 1.2; if (s.region === 'tropics' && s.day < 0.35) this.treeFrog(); }
+    const temperate = !s.region || s.region === 'temperate' || s.region === 'coast';
     if (T.wood < 0) { T.wood = 25 + Math.random() * 40; if (s.forest > 0.45 && s.day > 0.3) this.woodpecker(); }
-    if (T.cuckoo < 0) { T.cuckoo = 40 + Math.random() * 80; if (s.day > 0.5 && s.rain < 0.3 && !s.home) this.cuckoo(); }
+    if (T.cuckoo < 0) { T.cuckoo = 40 + Math.random() * 80; if (s.day > 0.5 && s.rain < 0.3 && !s.home && temperate) this.cuckoo(); }
     if (T.crow < 0) { T.crow = 20 + Math.random() * 40; if (s.day > 0.3) this.crow(); }
     if (T.buzz < 0) { T.buzz = 45 + Math.random() * 60; if (s.day > 0.5 && s.forest < 0.6 && !s.home) this.buzzard(); }
     if (T.frog < 0) { T.frog = 1.5 + Math.random() * 5; if (s.water > 0.2 && (s.day < 0.6 || s.rain > 0.3)) this.frog(); }
     // birds by day, crickets & owls by night
     this.nextBird -= dt; this.nextCricket -= dt; this.nextOwl -= dt;
-    if (this.nextBird < 0) { this.nextBird = 1.5 + Math.random() * 5 / (0.3 + s.forest); if (s.day > 0.3 && s.rain < 0.5) this.bird(); }
+    if (this.nextBird < 0) { this.nextBird = 1.5 + Math.random() * 5 / (0.3 + s.forest); if (s.day > 0.3 && s.rain < 0.5 && (temperate || s.forest > 0.3)) this.bird(); }
     if (this.nextCricket < 0) { this.nextCricket = 0.4 + Math.random() * 0.8; if (s.day < 0.25) this.cricket(); }
     if (this.nextOwl < 0) { this.nextOwl = 18 + Math.random() * 30; if (s.day < 0.2 && s.forest > 0.2) this.owl(); }
   }
@@ -123,6 +139,40 @@ export class SoundScape {
     const s = this.ctx.createBufferSource(); s.buffer = this.noise; const f = this.ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
     const g = this.ctx.createGain(); this.env(g, t, 0.004, vol, dur); s.connect(f); f.connect(g); g.connect(dest); s.start(t, Math.random()); s.stop(t + dur + 0.05);
   }
+
+  // ---------------------------------------------------------------- sea, storms and the voices of other lands
+  waveCrash(vol = 1) {
+    const t = this.ctx.currentTime, s = this.ctx.createBufferSource(); s.buffer = this.noise; s.playbackRate.value = 0.6;
+    const f = this.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(2400, t); f.frequency.exponentialRampToValueAtTime(380, t + 2.6);
+    const g = this.ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16 * vol, t + 0.25); g.gain.exponentialRampToValueAtTime(0.0001, t + 3.2);
+    s.connect(f); f.connect(g); this.pan(g, Math.random() * 0.8 - 0.4); s.start(t, Math.random()); s.stop(t + 3.4);
+  }
+  thunder(dist = 1000) {
+    if (!this.ready) return;
+    const delay = Math.min(7, dist / 343), t = this.ctx.currentTime + delay, near = Math.max(0.15, 1 - dist / 3000);
+    const s = this.ctx.createBufferSource(); s.buffer = this.noise; s.playbackRate.value = 0.35;
+    const f = this.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 160 + near * 500;
+    const g = this.ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.55 * near, t + 0.08 + (1 - near) * 0.6);
+    for (let i = 1; i < 6; i++) g.gain.exponentialRampToValueAtTime(0.25 * near * (1 - i / 7) + 0.01, t + 0.4 + i * 0.55 + Math.random() * 0.3);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 5.5);
+    s.connect(f); f.connect(g); this.pan(g, Math.random() * 1.2 - 0.6); s.start(t, Math.random()); s.stop(t + 6);
+  }
+  call(kind, pos, vol = 1) {
+    if (!this.ready) return; const t = this.ctx.currentTime, o = this.out(pos, vol * (pos ? 3 : 0.7));
+    if (kind === 'gull') { const n = 2 + Math.floor(Math.random() * 5); for (let i = 0; i < n; i++) { const tt = t + i * 0.32; this.note(o, tt, 1500, 2300, 0.08, 0.03, 'sawtooth'); this.note(o, tt + 0.08, 2300, 1200, 0.18, 0.03, 'sawtooth'); } }
+    else if (kind === 'goose') { for (let i = 0; i < 6; i++) { const tt = t + i * 0.28 + Math.random() * 0.1; const f = this.ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 3; f.connect(o); this.note(f, tt, 520, 430, 0.14, 0.25, 'sawtooth'); } }
+    else if (kind === 'raven') { const f = this.ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 700; f.Q.value = 2.5; f.connect(o); for (let i = 0; i < 2; i++) this.note(f, t + i * 0.5, 360, 300, 0.22, 0.3, 'sawtooth'); }
+    else if (kind === 'parrot') { for (let i = 0; i < 3; i++) { const tt = t + i * 0.2; this.note(o, tt, 1800 + Math.random() * 600, 2600, 0.1, 0.035, 'square'); this.noiseBurst(o, tt, 3000, 2, 0.1, 0.03); } }
+    else if (kind === 'flamingo') { for (let i = 0; i < 8; i++) { const tt = t + i * 0.18 + Math.random() * 0.1; const f = this.ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1100; f.Q.value = 3; f.connect(o); this.note(f, tt, 700, 620, 0.12, 0.2, 'sawtooth'); } }
+    else if (kind === 'stork') { for (let i = 0; i < 18; i++) this.noiseBurst(o, t + i * 0.06, 1500, 3, 0.03, 0.12); }
+    else if (kind === 'horse') { // a whinny, then hooves
+      this.note(o, t, 900, 1300, 0.25, 0.04, 'sawtooth'); for (let i = 0; i < 7; i++) this.note(o, t + 0.25 + i * 0.1, 1100 - i * 90, 1000 - i * 90, 0.09, 0.035, 'sawtooth');
+      for (let i = 0; i < 20; i++) this.noiseBurst(o, t + 0.9 + i * 0.11 + (i % 3) * 0.03, 220, 1, 0.05, 0.2, 'lowpass');
+    }
+  }
+  canyonWren() { const t = this.ctx.currentTime, o = this.out(null, 0.5); for (let i = 0; i < 11; i++) { const f = 4200 * Math.pow(0.9, i); this.note(o, t + i * 0.12, f * 1.05, f, 0.09, 0.035); } }
+  coyote() { const t = this.ctx.currentTime, o = this.out(null, 0.45); this.note(o, t, 500, 900, 0.5, 0.03); this.note(o, t + 0.55, 900, 600, 0.9, 0.03); for (let i = 0; i < 5; i++) this.note(o, t + 1.6 + i * 0.13, 1200, 800, 0.1, 0.02, 'triangle'); }
+  treeFrog() { const t = this.ctx.currentTime, o = this.out(null, 0.5), f0 = 1800 + Math.random() * 1600; for (let i = 0; i < 2; i++) this.note(o, t + i * 0.09, f0, f0 * 1.2, 0.05, 0.03, 'square'); }
 
   // ---------------------------------------------------------------- birdsong (one voice per species)
   song(call, pos) {
