@@ -7,7 +7,7 @@ export class Input {
     this.dom = dom; this.settings = settings;
     this.keys = new Set(); this.look = { x: 0, y: 0 }; this.joy = { x: 0, y: 0 };
     this.pressed = new Set(); this.locked = false; this.enabled = true; this.touchRun = false;
-    this.runMode = false; this.autoRun = false; this.touchDive = false; this.touchUp = false; // the Run button: a steady long-distance pace, and auto-run
+    this.autoRun = false; this.sprintMode = false; this.touchDive = false; this.touchUp = false; // Run = tireless auto-run; Sprint = short burst
     this.isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
     window.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT') return;
@@ -82,13 +82,16 @@ export class Input {
     if (this.keys.has('KeyA') || this.keys.has('ArrowLeft')) x -= 1;
     x += this.joy.x; y += this.joy.y;
     // auto-run: keep going forward, steering with your eyes; pulling back stops it
-    if (this.autoRun) { if (y < -0.3) this.autoRun = false; else y = Math.max(y, 1); }
+    // auto-run carries you forward forever, steering by looking; pulling back or sideways on the stick stops it
+    if (this.autoRun) { if (y < -0.3 || Math.abs(x) > 0.55) this.autoRun = false; else y = Math.max(y, 1); }
     const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; }
     return { x, y };
   }
   get diving() { return this.keys.has('KeyC') || this.keys.has('ControlLeft') || this.touchDive; }
   get rising() { return this.keys.has('Space') || this.touchUp; }
-  get running() { return this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.touchRun || this.runMode || this.autoRun; }
+  get jogging() { return this.touchRun || this.autoRun; }
+  get sprinting() { return this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.sprintMode; }
+  get running() { return this.jogging || this.sprinting; }
 }
 
 export class Player {
@@ -109,7 +112,9 @@ export class Player {
     this.pitch = clamp(this.pitch, -1.45, 1.45);
     const mv = this.frozen ? { x: 0, y: 0 } : input.moveVector();
     const body = this.body;
-    this.running = input.running && mv.y > 0.3 && !this.frozen && (!body || body.canRun());
+    // a steady run that never tires you; a sprint at twice the pace that lasts about half a minute
+    this.sprinting = input.sprinting && mv.y > 0.3 && !this.frozen && (!body || body.canRun());
+    this.running = this.sprinting || (input.jogging && mv.y > 0.3 && !this.frozen);
     const water = world.gen.p.water;
     const ground = world.heightAt(this.pos.x, this.pos.z);
     // swimming: once the water is deeper than about chest height you float, and can dive
@@ -118,7 +123,7 @@ export class Player {
     const depth = water - ground;
     this.inWater = Math.max(0, depth);
     // a steady long-distance run, slowing as you tire
-    let target = (this.running ? 6.5 * (body ? body.runFactor() : 1) : 2.9) * Math.hypot(mv.x, mv.y);
+    let target = (this.sprinting ? 10 * (body ? body.runFactor() : 1) : this.running ? 5 : 2.9) * Math.hypot(mv.x, mv.y);
     if (depth > 0) target *= Math.max(0.35, 1 - depth * 0.55);
     if (body) target *= body.speedMul();
     this.speed += (target - this.speed) * Math.min(1, dt * 8);
@@ -167,7 +172,7 @@ export class Player {
   swimUpdate(dt, input, world, mv, W, ground) {
     const body = this.body, prev = this.pos.clone();
     if (!this.swimming) { this.swimming = true; this.vy = 0; this.pos.y = Math.max(this.pos.y, W - 1.45); this.onSwimStart?.(); }
-    this.onGround = false; this.running = input.running && mv.y > 0.3 && (!body || body.canRun());
+    this.onGround = false; this.sprinting = input.sprinting && mv.y > 0.3 && (!body || body.canRun()); this.running = this.sprinting;
     const swell = this.swell ? this.swell(this.pos.x, this.pos.z) : 0; this.surfaceH = W + swell;
     const surfaceY = W + swell - 1.36 + Math.sin(performance.now() * 0.0016) * 0.04; // feet; eyes just above the water, riding the swell
     const target = (this.running ? 2.5 : 1.6) * Math.hypot(mv.x, mv.y) * (body ? Math.max(0.6, body.speedMul()) : 1);

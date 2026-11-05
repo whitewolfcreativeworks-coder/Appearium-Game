@@ -33,8 +33,8 @@ python3 -m http.server 8000      # any static server works
 |---|---|---|
 | Move | WASD / arrows | left thumb (virtual stick appears where you touch) |
 | Look | mouse (click to capture, Esc to release) | drag with right thumb |
-| Run | hold Shift, or **R** / **Run** button to toggle | **Run** button (tap to toggle), or push the stick to its edge |
-| Auto-run (steer by looking) | **Q**, or hold the **Run** button | hold the **Run** button; pull back to stop |
+| Run on (auto-run, never tires; steer by looking) | **R** or **Q** / **Run** button | tap **Run**; pull back, step sideways or tap again to stop. Pushing the stick to its edge also runs |
+| Sprint (twice as fast, ~30 s) | hold Shift / **Sprint** button | tap **Sprint** (tap again or stop to end) |
 | Jump | Space | ⤒ |
 | Swim: dive / come up | hold **C** (swim where you look) / Space | hold **Dive** / hold ⤒ |
 | Interact | E or left click | ✋ (appears when something is in reach) |
@@ -42,14 +42,16 @@ python3 -m http.server 8000      # any static server works
 | Return home | H or **⌂ Return Home** | **⌂ Return Home** (top right) |
 | Lantern (once crafted) | L | ☀ |
 
-### Running, tiring and resting
+### Running, sprinting and resting
 
-Running is a steady long-distance pace (about 6.5 m/s, more than twice walking speed — leaving
-headroom for faster mounts later). A fresh run lasts about two minutes, over three when you are
-well fed; uphill tires you faster, downhill slower. As you tire you slow to a heavy jog and hear
-your breathing; run yourself out and you are **winded** — walk or stop until your breath comes
-back. Standing still for a few seconds you sit down, which recovers fastest. While you run, the
-land ahead is generated first, and chunk work is spread across frames so the world keeps up.
+**Run** is a steady run (5 m/s) that never tires you: tap it and you keep going forward on your
+own, steering just by looking around, until you pull back, step sideways, tap Run again or do
+something else — the way to see what the world makes if you just keep going. **Sprint** is twice
+as fast (10 m/s) but costs stamina: about 30 seconds flat out (nearer 50 when well fed, less
+uphill). As it runs low you slow and hear your breathing; run it out and you are **winded** until
+you get your breath back — standing still helps, sitting (stand still a few seconds) helps most.
+At speed the land ahead is generated first, and chunk work is spread across frames, leaving
+headroom for faster mounts later.
 
 ### The far lands
 

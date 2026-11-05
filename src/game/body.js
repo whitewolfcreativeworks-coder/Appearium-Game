@@ -67,21 +67,21 @@ export class Body {
 
   update(dt, running, moving, resting = false, uphill = 0) {
     const g = this.game;
-    // stamina: a fresh run lasts about two minutes (over three when well fed), longer downhill, shorter
-    // uphill; then you're winded and must stop to get your breath back — sitting down helps
+    // stamina is for sprinting: about 30 s flat out (nearer 50 when well fed), less uphill;
+    // then you're winded and must ease off to get your breath back — sitting down helps
     if (running && moving) {
-      this.stamina -= 0.8 * (1 + Math.max(-0.4, Math.min(2, uphill * 6))) * dt;
+      this.stamina -= 3.3 * (1 + Math.max(-0.4, Math.min(2, uphill * 6))) * dt;
       if (g.expedition) this.satiety = Math.max(0, this.satiety - dt * 0.05);
     } else {
-      const rate = resting ? 7 : moving ? 1.2 : 3;
+      const rate = resting ? 9 : moving ? 2.5 : 5;
       this.stamina += rate * (this.satiety < 20 ? 0.5 : 1) * (this.has('fed') ? 1.4 : 1) * dt;
     }
     this.stamina = clamp(this.stamina, 0, this.maxStamina);
     const f = this.stamina / this.maxStamina;
-    if (running && moving && f < 0.22 && !this.warnedTired) { this.warnedTired = true; g.ui.toast('Your legs are getting heavy and your breath is short.'); }
+    if (running && moving && f < 0.22 && !this.warnedTired) { this.warnedTired = true; g.ui.toast('Your legs are burning — the sprint won\'t last much longer.'); }
     if (f > 0.5) this.warnedTired = false;
-    if (!this.winded && this.stamina <= 1) { this.winded = true; g.ui.toast('<b>You\'re winded.</b> Stop and catch your breath — sit a while and it comes back faster.', true); }
-    if (this.winded && f >= 0.35) { this.winded = false; g.ui.toast('Your breath is back. You can run again.'); }
+    if (!this.winded && this.stamina <= 1) { this.winded = true; g.ui.toast('<b>You\'re winded.</b> Ease off and catch your breath — standing or sitting still brings it back faster.', true); g.input && (g.input.sprintMode = false); }
+    if (this.winded && f >= 0.35) { this.winded = false; g.ui.toast('Your breath is back. You can sprint again.'); }
     // satiety falls slowly while exploring (about 15 minutes from full to hungry)
     if (g.expedition) this.satiety = Math.max(0, this.satiety - dt * 0.09);
     // conditions

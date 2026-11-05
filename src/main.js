@@ -168,9 +168,8 @@ class Game {
     this.player.swell = (x, z) => { const w = this.world, u = this.waterMat.uniforms; if (!w || w.gen.p.kind !== 'coast') return 0; const sea = w.gen.seaAt(x, z); return seaSurface(x, z, u.uTime.value, u.uWave.value, u.uWaveDir.value.x, u.uWaveDir.value.y, sea, w.depthAt(x, z)); };
     this.player.onStroke = (under, fast) => { if (under) this.audio.bubbles?.(); else { this.audio.stroke?.(fast); const q = this.player.pos; this.ripples?.drop(q.x, q.z, 0.7, fast ? 0.18 : 0.1); } };
     const rb = $('btn-run');
-    rb.onpointerdown = (e) => { e.preventDefault(); clearTimeout(this.runHold); this.runHeld = false; this.runHold = setTimeout(() => { this.runHeld = true; this.setRun(true, true); }, 550); };
-    rb.onpointerup = (e) => { e.preventDefault(); clearTimeout(this.runHold); if (!this.runHeld) this.setRun(!(this.input.runMode || this.input.autoRun), false); };
-    rb.onpointerleave = () => clearTimeout(this.runHold);
+    rb.onpointerdown = (e) => { e.preventDefault(); this.setRun(!this.input.autoRun); };
+    $('btn-sprint').onpointerdown = (e) => { e.preventDefault(); this.setSprint(!this.input.sprintMode); };
     $('btn-interact').onpointerdown = (e) => { e.preventDefault(); this.interact(); };
     this.input.dom.addEventListener('mousedown', (e) => { if (this.input.locked && e.button === 0 && !this.fishing.active) { if (this.buildMode.active) this.buildMode.commit(); else this.interact(); } });
   }
@@ -414,6 +413,7 @@ class Game {
   }
 
   interact() {
+    this.input.autoRun = false; this.input.sprintMode = false;
     const i = this.current; if (!i) return;
     const w = this.world;
     switch (i.type) {
@@ -537,6 +537,7 @@ class Game {
   }
 
   openPack() {
+    this.input.autoRun = false; this.input.sprintMode = false;
     if (this.ui.panelOpen) { this.ui.closePanel(); return; }
     const inExp = !!this.expedition;
     const arts = this.pack.artifacts.map((a) => `<div class="art"><div class="n">${this.ui.esc(a.name)}</div><div class="s">${this.ui.esc(a.story)}</div></div>`).join('');
@@ -633,6 +634,7 @@ class Game {
   }
 
   openJournal(tab = 'exp') {
+    this.input.autoRun = false; this.input.sprintMode = false;
     const j = this.save.journal;
     let body = '';
     if (tab === 'exp') {
@@ -731,6 +733,7 @@ class Game {
   }
 
   openMenu() {
+    this.input.autoRun = false; this.input.sprintMode = false;
     const s = this.save.settings;
     this.ui.showPanel(`<button class="close" data-act="close">Resume</button><h2>Appearium</h2><div class="sub">Every journey, a world of its own.</div>
       <label class="set">Graphics quality <span class="quality-row">${['low', 'medium', 'high'].map((q) => `<button data-act="q" data-q="${q}" class="${q === this.qualityName ? 'on' : ''}">${q}</button>`).join('')}</span></label>
@@ -738,7 +741,7 @@ class Game {
       <label class="set">Invert look <input type="checkbox" ${s.invertY ? 'checked' : ''} data-set="invertY"></label>
       <label class="set">Water reflections <input type="checkbox" ${this.reflection.enabled ? 'checked' : ''} data-set="reflections"></label>
       <label class="set">Volume <input type="range" min="0" max="1" step="0.05" value="${s.volume}" data-set="volume"></label>
-      <h3>Controls</h3><div class="kv">${isTouch ? 'Left thumb moves · Run button: tap to run, hold to auto-run (steer by looking) · right thumb looks · ✋ interacts · ⤒ jumps · stand still to sit and rest' : 'WASD move · mouse look (click to capture, Esc to release) · Shift or R run · Q auto-run · Space jump · E or click interact · I pack · J journal · H return home · L lantern'}</div>
+      <h3>Controls</h3><div class="kv">${isTouch ? 'Left thumb moves · Run: tap to run on and on (steer by looking) · Sprint: twice as fast for ~30 s · right thumb looks · ✋ interacts · ⤒ jumps · stand still to sit and rest' : 'WASD move · mouse look (click to capture, Esc to release) · R or Q run on (steer by looking) · Shift sprint · Space jump · E or click interact · I pack · J journal · H return home · L lantern'}</div>
       <div class="actions"><button class="btn ghost" data-act="reset">Erase all progress</button><button class="btn ghost" data-act="credits">Credits</button><button class="btn primary" data-act="close">Resume</button></div>`, (act, d, el) => {
       if (act === 'q') { s.quality = d.q; writeSave(this.save); location.reload(); }
       if (act === 'set') {
@@ -846,12 +849,11 @@ class Game {
         if (input.wasPressed('KeyJ')) this.openJournal();
         if (input.wasPressed('KeyH') && this.expedition) this.confirmReturnHome();
         if (input.wasPressed('KeyL')) this.toggleLantern();
-        if (input.wasPressed('KeyR') && !this.buildMode.active) this.setRun(!(input.runMode || input.autoRun), false);
-        if (input.wasPressed('KeyQ')) this.setRun(!input.autoRun, !input.autoRun);
+        if ((input.wasPressed('KeyR') && !this.buildMode.active) || input.wasPressed('KeyQ')) this.setRun(!input.autoRun);
         if (input.wasPressed('Escape') && !this.fishing.active && !input.locked && !this.buildMode.active) this.openMenu();
       } else if (input.wasPressed('Escape')) this.ui.closePanel();
       this.player.update(dt, input, this.world, this.save.settings);
-      this.body.update(dt, this.player.running, this.player.speed > 0.5, this.player.resting, this.player.climb || 0);
+      this.body.update(dt, this.player.sprinting, this.player.speed > 0.5, this.player.resting, this.player.climb || 0);
       this.body.breathUpdate(dt, this.player.swimming && this.player.underwater);
       this.runTick(dt);
       this.fishing.update(dt, input);
@@ -897,7 +899,7 @@ class Game {
       const p = this.player.pos;
       // at a run, stream the land ahead of you first so it's ready when you get there
       const sp = this.player.speed;
-      if (sp > 3.5) { const f = this.player.forward(this.tmpLead || (this.tmpLead = new THREE.Vector3())); this.world.stream(p, false, { x: p.x + f.x * Math.min(56, sp * 7), z: p.z + f.z * Math.min(56, sp * 7) }, 1.4); }
+      if (sp > 3.5) { const f = this.player.forward(this.tmpLead || (this.tmpLead = new THREE.Vector3())), L = Math.min(80, sp * 7); this.world.stream(p, false, { x: p.x + f.x * L, z: p.z + f.z * L }, sp > 7 ? 1.7 : 1.3); }
       else this.world.stream(p);
       this.pools.flush();
       this.sky.time = (this.sky.time + dt / 120) % 24;
@@ -959,24 +961,29 @@ class Game {
   }
 
   // the run toggle and auto-run
-  setRun(on, auto) {
-    const i = this.input; i.runMode = on && !auto; i.autoRun = on && auto;
-    if (on && this.body.winded) this.ui.toast('You\'re still winded — catch your breath first.');
-    else if (auto && on) this.ui.toast('Auto-run: steer by looking. Pull back (or tap Run) to stop.');
+  setRun(on) {
+    this.input.autoRun = on;
+    if (on && !this.save.flags?.autorun) { (this.save.flags = this.save.flags || {}).autorun = true; this.ui.toast('Running on: steer by looking around. Pull back on the stick, step sideways or tap Run to stop.'); }
+  }
+  setSprint(on) {
+    if (on && this.body.winded) { this.ui.toast('You\'re still winded — catch your breath first.'); return; }
+    this.input.sprintMode = on;
   }
   runTick(dt) {
     const i = this.input, b = $('btn-run');
-    if (!i.autoRun && b.classList.contains('auto')) i.runMode = false; // auto-run cancelled by pulling back
-    b.classList.toggle('on', i.runMode || i.autoRun); b.classList.toggle('auto', i.autoRun); b.textContent = i.autoRun ? 'Auto' : 'Run';
+    b.classList.toggle('on', i.autoRun);
+    // a sprint ends when you stop moving
+    if (i.sprintMode && this.player.speed < 0.5 && !i.autoRun && this.input.moveVector().y < 0.3) { this.sprintIdle = (this.sprintIdle || 0) + dt; if (this.sprintIdle > 1.5) i.sprintMode = false; } else this.sprintIdle = 0;
+    $('btn-sprint').classList.toggle('on', i.sprintMode);
     // breathing: hard when tired, panting when winded
     const f = this.body.stamina / this.body.maxStamina, pl = this.player;
     this.breathT = (this.breathT || 0) - dt;
     if (this.breathT < 0) {
-      if (this.body.winded || (pl.running && f < 0.4)) { this.breathT = this.body.winded ? 0.8 : 1.1 - (0.4 - f); this.audio.breath?.(this.body.winded ? 1 : 0.4 + (0.4 - f)); }
+      if (this.body.winded || (pl.sprinting && f < 0.4)) { this.breathT = this.body.winded ? 0.8 : 1.1 - (0.4 - f); this.audio.breath?.(this.body.winded ? 1 : 0.4 + (0.4 - f)); }
       else this.breathT = 0.5;
     }
     // a wider view at a run gives a sense of speed
-    if (!this.fovTouched) { const target = 70 + Math.max(0, Math.min(1, (pl.speed - 3) / 3.5)) * 6; if (Math.abs(this.camera.fov - target) > 0.05) { this.camera.fov += (target - this.camera.fov) * Math.min(1, dt * 3); this.camera.updateProjectionMatrix(); } }
+    if (!this.fovTouched) { const target = 70 + Math.max(0, Math.min(1, (pl.speed - 3) / 7)) * 10; if (Math.abs(this.camera.fov - target) > 0.05) { this.camera.fov += (target - this.camera.fov) * Math.min(1, dt * 3); this.camera.updateProjectionMatrix(); } }
   }
 
   updateBodyHud() {
