@@ -42,8 +42,8 @@ export class World {
   depthAt(x, z) { return this.gen.p.water - this.gen.height(x, z); }
 
   // stream everything needed around p; when force, load synchronously (used behind the loading screen)
-  stream(p, force = false) {
-    const left = this.chunks.update(p, force ? 1e9 : this.game.quality.streamBudget, force);
+  stream(p, force = false, lead = null, budgetMul = 1) {
+    const left = this.chunks.update(lead || p, force ? 1e9 : this.game.quality.streamBudget * budgetMul, force);
     this.grass.update(p);
     return left;
   }

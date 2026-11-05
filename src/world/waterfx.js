@@ -73,6 +73,8 @@ export class Ripples {
     const r = renderer, prev = r.getRenderTarget(), cc = r.getClearColor(new THREE.Color()), ca = r.getClearAlpha();
     r.setClearColor(0x000000, 0); for (const t of [this.a, this.b]) { r.setRenderTarget(t); r.clear(true, false, false); }
     r.setRenderTarget(prev); r.setClearColor(cc, ca);
+    // compile the solver's shaders now (behind the loading screen) rather than mid-game
+    this.pass(this.shiftMat); this.pass(this.dropMat); this.pass(this.step); r.setRenderTarget(prev);
   }
 
   get texture() { return this.enabled ? this.a.texture : null; }

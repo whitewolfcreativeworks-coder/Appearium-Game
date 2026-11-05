@@ -17,6 +17,7 @@ import { Herds } from './herds.js';
 import { Fauna } from './fauna.js';
 import { Beasts } from './beasts.js';
 import { smoothstep } from '../core/rng.js';
+import { placeName } from './scenarios.js';
 
 const LABEL = { hamlet: (n) => n, ruins: (n) => `Ruins of ${n}`, stones: (n) => `The ${n} Stones`, grotto: (n) => `${n} Grotto`, cabin: (n) => `${n} Cabin`, find: () => 'Something glinting', wreck: (n) => `Wreck at ${n}`, alcove: (n) => `${n} Cliff Dwellings`, carvings: (n) => `${n} Rock Carvings` };
 function petroglyphTexture(seed) {
@@ -375,11 +376,45 @@ export class Wilderness extends World {
     this.fauna?.update(dt, ctx);
     this.beasts?.update(dt, ctx);
     this.wildlife?.update(dt, ctx.player, ctx);
+    // far zones: name each new land you run into, and seed it with places to find before you arrive
+    this.zoneT = (this.zoneT || 0) - dt;
+    if (this.zoneT < 0) { this.zoneT = 1; this.farZones(ctx.player.pos); }
     // discovery
     const p = ctx.player.pos;
     for (const poi of this.pois) {
       if (poi.discovered) continue;
       if (poi.pos.distanceTo(p) < poi.radius + (poi.type === 'find' ? 2 : 10)) { poi.discovered = true; ctx.onDiscover && ctx.onDiscover(poi); }
+    }
+  }
+
+  farZones(p) {
+    const g = this.gen, Z = g.zoneMod(p.x, p.z);
+    // announce the zone you are in
+    if (Z.cell && Z.kind && Z.k > 0.7 && this.zoneHere !== Z.cell.key) {
+      this.zoneHere = Z.cell.key; const c = Z.cell;
+      if (!c.name) c.name = `The ${placeName(new RNG(c.seed), this.exp.region)}`;
+      if (!(this.zonesSeen = this.zonesSeen || new Set()).has(c.key)) { this.zonesSeen.add(c.key); this.game.ui.region(c.name, `Far beyond the road · ${Z.kind.name}`); this.game.ui.toast(`The land changes: <b>${Z.kind.name}</b>. You have come a long way from the road.`); this.game.audio?.discover?.();
+        const wx = { peaks: ['overcast', 'clear', 'hazy'], marsh: ['mist', 'mist', 'overcast'], plains: ['clear', 'hazy'], oldwood: ['hazy', 'mist'], lakes: ['clear', 'hazy'], hills: ['hazy', 'clear', 'overcast'] }[Z.kind.id];
+        if (wx && this.game.sky.weatherName !== 'rain' && Math.random() < 0.6) this.game.sky.setWeather(new RNG(c.seed).pick(wx)); }
+    }
+    // populate cells ahead with places to discover, while they are still too far away to be loaded
+    const C = 1300, cx = Math.floor(p.x / C), cz = Math.floor(p.z / C);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
+      const c = g.zoneCell(cx + i, cz + j); if (!c.kind || c.populated) continue;
+      const d = Math.hypot(c.x - p.x, c.z - p.z); if (d > 1150) continue;
+      c.populated = true;
+      const rng = new RNG(c.seed ^ 0x1f00), types = { peaks: ['grotto', 'stones', 'cabin'], lakes: ['cabin', 'ruins', 'find'], marsh: ['ruins', 'find', 'stones'], plains: ['hamlet', 'stones', 'ruins'], oldwood: ['cabin', 'ruins', 'find'], hills: ['stones', 'ruins', 'cabin'] }[c.kind.id];
+      const n = rng.int(2, 3);
+      for (let k = 0; k < n; k++) {
+        const type = k === n - 1 ? 'find' : rng.pick(types.filter((t) => t !== 'grotto' || this.exp.region !== 'tropics'));
+        const a = rng.next() * 6.283, r = rng.range(0, 420), sx = c.x + Math.cos(a) * r, sz = c.z + Math.sin(a) * r;
+        if (Math.hypot(sx - p.x, sz - p.z) < 560) continue; // never build where the land is already loaded
+        const site = this.findSite(sx, sz, { radius: 90, prefer: type === 'stones' ? 'high' : type === 'grotto' ? 'crag' : 'flat', maxSlope: type === 'hamlet' ? 0.1 : 0.2, tries: 80 });
+        if (!site || Math.hypot(site.x - p.x, site.z - p.z) < 530) continue;
+        const R = { hamlet: 20, ruins: 9, stones: 8, grotto: 6, cabin: 7, find: 0 }[type];
+        if (R) g.addZone(site.x, site.z, R, 12, { clear: type === 'grotto' ? 0.6 : 1 });
+        this.buildPOI({ type, x: site.x, z: site.z, seed: Math.floor(rng.next() * 1e9), name: type === 'find' ? null : placeName(rng, this.exp.region), specialty: rng.pick(['potters', 'smiths', 'carvers', 'weavers']), far: true });
+      }
     }
   }
 

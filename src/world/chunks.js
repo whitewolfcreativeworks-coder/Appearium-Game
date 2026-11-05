@@ -91,15 +91,21 @@ export class ChunkManager {
         if (!this.chunks.has(k)) this.queue.push({ cx: cx + dx, cz: cz + dz, d: Math.max(Math.abs(dx), Math.abs(dz)) + Math.hypot(dx, dz) * 0.01 });
       }
       this.queue.sort((a, b) => a.d - b.d);
-      // re-LOD existing
-      for (const c of this.chunks.values()) this.relod(c);
+      // re-LOD existing chunks — spread over frames (nearest first) rather than all at once,
+      // so crossing a chunk border at a run doesn't stall a frame
+      this.relodQ = [...this.chunks.values()].sort((a, b) => this.ring(a) - this.ring(b));
     }
     const t0 = performance.now();
+    while (this.relodQ?.length && (force || performance.now() - t0 < budgetMs)) {
+      const c = this.relodQ.shift(); if (this.chunks.get(c.key) !== c) continue;
+      const wasLod = c.lod; this.relod(c);
+      if (c.lod === wasLod && !force) continue; // nothing rebuilt — free
+    }
     while (this.queue.length && (force || performance.now() - t0 < budgetMs)) {
       const q = this.queue.shift();
       this.load(q.cx, q.cz);
     }
-    return this.queue.length;
+    return this.queue.length + (this.relodQ?.length || 0);
   }
 
   load(cx, cz) {

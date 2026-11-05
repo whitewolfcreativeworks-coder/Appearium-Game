@@ -158,6 +158,11 @@ class Game {
     $('btn-menu').onclick = () => this.openMenu();
     $('btn-light').onclick = () => this.toggleLantern();
     $('btn-jump').onpointerdown = (e) => { e.preventDefault(); this.input.pressed.add('Space'); };
+    // Run: tap to toggle a steady run; hold to set off on auto-run (steer by looking)
+    const rb = $('btn-run');
+    rb.onpointerdown = (e) => { e.preventDefault(); clearTimeout(this.runHold); this.runHeld = false; this.runHold = setTimeout(() => { this.runHeld = true; this.setRun(true, true); }, 550); };
+    rb.onpointerup = (e) => { e.preventDefault(); clearTimeout(this.runHold); if (!this.runHeld) this.setRun(!(this.input.runMode || this.input.autoRun), false); };
+    rb.onpointerleave = () => clearTimeout(this.runHold);
     $('btn-interact').onpointerdown = (e) => { e.preventDefault(); this.interact(); };
     this.input.dom.addEventListener('mousedown', (e) => { if (this.input.locked && e.button === 0 && !this.fishing.active) { if (this.buildMode.active) this.buildMode.commit(); else this.interact(); } });
   }
@@ -717,7 +722,7 @@ class Game {
       <label class="set">Invert look <input type="checkbox" ${s.invertY ? 'checked' : ''} data-set="invertY"></label>
       <label class="set">Water reflections <input type="checkbox" ${this.reflection.enabled ? 'checked' : ''} data-set="reflections"></label>
       <label class="set">Volume <input type="range" min="0" max="1" step="0.05" value="${s.volume}" data-set="volume"></label>
-      <h3>Controls</h3><div class="kv">${isTouch ? 'Left thumb moves (push fully to run) · right thumb looks · ✋ interacts · ⤒ jumps' : 'WASD move · mouse look (click to capture, Esc to release) · Shift run · Space jump · E or click interact · I pack · J journal · H return home · L lantern'}</div>
+      <h3>Controls</h3><div class="kv">${isTouch ? 'Left thumb moves · Run button: tap to run, hold to auto-run (steer by looking) · right thumb looks · ✋ interacts · ⤒ jumps · stand still to sit and rest' : 'WASD move · mouse look (click to capture, Esc to release) · Shift or R run · Q auto-run · Space jump · E or click interact · I pack · J journal · H return home · L lantern'}</div>
       <div class="actions"><button class="btn ghost" data-act="reset">Erase all progress</button><button class="btn ghost" data-act="credits">Credits</button><button class="btn primary" data-act="close">Resume</button></div>`, (act, d, el) => {
       if (act === 'q') { s.quality = d.q; writeSave(this.save); location.reload(); }
       if (act === 'set') {
@@ -824,10 +829,13 @@ class Game {
         if (input.wasPressed('KeyJ')) this.openJournal();
         if (input.wasPressed('KeyH') && this.expedition) this.confirmReturnHome();
         if (input.wasPressed('KeyL')) this.toggleLantern();
+        if (input.wasPressed('KeyR') && !this.buildMode.active) this.setRun(!(input.runMode || input.autoRun), false);
+        if (input.wasPressed('KeyQ')) this.setRun(!input.autoRun, !input.autoRun);
         if (input.wasPressed('Escape') && !this.fishing.active && !input.locked && !this.buildMode.active) this.openMenu();
       } else if (input.wasPressed('Escape')) this.ui.closePanel();
       this.player.update(dt, input, this.world, this.save.settings);
-      this.body.update(dt, this.player.running, this.player.speed > 0.5);
+      this.body.update(dt, this.player.running, this.player.speed > 0.5, this.player.resting, this.player.climb || 0);
+      this.runTick(dt);
       this.fishing.update(dt, input);
       // wildlife observation
       if (this.observing) {
@@ -869,7 +877,10 @@ class Game {
     }
     if (this.world) {
       const p = this.player.pos;
-      this.world.stream(p);
+      // at a run, stream the land ahead of you first so it's ready when you get there
+      const sp = this.player.speed;
+      if (sp > 3.5) { const f = this.player.forward(this.tmpLead || (this.tmpLead = new THREE.Vector3())); this.world.stream(p, false, { x: p.x + f.x * Math.min(56, sp * 7), z: p.z + f.z * Math.min(56, sp * 7) }, 1.4); }
+      else this.world.stream(p);
       this.pools.flush();
       this.sky.time = (this.sky.time + dt / 120) % 24;
       this.sky.update(dt, this.camera, p);
@@ -919,12 +930,33 @@ class Game {
     if (this.debug) this.debugHud();
   }
 
+  // the run toggle and auto-run
+  setRun(on, auto) {
+    const i = this.input; i.runMode = on && !auto; i.autoRun = on && auto;
+    if (on && this.body.winded) this.ui.toast('You\'re still winded — catch your breath first.');
+    else if (auto && on) this.ui.toast('Auto-run: steer by looking. Pull back (or tap Run) to stop.');
+  }
+  runTick(dt) {
+    const i = this.input, b = $('btn-run');
+    if (!i.autoRun && b.classList.contains('auto')) i.runMode = false; // auto-run cancelled by pulling back
+    b.classList.toggle('on', i.runMode || i.autoRun); b.classList.toggle('auto', i.autoRun); b.textContent = i.autoRun ? 'Auto' : 'Run';
+    // breathing: hard when tired, panting when winded
+    const f = this.body.stamina / this.body.maxStamina, pl = this.player;
+    this.breathT = (this.breathT || 0) - dt;
+    if (this.breathT < 0) {
+      if (this.body.winded || (pl.running && f < 0.4)) { this.breathT = this.body.winded ? 0.8 : 1.1 - (0.4 - f); this.audio.breath?.(this.body.winded ? 1 : 0.4 + (0.4 - f)); }
+      else this.breathT = 0.5;
+    }
+    // a wider view at a run gives a sense of speed
+    if (!this.fovTouched) { const target = 70 + Math.max(0, Math.min(1, (pl.speed - 3) / 3.5)) * 6; if (Math.abs(this.camera.fov - target) > 0.05) { this.camera.fov += (target - this.camera.fov) * Math.min(1, dt * 3); this.camera.updateProjectionMatrix(); } }
+  }
+
   updateBodyHud() {
     const b = this.body, el = this.hudEls || (this.hudEls = { st: $('stamina'), fill: $('stamina-fill'), chips: $('status-chips') });
     const full = b.stamina >= b.maxStamina - 0.5;
     el.st.classList.toggle('hidden', full);
     el.fill.style.width = `${(b.stamina / b.maxStamina) * 100}%`;
-    el.fill.classList.toggle('fed', b.has('fed'));
+    el.fill.classList.toggle('fed', b.has('fed') && !b.winded); el.fill.classList.toggle('winded', !!b.winded);
     const chips = b.chips().map((c) => `<span style="border-color:${CONDITIONS[c].color};color:${CONDITIONS[c].color}">${CONDITIONS[c].label}</span>`).join('');
     if (chips !== this.lastChips) { el.chips.innerHTML = chips; this.lastChips = chips; }
   }

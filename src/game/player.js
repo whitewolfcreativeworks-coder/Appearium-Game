@@ -7,6 +7,7 @@ export class Input {
     this.dom = dom; this.settings = settings;
     this.keys = new Set(); this.look = { x: 0, y: 0 }; this.joy = { x: 0, y: 0 };
     this.pressed = new Set(); this.locked = false; this.enabled = true; this.touchRun = false;
+    this.runMode = false; this.autoRun = false; // the Run button: a steady long-distance pace, and auto-run
     this.isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
     window.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT') return;
@@ -80,10 +81,12 @@ export class Input {
     if (this.keys.has('KeyD') || this.keys.has('ArrowRight')) x += 1;
     if (this.keys.has('KeyA') || this.keys.has('ArrowLeft')) x -= 1;
     x += this.joy.x; y += this.joy.y;
+    // auto-run: keep going forward, steering with your eyes; pulling back stops it
+    if (this.autoRun) { if (y < -0.3) this.autoRun = false; else y = Math.max(y, 1); }
     const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; }
     return { x, y };
   }
-  get running() { return this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.touchRun; }
+  get running() { return this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.touchRun || this.runMode || this.autoRun; }
 }
 
 export class Player {
@@ -109,7 +112,8 @@ export class Player {
     const ground = world.heightAt(this.pos.x, this.pos.z);
     const depth = water - ground;
     this.inWater = Math.max(0, depth);
-    let target = (this.running ? 5.6 : 2.9) * Math.hypot(mv.x, mv.y);
+    // a steady long-distance run, slowing as you tire
+    let target = (this.running ? 6.5 * (body ? body.runFactor() : 1) : 2.9) * Math.hypot(mv.x, mv.y);
     if (depth > 0) target *= Math.max(0.35, 1 - depth * 0.55);
     if (body) target *= body.speedMul();
     this.speed += (target - this.speed) * Math.min(1, dt * 8);
@@ -141,18 +145,24 @@ export class Player {
     if (ndepth < 0.3) this.lastSafe.copy(this.pos);
     // footsteps & bob
     const moved = Math.hypot(this.pos.x - prev.x, this.pos.z - prev.z);
+    if (moved > 0.01) this.climb = (this.climb || 0) + ((this.pos.y - prev.y) / moved - (this.climb || 0)) * Math.min(1, dt * 2);
     if (this.onGround) {
       this.bob += moved * (this.running ? 1.9 : 2.3);
       this.stepAcc += moved;
       const stride = this.running ? 1.5 : 0.85;
       if (this.stepAcc > stride) { this.stepAcc = 0; this.onStep && this.onStep(this.running ? 1 : 0.6, depth > 0.05); }
     }
+    // standing still for a few seconds you sit down to rest (and get your breath back faster)
+    const still = this.speed < 0.15 && this.onGround && depth < 0.05 && !this.frozen;
+    this.stillT = still ? (this.stillT || 0) + dt : 0;
+    this.resting = this.stillT > 4;
+    this.sit = (this.sit || 0) + ((this.resting ? 1 : 0) - (this.sit || 0)) * Math.min(1, dt * 2);
     this.syncCamera(dt);
   }
 
   syncCamera() {
-    const bobY = Math.sin(this.bob * 2) * 0.035 * Math.min(1, this.speed / 3), bobX = Math.cos(this.bob) * 0.02 * Math.min(1, this.speed / 3);
-    this.camera.position.set(this.pos.x + Math.cos(this.yaw) * bobX, this.pos.y + this.eye + bobY, this.pos.z - Math.sin(this.yaw) * bobX);
+    const bobY = Math.sin(this.bob * 2) * (0.035 + Math.max(0, this.speed - 4) * 0.006) * Math.min(1, this.speed / 3), bobX = Math.cos(this.bob) * 0.02 * Math.min(1, this.speed / 3);
+    this.camera.position.set(this.pos.x + Math.cos(this.yaw) * bobX, this.pos.y + this.eye - (this.sit || 0) * 0.7 + bobY, this.pos.z - Math.sin(this.yaw) * bobX);
     this.camera.rotation.set(this.pitch, this.yaw, 0);
   }
 

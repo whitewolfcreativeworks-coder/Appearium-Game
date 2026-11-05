@@ -33,12 +33,31 @@ python3 -m http.server 8000      # any static server works
 |---|---|---|
 | Move | WASD / arrows | left thumb (virtual stick appears where you touch) |
 | Look | mouse (click to capture, Esc to release) | drag with right thumb |
-| Run | Shift | push the stick to its edge |
+| Run | hold Shift, or **R** / **Run** button to toggle | **Run** button (tap to toggle), or push the stick to its edge |
+| Auto-run (steer by looking) | **Q**, or hold the **Run** button | hold the **Run** button; pull back to stop |
 | Jump | Space | ⤒ |
 | Interact | E or left click | ✋ (appears when something is in reach) |
 | Pack / Journal | I / J | Pack / Log buttons (eat, bait, dig for worms, make & set traps) |
 | Return home | H or **⌂ Return Home** | **⌂ Return Home** (top right) |
 | Lantern (once crafted) | L | ☀ |
+
+### Running, tiring and resting
+
+Running is a steady long-distance pace (about 6.5 m/s, more than twice walking speed — leaving
+headroom for faster mounts later). A fresh run lasts about two minutes, over three when you are
+well fed; uphill tires you faster, downhill slower. As you tire you slow to a heavy jog and hear
+your breathing; run yourself out and you are **winded** — walk or stop until your breath comes
+back. Standing still for a few seconds you sit down, which recovers fastest. While you run, the
+land ahead is generated first, and chunk work is spread across frames so the world keeps up.
+
+### The far lands
+
+Keep going and the land keeps changing. Beyond about a kilometre from the road the world is
+divided into irregular regions roughly 1.3 km across — **high country** with peaks, **lake
+country**, **marshland**, **open plains**, **old forest**, **hill country** — blended at their
+borders, each named as you cross into it, often with its own weather. Each far region is seeded
+with its own places to find (ruins, standing stones, cabins, crystal grottoes, settlements and
+lost objects), built just before you get there, so a long run always leads somewhere new.
 
 ### The loop
 

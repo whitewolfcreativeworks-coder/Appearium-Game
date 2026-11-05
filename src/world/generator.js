@@ -5,7 +5,7 @@
 // like the forest around your village ("home"); walking on, it turns into the destination
 // landscape (the sea, a canyon, tropical forest…). biomeT(x, z) is 0 at home and 1 in the destination.
 import { Noise2D } from '../core/noise.js';
-import { hashString, smoothstep, lerp, clamp } from '../core/rng.js';
+import { hashString, hash2, smoothstep, lerp, clamp } from '../core/rng.js';
 
 export const DEFAULT_TERRAIN = {
   kind: 'temperate',
@@ -37,6 +37,20 @@ export function makeHomeGen() {
 // the road's gentle bends near home are fixed, so the road you see from the gate is always the same
 export function homeRoadCurve(home) { return (s) => home.nMask.noise(s * 0.012 + 1, 4.4) * 0.05; }
 
+// Far zones: the land keeps changing if you keep going. Beyond about a kilometre from the road's
+// start the world is divided into irregular cells ~1.3 km across, each with its own character —
+// high peaks, a lake district, marshes, open plains, old dense forest, steep hill country —
+// blended smoothly at the borders. Each cell is deterministic from the expedition seed.
+export const ZONE_KINDS = [
+  { id: 'peaks', name: 'high country', hills: 1.4, mount: 85, cover: 0.45, wet: 0, lakes: -0.1, rough: 1.3, forest: -0.2, moist: -0.05 },
+  { id: 'lakes', name: 'lake country', hills: 0.8, mount: 0, cover: 0, wet: 0, lakes: 0.45, rough: 0.9, forest: 0.05, moist: 0.1 },
+  { id: 'marsh', name: 'marshland', hills: 0.35, mount: 0, cover: 0, wet: 0.95, lakes: 0.15, rough: 0.6, forest: -0.45, moist: 0.35 },
+  { id: 'plains', name: 'open plains', hills: 0.4, mount: 0, cover: 0, wet: 0, lakes: -0.2, rough: 0.8, forest: -0.85, moist: -0.2 },
+  { id: 'oldwood', name: 'old forest', hills: 1.0, mount: 0, cover: 0, wet: 0, lakes: -0.05, rough: 1.0, forest: 0.6, moist: 0.2 },
+  { id: 'hills', name: 'hill country', hills: 2.0, mount: 15, cover: 0.1, wet: 0, lakes: -0.1, rough: 1.4, forest: -0.05, moist: 0 },
+];
+const ZONE_CELL = 1300, ZONE_START = [850, 1250];
+
 const tmpA = { river: 0, valley: 0, stream: 0, pond: 0, sea: 0, beach: 0, cliff: 0 };
 const tmpB = { river: 0, valley: 0, stream: 0, pond: 0, sea: 0, beach: 0, cliff: 0 };
 
@@ -67,6 +81,37 @@ export class WorldGen {
     this.out = { h: 0, moist: 0, forest: 0, river: 0, valley: 0, clear: 0, stream: 0, pond: 0, conifer: 0.5, biome: 0, sea: 0, beach: 0, cliff: 0, road: 0 };
   }
 
+  // the far zone at (x, z): blended modifiers, and the id of the nearest cell
+  zoneMod(x, z) {
+    const Z = this._zm || (this._zm = { k: 0, hills: 1, mount: 0, cover: 0, wet: 0, lakes: 0, rough: 1, forest: 0, moist: 0, cell: null, kind: null });
+    if (Z.x === x && Z.z === z) return Z; Z.x = x; Z.z = z;
+    const ds = Math.hypot(x - this.start.x, z - this.start.z);
+    const k = this.home && this.farZones !== false ? smoothstep(ZONE_START[0], ZONE_START[1], ds) : 0;
+    Z.k = 0; Z.hills = 1; Z.mount = 0; Z.cover = 0; Z.wet = 0; Z.lakes = 0; Z.rough = 1; Z.forest = 0; Z.moist = 0; Z.cell = null; Z.kind = null;
+    if (k <= 0) return Z;
+    const cx = Math.floor(x / ZONE_CELL), cz = Math.floor(z / ZONE_CELL);
+    let d1 = 1e9, d2 = 1e9, c1 = null, c2 = null;
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
+      const c = this.zoneCell(cx + i, cz + j), d = Math.hypot(x - c.x, z - c.z);
+      if (d < d1) { d2 = d1; c2 = c1; d1 = d; c1 = c; } else if (d < d2) { d2 = d; c2 = c; }
+    }
+    const w = 0.5 + 0.5 * smoothstep(0, 260, d2 - d1), A = c1.kind, B = c2.kind;
+    const mix = (key, base) => lerp(base, lerp(B ? B[key] : base, A ? A[key] : base, w), k);
+    Z.hills = mix('hills', 1); Z.mount = mix('mount', 0); Z.cover = mix('cover', 0); Z.wet = mix('wet', 0); Z.lakes = mix('lakes', 0);
+    Z.rough = mix('rough', 1); Z.forest = mix('forest', 0); Z.moist = mix('moist', 0);
+    Z.k = k; Z.cell = c1; Z.kind = A;
+    return Z;
+  }
+  zoneCell(cx, cz) {
+    const key = cx + ',' + cz, M = this._cells || (this._cells = new Map());
+    let c = M.get(key); if (c) return c;
+    const hx = hash2(cx, cz, this.seed ^ 0x7a11), hz = hash2(cz, cx, this.seed ^ 0x2b33), hk = hash2(cx * 31, cz * 17, this.seed ^ 0x5c55);
+    const x = (cx + 0.2 + 0.6 * hx) * ZONE_CELL, z = (cz + 0.2 + 0.6 * hz) * ZONE_CELL;
+    const near = Math.hypot(x - this.start.x, z - this.start.z) < ZONE_START[0] + 300; // the land around the road stays the destination itself
+    c = { key, cx, cz, x, z, kind: near ? null : ZONE_KINDS[(((2 * cx + 3 * cz + Math.floor(hk * 2)) % 6) + 6) % 6] /* neighbouring cells always differ */, seed: Math.floor(hk * 1e9) };
+    M.set(key, c); return c;
+  }
+
   setStart(x, z, angle) { this.start = { x, z }; this.dir = { x: Math.sin(angle), z: -Math.cos(angle) }; }
 
   // 0 = home landscape, 1 = destination landscape
@@ -92,6 +137,10 @@ export class WorldGen {
   baseHeight(x, z) { return this._base(x, z, null); }
 
   _temperate(p, x, z, o) {
+    if (p === this.p && this.home) { // far zones reshape the destination land
+      const Z = this.zoneMod(x, z);
+      if (Z.k > 0) { const q = this._zp || (this._zp = { ...p }); q.hills = p.hills * Z.hills; q.mountains = p.mountains + Z.mount; q.mountainCover = p.mountainCover + Z.cover; q.wetland = p.wetland + Z.wet; q.lakes = Math.max(0, p.lakes + Z.lakes); q.roughness = p.roughness * Z.rough; p = q; }
+    }
     const wx = x + 55 * this.nWarp.fbm(x * 0.0021, z * 0.0021, 2);
     const wz = z + 55 * this.nWarp.fbm(x * 0.0021 + 31.7, z * 0.0021 - 12.1, 2);
     let h = p.base + p.hills * (this.nHill.fbm(wx * p.hillScale, wz * p.hillScale, 5) + 0.25);
@@ -293,7 +342,8 @@ export class WorldGen {
     if (this.road) { const r = this.roadInfo(x, z); if (r && r.d < 11) { h = lerp(h, r.y + (r.d < 2.6 ? -0.05 : 0), smoothstep(11, 2.6, r.d)); o.road = smoothstep(5, 2.2, r.d); clear = Math.max(clear, smoothstep(6, 3, r.d)); } }
     o.h = h; o.clear = clear;
     const t = o.biome, H = this.home || p;
-    const moisture = lerp(H.moisture, p.moisture, t), forestBias = lerp(H.forest, p.forest, t), treeLine = lerp(H.treeLine, p.treeLine, t), fs = lerp(H.forestScale, p.forestScale, t);
+    const Zm = this.home ? this.zoneMod(x, z) : null;
+    const moisture = lerp(H.moisture, p.moisture + (Zm ? Zm.moist : 0), t), forestBias = lerp(H.forest, p.forest + (Zm ? Zm.forest : 0), t), treeLine = lerp(H.treeLine, p.treeLine, t), fs = lerp(H.forestScale, p.forestScale, t);
     const above = h - p.water;
     let m = 0.5 + 0.38 * this.nMoist.fbm(x * 0.0042, z * 0.0042, 3) + moisture + o.valley * 0.25;
     if (above < 2.5) m += (2.5 - Math.max(above, 0)) * 0.08;

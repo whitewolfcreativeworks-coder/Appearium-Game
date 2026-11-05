@@ -566,6 +566,12 @@ export class SoundScape {
     this.drone = { g, oscs: [...oscs, lfo] };
   }
   tripEnd() { if (!this.drone) return; const d = this.drone; this.drone = null; d.g.gain.setTargetAtTime(0, this.ctx.currentTime, 3); setTimeout(() => d.oscs.forEach((o) => o.stop()), 9000); }
+  // your own breathing when tired: an in-breath and a longer out-breath, harder when winded
+  breath(k = 0.5) {
+    if (!this.ready) return; const t = this.ctx.currentTime, g = this.ctx.createGain(); g.gain.value = 0.5 + k * 0.6; g.connect(this.master);
+    this.noiseBurst(g, t, 1500 + k * 400, 0.7, 0.28, 0.05 * (0.5 + k));
+    this.noiseBurst(g, t + 0.36, 900 + k * 300, 0.6, 0.45, 0.07 * (0.5 + k), 'lowpass');
+  }
   reel() { this.burst(3200, 4, 0.03, 0.03); }
   craft() { this.burst(2600, 2, 0.07, 0.07); setTimeout(() => this.burst(2200, 2, 0.07, 0.06), 120); setTimeout(() => this.tone([523, 659, 784], 0.08, 0.04), 280); }
 
