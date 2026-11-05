@@ -28,7 +28,8 @@ export class World {
     this.chunks = new ChunkManager({ scene: this.scene, gen: this.gen, pools: g.pools, terrainMat: this.terrainMat, waterMat: g.waterMat, radius: g.quality.chunkRadius, colliders: this.colliders,
       populate: (c) => this.populate(c, populate) });
     this.grass = new GrassField(this, g.pools, g.quality);
-    if (this.noGrass.length) this.grassBlocked = (x, z) => this.noGrass.some((n) => (x - n.x) ** 2 + (z - n.z) ** 2 < n.r * n.r);
+    this.placedNoGrass = this.placedNoGrass || [];
+    this.grassBlocked = (x, z) => this.noGrass.some((n) => (x - n.x) ** 2 + (z - n.z) ** 2 < n.r * n.r) || this.placedNoGrass.some((n) => Math.abs(x - n.x) < n.r && Math.abs(z - n.z) < n.r);
   }
 
   populate(c, base) { return base(c); }
@@ -60,7 +61,7 @@ export class World {
 
   removeGatherable(i) {
     const c = i.chunk;
-    if (c) { c.interactables = c.interactables.filter((x) => x !== i); this.game.pools.hide(i.poolKey, i.owner, i.index); }
+    if (c) { c.interactables = c.interactables.filter((x) => x !== i); if (i.poolKey) this.game.pools.hide(i.poolKey, i.owner, i.index); }
     if (i.mesh) { this.scene.remove(i.mesh); }
     if (!c) { i.disabled = true; this.statics = this.statics.filter((x) => x !== i); }
     if (i.id) this.collected.add(i.id);

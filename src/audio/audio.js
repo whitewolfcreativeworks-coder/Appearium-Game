@@ -165,6 +165,13 @@ export class SoundScape {
     else if (kind === 'parrot') { for (let i = 0; i < 3; i++) { const tt = t + i * 0.2; this.note(o, tt, 1800 + Math.random() * 600, 2600, 0.1, 0.035, 'square'); this.noiseBurst(o, tt, 3000, 2, 0.1, 0.03); } }
     else if (kind === 'flamingo') { for (let i = 0; i < 8; i++) { const tt = t + i * 0.18 + Math.random() * 0.1; const f = this.ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1100; f.Q.value = 3; f.connect(o); this.note(f, tt, 700, 620, 0.12, 0.2, 'sawtooth'); } }
     else if (kind === 'stork') { for (let i = 0; i < 18; i++) this.noiseBurst(o, t + i * 0.06, 1500, 3, 0.03, 0.12); }
+    else if (kind === 'rattle') { const f = this.ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 3500; f.connect(o); for (let i = 0; i < 40; i++) this.noiseBurst(f, t + i * 0.022, 6000, 1.2, 0.015, 0.5); }
+    else if (kind === 'hiss') { this.noiseBurst(o, t, 5200, 0.5, 1.1, 0.35, 'highpass'); }
+    else if (kind === 'bite') { this.noiseBurst(this.master, t, 2400, 2, 0.08, 0.2); this.note(this.master, t, 300, 120, 0.25, 0.08, 'sawtooth'); }
+    else if (kind === 'bear_huff') { for (let i = 0; i < 3; i++) { this.noiseBurst(o, t + i * 0.35, 260, 1, 0.22, 0.8, 'lowpass'); this.note(o, t + i * 0.35, 90, 70, 0.2, 0.15, 'sawtooth'); } for (let i = 0; i < 4; i++) this.noiseBurst(o, t + 1.2 + i * 0.12, 1800, 4, 0.03, 0.4); }
+    else if (kind === 'bear_roar') { const f = this.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 700; f.connect(o); this.note(f, t, 160, 110, 1.4, 0.6, 'sawtooth'); this.noiseBurst(o, t, 500, 0.7, 1.3, 0.6, 'lowpass'); }
+    else if (kind === 'deer') { this.note(o, t, 900, 500, 0.18, 0.12, 'sawtooth'); for (let i = 0; i < 10; i++) this.noiseBurst(o, t + 0.3 + i * 0.13, 300, 1, 0.05, 0.25, 'lowpass'); }
+    else if (kind === 'whale') { const s2 = this.ctx.createBufferSource(); s2.buffer = this.noise; const f = this.ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 600; f.Q.value = 0.6; const g = this.ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25 * vol, t + 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.4); s2.connect(f); f.connect(g); g.connect(o); s2.start(t); s2.stop(t + 2.6); }
     else if (kind === 'horse') { // a whinny, then hooves
       this.note(o, t, 900, 1300, 0.25, 0.04, 'sawtooth'); for (let i = 0; i < 7; i++) this.note(o, t + 0.25 + i * 0.1, 1100 - i * 90, 1000 - i * 90, 0.09, 0.035, 'sawtooth');
       for (let i = 0; i < 20; i++) this.noiseBurst(o, t + 0.9 + i * 0.11 + (i % 3) * 0.03, 220, 1, 0.05, 0.2, 'lowpass');

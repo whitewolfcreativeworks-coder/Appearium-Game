@@ -23,7 +23,11 @@ export class UI {
     this.el.promptText.textContent = text; this.el.prompt.classList.remove('hidden'); this.el.interact.classList.remove('hidden');
   }
   region(name, sub) { this.el.region.textContent = name; this.el.regionSub.textContent = sub || ''; }
-  pack(n, cap) { this.el.packCount.textContent = n; this.el.packCap.textContent = cap; this.el.packMeter.classList.toggle('full', n >= cap); }
+  flash() {
+    let el = document.getElementById('hurt'); if (!el) { el = document.createElement('div'); el.id = 'hurt'; document.body.appendChild(el); }
+    el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  }
+  pack(n) { this.el.packCount.textContent = n; }
   observe(p, text) {
     if (p === null) { this.el.observe.classList.add('hidden'); return; }
     this.el.observe.classList.remove('hidden'); this.el.observeRing.style.strokeDashoffset = String(100.5 * (1 - p)); this.el.observeText.textContent = text;

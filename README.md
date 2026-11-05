@@ -47,9 +47,9 @@ python3 -m http.server 8000      # any static server works
    Hall of Discoveries displays artifacts, **Maren the herbalist** checks the mushrooms and plants
    you bring home, the hearth at home cooks from your stores, and the noticeboard holds your
    journal and field guide.
-2. **Expedition** — walk out through the North Gate onto the road. The first stretch is always the
-   forest around your village (the palisade is still behind you, and a fingerpost points home);
-   after a few hundred metres the land turns into this journey's destination, rolled from nine
+2. **Expedition** — walk out through the North Gate onto the road. Right by the gate it is still
+   the forest around your village (the palisade is behind you, and a fingerpost points home), but
+   the new land is already in view ahead, and within a hundred metres or so you are in it: rolled from nine
    kinds: **The Coast** (beach, dunes, headlands, sea stacks, rock pools, a shipwreck), **Canyon
    Country** (a terraced, banded sandstone canyon with a river far below, juniper and pinyon,
    cliff dwellings and rock carvings), **The Tropics** (palms, tree ferns, wild bananas, lagoons,
@@ -57,7 +57,7 @@ python3 -m http.server 8000      # any static server works
    Highlands, Mistwood fens, Meadowlands and Old Heath. Each has its own terrain, plants, fungi,
    fish, animals, sounds and weather. The weather can change while you are out: a sunny beach
    can turn windy, then stormy, with lightning, thunder, rain and big surf.
-3. **Forage, fish, trap, discover** — see below. Your pack has limited space.
+3. **Forage, fish, trap, discover** — see below. You can carry as much as you like.
 4. **Return home** at any time — with the ⌂ button, or by walking back down the road and in
    through the gate. The wilderness is discarded; your pack goes into the
    storehouse, artifacts go on pedestals with a record of where and when they were found, and
@@ -136,6 +136,35 @@ Learn the **snare**, the **figure-4 deadfall** and the **fish basket trap** step
 workshop (with a quick check at the end), make them from wood, fibre and stone, and set them
 from your pack. Placement matters: a snare across a hare run catches; one in open grass almost
 never does. Fish baskets want shallow flowing water.
+
+### Building your own place
+
+Everything you bring home can go into your own house. Press **Build** (or B) in the village, or
+use the workshop: floors, walls (plank, log, stone, driftwood, canyon sandstone, with windows and
+doorways) and roofs (thatch, tiles, palm fronds) snap to a 2 m grid; furniture (bed, table, bench,
+storage chest, display shelf, stone hearth with a real fire, lantern posts) and decorations (a bowl
+of seashells, a shell wind chime, a sea-glass mobile, driftwood sculptures, benches and fences,
+crystal displays, pelt rugs, pots of wildflowers, stepping stones, cairns, your best fish mounted)
+go anywhere and can be turned. Artifacts can be put on stands in your house instead of the Hall.
+A bed you build is a place to rest, a hearth cooks, a chest opens your stores. Everything taken
+down is refunded. Some materials only come from certain lands: shells, driftwood and sea glass
+from the coast, sandstone slabs from the canyon, palm fronds from the tropics, crystals from the
+highlands, clay from the fens.
+
+### Danger
+
+The wilderness is mostly peaceful, but not always:
+- **Bears** (brown bears in the northern woods, black bears in canyon country) forage, stand up to
+  smell you, and bluff-charge if you press them. Running turns a bluff into a real chase. Back away
+  slowly and they usually leave; crowd one and it will attack — you wake up at home, hurt.
+- **Snakes** bask in the open: adders on heaths, dunes and woodland edges; rattlesnakes in canyon
+  country (listen for the rattle); the fer-de-lance in the tropics. They strike only if you come
+  within reach. A venomous bite slowly weakens you — get home to Maren in time. Harmless snakes
+  (grass snake, gopher snake — which imitates a rattlesnake — and boa) slip away. Observing them
+  from a safe distance teaches you how to tell them apart and what to do if bitten.
+- And the gentler life: red and mule deer (sometimes out on the beach), shore crabs to catch
+  (from behind), seals hauled out on the rocks, dolphins rolling past offshore, and now and then
+  the tall spout, back and tail of a blue whale far out at sea.
 
 ### Herds, flocks and a living forest
 
@@ -222,6 +251,8 @@ src/world/structures.js    architecture kit (cabins, hall, palisade, ruins, stal
 src/world/village.js, wilderness.js, scenarios.js, wildlife.js
 src/world/road.js          the road out of the North Gate
 src/world/herds.js         herds and flocks (horses, gulls, geese, ravens, parrots, waders, starlings)
+src/world/fauna.js         deer, bears, snakes, crabs, seals, dolphins, whales
+src/game/building.js, buildmode.js   building & decorating your place
 src/game/              items & artifacts, save, player & input, fishing, artifact 3D models
 src/audio/audio.js     synthesised soundscape
 src/ui/ui.js           HUD helpers
@@ -245,11 +276,12 @@ choose *Low* in the ≡ menu; dynamic resolution also kicks in below ~27 fps.
 
 - There is no swimming — deep water blocks you. Rivers, lakes and the sea share one water level
   (no waterfalls, no tides).
-- Animals in herds and flocks are procedural low-poly models: convincing as silhouettes and in
-  motion at the distances you usually see them, plain up close.
+- Animals in herds and flocks, bears, deer, seals, whales and snakes are procedural low-poly
+  models: convincing as silhouettes and in motion at the distances you usually see them, plain
+  up close.
+- Building is single-storey for now, inside the palisade, on the flat village yard.
 - People are implied (honesty stalls, chimney smoke) rather than simulated; there are no NPCs.
-- There is no shooting or hunting by design — food comes from foraging, fishing and traps.
-  Roe deer appear only as tracks; a realistic animated deer would need a suitably licensed model.
+- There is no shooting or hunting by design — food comes from foraging, fishing, traps and crabs.
 - Small animals (songbirds, hares, squirrels, ducks) are simple procedural models — convincing
   at the distances you usually see them, plainer up close.
 - Distant terrain beyond ~200–250 m is hidden by fog; a far-terrain impostor ring would open up

@@ -96,6 +96,7 @@ export function makePopulator(world) {
           col = tmpC;
         }
         L(kind, true).push(x, h - 0.15, z, ry, sc, tilt, col, sy);
+        if (base === 'palm' && r5 < 0.35) { const fid = `${chunk.key}:fr:${id}`; if (!collected.has(fid)) addGather('fronds', null, -1, x, h + 0.6, z, 'frond', 3, 'Cut palm fronds', { id: fid, radius: 2.2 }); }
         if (base === 'broad' || base === 'snag' || base === 'cottonwood') woodHosts.push({ x, z, h, r: (KIND_INFO[kind].radius || 0.3) * sc, tree: base !== 'snag', snag: base === 'snag' });
         colliders.push({ x, z, r: (KIND_INFO[kind].radius || 0.3) * sc + 0.05 });
         continue;
@@ -146,7 +147,8 @@ export function makePopulator(world) {
       const slope = slopeAt(x, z, s.h);
       if (a > 0.25 + slope * 2) continue;
       if (b < 0.6) { const sc = 0.6 + c * 1.6; const red = regionOf(s, a) === 'canyon';
-        if (red) L('tintrock0').push(x, s.h - 0.25 * sc, z, b * 30, sc * 1.3, (a - 0.5) * 0.3, tmpC.setRGB(1.2, 0.78, 0.6));
+        if (red) { L('tintrock0').push(x, s.h - 0.25 * sc, z, b * 30, sc * 1.3, (a - 0.5) * 0.3, tmpC.setRGB(1.2, 0.78, 0.6));
+          const id = `${chunk.key}:ss:${serial++}`; if (c < 0.55 && !collected.has(id)) addGather('sandstone', null, -1, x + 1.1 * sc, s.h + 0.3, z, 'sandstone', 2, 'Split sandstone slabs', { id, radius: 1.6 + sc }); }
         else L('boulder0').push(x, s.h - 0.25 * sc, z, b * 30, sc, (a - 0.5) * 0.3);
         colliders.push({ x, z, r: 0.85 * sc * (red ? 1.3 : 1) }); }
       else { const v = Math.floor(c * (KIND_INFO.rockset?.variants || 1)); L(`rockset${v}`).push(x, s.h - 0.2, z, b * 30, 0.8 + a * 0.6); colliders.push({ x, z, r: 1.0 }); }
@@ -370,6 +372,7 @@ export function makePopulator(world) {
       if (a < 0.45) { L('wrack0').push(x, s.h + 0.005, z, b * 6.28, 0.8 + c * 0.6); continue; }
       if (a < 0.75) { const id = `${chunk.key}:sh:${serial++}`; if (collected.has(id)) continue; const li = L('shells0').push(x, s.h + 0.005, z, b * 6.28, 1); addGather('shells', 'shells0', li, x, s.h + 0.1, z, 'shell', 2, 'Pick up seashells', { id, radius: 1.5 }); continue; }
       if (a < 0.86) { const id = `${chunk.key}:dw:${serial++}`; if (collected.has(id)) continue; const li = L('drift0').push(x, s.h - 0.1, z, b * 6.28, 0.6 + c * 0.5, 0, tmpC.setRGB(0.85, 0.82, 0.78)); addGather('drift', 'drift0', li, x, s.h + 0.3, z, 'driftwood', 2, 'Gather driftwood', { id, radius: 2.4 }); }
+      else if (c < 0.4) { const id = `${chunk.key}:sg:${serial++}`; if (collected.has(id)) continue; const li = L('shells0').push(x, s.h + 0.005, z, b * 6.28, 0.6); addGather('seaglass', 'shells0', li, x, s.h + 0.1, z, 'sea_glass', 1, 'Pick up sea glass', { id, radius: 1.4 }); }
     }
 
     // clay banks (wetland rivers)

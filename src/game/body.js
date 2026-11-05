@@ -11,6 +11,8 @@ export const CONDITIONS = {
   trip: { label: 'Altered senses', color: '#b98ad8' },
   stung: { label: 'Stung', color: '#d8b46a' },
   amatoxin: { label: '', color: '#e05a4a' }, // hidden until symptoms appear
+  envenomed: { label: 'Snakebite — get home', color: '#e05a4a' },
+  bitten: { label: 'Bitten', color: '#d8b46a' },
 };
 
 export class Body {
@@ -37,11 +39,12 @@ export class Body {
 
   eat(food) { this.satiety = clamp(this.satiety + food * 9, 0, 100); if (this.satiety > 75 && food >= 3) this.add('fed', { dur: 300 + food * 30 }); }
 
-  canRun() { return !this.has('sick') && !this.has('amatoxin') && this.stamina > 2; }
+  canRun() { return !this.has('sick') && !this.has('amatoxin') && !this.has('envenomed') && this.stamina > 2; }
   speedMul() {
     let m = 1;
     const s = this.active('sick'); if (s) m *= 1 - 0.18 * s.sev;
     const a = this.active('amatoxin'); if (a) m *= 0.45;
+    const v = this.active('envenomed'); if (v) m *= 0.7 - 0.25 * Math.min(1, v.t / v.dur);
     if (this.has('queasy')) m *= 0.9;
     if (this.retch > 0) m *= 0.2;
     return m;
@@ -65,9 +68,11 @@ export class Body {
       if (c.type === 'sick' || c.type === 'queasy') sick = Math.max(sick, (c.type === 'queasy' ? 0.3 : 0.35 + c.sev * 0.22) * k);
       if (c.type === 'trip') trip = Math.max(trip, c.sev * k);
       if (c.type === 'amatoxin') { sick = Math.max(sick, 0.95 * Math.min(1, c.t / 8)); collapse = Math.max(0, (c.t - c.dur * 0.6) / (c.dur * 0.4)); }
+      if (c.type === 'envenomed') { sick = Math.max(sick, 0.25 + 0.6 * c.t / c.dur); collapse = Math.max(0, (c.t - c.dur * 0.8) / (c.dur * 0.2)); }
       if (c.t >= c.dur) {
         this.conds.splice(this.conds.indexOf(c), 1);
         if (c.type === 'amatoxin') { this.fx.collapse = 1; g.onCollapse(); return; }
+        if (c.type === 'envenomed') { this.fx.collapse = 1; g.onCollapse('snake'); return; }
         this.onEnd(c);
       }
     }
@@ -88,6 +93,8 @@ export class Body {
       trip: ['The colours around you begin to breathe…', 'The forest seems to ripple and shimmer…'],
       amatoxin: ['Violent cramps seize you. This is serious.'],
       stung: ['Ouch! The stinging hairs burn your fingers.'],
+      envenomed: ['Two puncture marks, burning pain and swelling. You have been bitten by a venomous snake. Stay calm, move steadily — and get home to Maren.'],
+      bitten: ['A sharp nip — but this snake is not venomous. Just a scratch.'],
     };
     if (c.msg !== false) g.ui.toast(c.msg || (msgs[c.type] || [''])[Math.floor(Math.random() * (msgs[c.type] || ['']).length)], c.type !== 'queasy');
     if (c.type === 'trip') g.audio.tripStart?.();

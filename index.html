@@ -26,13 +26,14 @@
     <div id="crosshair"></div>
     <div id="prompt" class="hidden"><span class="key">E</span><span id="prompt-text"></span></div>
     <div id="toasts"></div>
-    <div id="packmeter"><span id="pack-count">0</span>/<span id="pack-cap">30</span></div>
+    <div id="packmeter">Carrying <span id="pack-count">0</span><span id="pack-cap" hidden></span></div>
     <div id="status-chips"></div>
     <div id="stamina" class="hidden"><div id="stamina-fill"></div></div>
     <button id="btn-home" class="hidden" aria-label="Return home">⌂ Return Home</button>
     <div id="buttons">
       <button id="btn-interact" class="round big hidden" aria-label="Interact">✋</button>
       <button id="btn-jump" class="round touch-only" aria-label="Jump">⤒</button>
+      <button id="btn-build" class="round hidden" aria-label="Build">Build</button>
       <button id="btn-pack" class="round" aria-label="Pack">Pack</button>
       <button id="btn-journal" class="round" aria-label="Journal">Log</button>
       <button id="btn-light" class="round hidden" aria-label="Lantern">☀</button>
@@ -44,6 +45,8 @@
       <div class="bar"><label>Landing</label><div class="track"><div id="fish-progress"></div></div></div></div>
       <button id="btn-reel" class="hidden">Hold to reel</button>
     </div>
+    <div id="build-bar" class="hidden"><div><b id="build-name"></b><span id="build-cost"></span></div>
+      <div class="bb"><button data-b="menu">☰</button><button id="build-rot" data-b="rotate">⟳ Turn</button><button id="build-place" data-b="place" class="primary">Place</button><button data-b="done">Done</button></div></div>
     <div id="observe" class="hidden"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" class="bg"/><circle id="observe-ring" cx="20" cy="20" r="16" class="fg"/></svg><span id="observe-text"></span></div>
   </div>
 

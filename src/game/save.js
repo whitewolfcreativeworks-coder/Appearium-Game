@@ -10,6 +10,7 @@ export function newSave() {
     expeditionCount: 0,
     store: { wood: 4, fibre: 2 },
     artifacts: [],
+    builds: [],       // pieces you have built and decorations you have placed in the village
     journal: { expeditions: [], wildlife: {}, fish: {}, places: [] },
     upgrades: { rod: 1, pack: 30, lantern: false, tower: false, garden: false, hall: false },
     tools: { snare: 1, deadfall: 0, fishtrap: 0 },

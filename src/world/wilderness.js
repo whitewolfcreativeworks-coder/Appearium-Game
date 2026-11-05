@@ -14,6 +14,7 @@ import { WorldGen, makeHomeGen, homeRoadCurve, HOME_R, ROAD_START } from './gene
 import { Village, HOME_LAYERS, HOME_ECO, filterYard } from './village.js';
 import { buildRoadMesh, roadPoint } from './road.js';
 import { Herds } from './herds.js';
+import { Fauna } from './fauna.js';
 import { smoothstep } from '../core/rng.js';
 
 const LABEL = { hamlet: (n) => n, ruins: (n) => `Ruins of ${n}`, stones: (n) => `The ${n} Stones`, grotto: (n) => `${n} Grotto`, cabin: (n) => `${n} Cabin`, find: () => 'Something glinting', wreck: (n) => `Wreck at ${n}`, alcove: (n) => `${n} Cliff Dwellings`, carvings: (n) => `${n} Rock Carvings` };
@@ -35,7 +36,7 @@ const SPECIALTY_COLOR = { potters: 0x8a3b2a, smiths: 0x2f3e52, carvers: 0x5a6b2e
 export class Wilderness extends World {
   constructor(game, exp) {
     const homeGen = makeHomeGen();
-    const gen = new WorldGen(`exp-${exp.seed}`, exp.terrain, { homeGen, start: ROAD_START, dir: { x: 0, z: -1 }, blend: [130, 340] });
+    const gen = new WorldGen(`exp-${exp.seed}`, exp.terrain, { homeGen, start: ROAD_START, dir: { x: 0, z: -1 }, blend: [30, 175] });
     super(game, {
       gen, eco: exp.eco, autumn: exp.autumn, dryGrass: exp.scenario === 'heath' ? 0.6 : exp.autumn * 0.5, collected: [],
       layers: { home: HOME_LAYERS.home, forest: HOME_LAYERS.forest, rock: exp.layers.rock, shore: exp.layers.shore, dest: exp.layers.ground },
@@ -72,16 +73,16 @@ export class Wilderness extends World {
   // the road: the same as it leaves the gate, then wandering off towards this expedition's land
   layRoad() {
     const g = this.gen, home = homeRoadCurve(g.homeGen), mine = (s) => g.nMask.noise(s * 0.009 + 7, 2.2) * 0.07;
-    const curve = (s) => { const k = smoothstep(150, 270, s); return home(s) * (1 - k) + mine(s) * k; };
+    const curve = (s) => { const k = smoothstep(60, 160, s); return home(s) * (1 - k) + mine(s) * k; };
     let len = 760;
     g.buildRoad(ROAD_START, 0, len, curve);
     // the road stops where the land does: at the dunes, at the canyon rim, at a lake shore
     const P = g.road.pts, stop = (i) => { len = i * 4; g.road.pts = P.slice(0, i + 1); };
-    for (let i = 60; i < P.length; i++) {
+    for (let i = 30; i < P.length; i++) {
       const [x, z] = P[i], s = g.sample(x, z), bh = g.baseHeight(x, z);
-      if (s.beach > 0.35 || s.sea > 0.05) { stop(Math.max(60, i - 6)); break; }
-      if (this.exp.region === 'canyon' && bh < g.p.water + g.p.plateau - 7) { stop(Math.max(60, i - 8)); break; }
-      if (bh < g.p.water - 0.4 && i > 80) { stop(i - 2); break; } // a lake
+      if (s.beach > 0.35 || s.sea > 0.05) { stop(Math.max(30, i - 6)); break; }
+      if (this.exp.region === 'canyon' && bh < g.p.water + g.p.plateau - 7) { stop(Math.max(30, i - 8)); break; }
+      if (bh < g.p.water - 0.4 && i > 45) { stop(i - 2); break; } // a lake
     }
     g.buildRoad(ROAD_START, 0, len, curve); // rebuild so the grid and smoothing match the final length
     this.roadLen = len;
@@ -91,7 +92,7 @@ export class Wilderness extends World {
     const exp = this.exp, g = this.gen;
     this.layRoad();
     // camp where the new land begins, a little off the road
-    const cp = roadPoint(g, Math.min(330, this.roadLen - 30));
+    const cp = roadPoint(g, Math.min(190, this.roadLen - 30));
     const side = this.rng.chance(0.5) ? 1 : -1;
     const t = this.findSite(cp.x + Math.cos(cp.angle) * 13 * side, cp.z + Math.sin(cp.angle) * 13 * side, { radius: 30, minAbove: 1.6, maxSlope: 0.12, tries: 120, avoidRoad: 5 })
       || { x: cp.x + Math.cos(cp.angle) * 10 * side, z: cp.z + Math.sin(cp.angle) * 10 * side, h: g.p.water + 2 };
@@ -129,6 +130,7 @@ export class Wilderness extends World {
     await this.wildlife.init();
     this.ambience = new Ambience(this.game, this);
     this.herds = new Herds(this.game, this, exp.herds);
+    this.fauna = new Fauna(this.game, this, exp.fauna || {});
     if (exp.eco.fireflies) this.emitters.add(fireflies(this.trail, 60, 90, (x, z) => this.heightAt(x, z)));
   }
 
@@ -368,6 +370,7 @@ export class Wilderness extends World {
     super.update(dt, ctx);
     this.home?.update(dt, ctx);
     this.herds?.update(dt, ctx);
+    this.fauna?.update(dt, ctx);
     this.wildlife?.update(dt, ctx.player, ctx);
     // discovery
     const p = ctx.player.pos;
@@ -377,5 +380,5 @@ export class Wilderness extends World {
     }
   }
 
-  dispose() { this.wildlife?.dispose(); this.herds?.dispose(); if (this.home) { for (const o of this.home.objects) this.scene.remove(o); this.home.emitters.clear(); } super.dispose(); }
+  dispose() { this.wildlife?.dispose(); this.herds?.dispose(); this.fauna?.dispose(); if (this.home) { for (const o of this.home.objects) this.scene.remove(o); this.home.emitters.clear(); } super.dispose(); }
 }

@@ -27,6 +27,10 @@ export const M = {
   get stone() { return surf('stone_wall'); },
   get sandstone() { return surf('red_sandstone_wall', { folder: 'terrain', color: 0xe0a478, gain: 1.25 }); },
   get darkwood() { return surf('weathered_planks', { color: 0x8a7462 }); },
+  get pot() { return surf('red_dirt_mud_01', { folder: 'terrain', color: 0xd88a60, gain: 1.4, rough: 0.8 }); },
+  get frond() { return surf('thatch_roof_angled', { color: 0xa8c070, gain: 1.4 }); },
+  pelt: new THREE.MeshStandardMaterial({ color: 0x8a6448, roughness: 1, side: THREE.DoubleSide }),
+  crystal: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.12, metalness: 0.05, emissive: 0x111111, envMapIntensity: 1.6 }),
   glass: new THREE.MeshStandardMaterial({ color: 0x1a1d1c, roughness: 0.12, metalness: 0.2, emissive: 0x000000 }),
   glow: new THREE.MeshStandardMaterial({ color: 0x332211, emissive: 0xffb25a, emissiveIntensity: 0.0, roughness: 0.6 }),
   iron: new THREE.MeshStandardMaterial({ color: 0x2b2a28, roughness: 0.5, metalness: 0.8 }),
@@ -66,7 +70,8 @@ export class Builder {
   finish(name = 'structure') {
     const group = new THREE.Group(); group.name = name;
     for (const [mat, geos] of this.parts) {
-      const clean = geos.map((g) => { const n = g.index ? g.toNonIndexed() : g; for (const a of Object.keys(n.attributes)) if (!['position', 'normal', 'uv'].includes(a)) n.deleteAttribute(a); return n; });
+      const keep = mat.vertexColors ? ['position', 'normal', 'uv', 'color'] : ['position', 'normal', 'uv'];
+      const clean = geos.map((g) => { const n = g.index ? g.toNonIndexed() : g; for (const a of Object.keys(n.attributes)) if (!keep.includes(a)) n.deleteAttribute(a); if (!n.attributes.normal) n.computeVertexNormals(); if (!n.attributes.uv) n.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(n.attributes.position.count * 2), 2)); return n; });
       const merged = BGU.mergeGeometries(clean);
       const mesh = new THREE.Mesh(merged, mat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.disposable = true;
       group.add(mesh);

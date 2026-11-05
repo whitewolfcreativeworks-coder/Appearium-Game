@@ -20,7 +20,7 @@ export const SCENARIOS = {
     weathers: [['clear', 3], ['hazy', 2], ['overcast', 1], ['rain', 0.6], ['windy', 0.5]], times: [[7.2, 2], [9.5, 3], [14, 2], [17.2, 1]],
     eco: { fungi: 1, flora: 1, lilies: 0.4, treeDensity: 0.024, conifer: 0.45, broad: 0.55, snag: 0.03, fern: 0.6, grass: 1.0, flowers: 0.5, rocks: 0.3, logs: 0.6, minerals: [] },
     fish: { river: ['trout', 'grayling'], lake: ['perch', 'pike'] },
-    pois: [['cabin', 0.6], ['stones', 0.3], ['find', 1]], foxes: 3, herds: ['geese', 'storks'],
+    pois: [['cabin', 0.6], ['stones', 0.3], ['find', 1]], foxes: 3, fauna: { deer: 'red_deer', bear: 'brown_bear', snakes: ['grass_snake', 'adder'] }, herds: ['geese', 'storks'],
   },
   highlands: {
     title: 'Highlands', nouns: ['Fells', 'Heights', 'Crags'],
@@ -30,7 +30,7 @@ export const SCENARIOS = {
     weathers: [['clear', 3], ['mist', 1.5], ['overcast', 1.5], ['windy', 1], ['snow', 0.8]], times: [[8, 2], [11, 2], [15.5, 2], [17.4, 1]],
     eco: { fungi: 0.7, flora: 0.8, floraW: { cloudberry: 1.5, lingonberry: 1.6 }, fungiW: { fly_agaric: 1.5 }, lilies: 0.2, treeDensity: 0.02, conifer: 0.92, broad: 0.08, snag: 0.08, fern: 0.15, grass: 0.7, flowers: 0.15, rocks: 1.3, logs: 0.3, minerals: ['quartz', 'amethyst', 'iron', 'copper'] },
     fish: { river: ['grayling', 'trout'], lake: ['char', 'char', 'perch'] },
-    pois: [['grotto', 1], ['stones', 0.4], ['cabin', 0.3], ['find', 1]], foxes: 2, herds: ['ravens', 'geese'],
+    pois: [['grotto', 1], ['stones', 0.4], ['cabin', 0.3], ['find', 1]], foxes: 2, fauna: { deer: 'red_deer', bear: 'brown_bear', snakes: ['adder'] }, herds: ['ravens', 'geese'],
   },
   mistwood: {
     title: 'Mistwood', nouns: ['Fens', 'Mires', 'Carr'],
@@ -40,7 +40,7 @@ export const SCENARIOS = {
     weathers: [['mist', 3], ['rain', 1.5], ['overcast', 1.5], ['hazy', 0.6], ['storm', 0.3]], times: [[6.8, 2], [10, 2], [16, 1], [20.6, 1.4]],
     eco: { fungi: 1.7, flora: 1.1, floraW: { cloudberry: 2, ramsons: 1.5, lily_of_the_valley: 1.3 }, lilies: 0.9, treeDensity: 0.028, conifer: 0.3, broad: 0.7, snag: 0.12, fern: 1.4, grass: 0.8, flowers: 0.2, rocks: 0.15, logs: 1.2, minerals: [], clay: true, fireflies: true },
     fish: { river: ['tench', 'perch'], lake: ['tench', 'pike', 'perch'] },
-    pois: [['cabin', 0.7], ['ruins', 0.35], ['find', 1]], foxes: 2, herds: ['storks', 'murmuration'],
+    pois: [['cabin', 0.7], ['ruins', 0.35], ['find', 1]], foxes: 2, fauna: { deer: 'red_deer', bear: 'brown_bear', snakes: ['grass_snake', 'grass_snake', 'adder'] }, herds: ['storks', 'murmuration'],
   },
   hamlet: {
     title: 'Meadowlands', nouns: ['Downs', 'Meadows', 'Leas'],
@@ -50,7 +50,7 @@ export const SCENARIOS = {
     weathers: [['clear', 3], ['hazy', 2], ['overcast', 0.8], ['windy', 0.8], ['storm', 0.25]], times: [[8.5, 1], [12, 2], [16.5, 2], [17.5, 1]],
     eco: { fungi: 0.8, flora: 1.1, fungiW: { parasol: 2, giant_puffball: 2, shaggy_inkcap: 2, liberty_cap: 1.5 }, floraW: { dandelion: 1.5, raspberry: 1.5 }, lilies: 0.6, treeDensity: 0.022, conifer: 0.25, broad: 0.75, snag: 0.02, fern: 0.25, grass: 1.25, flowers: 1.4, rocks: 0.3, logs: 0.4, minerals: [] },
     fish: { river: ['trout', 'perch'], lake: ['perch', 'tench'] },
-    pois: [['hamlet', 1], ['stones', 0.35], ['find', 1]], foxes: 3, herds: ['horses', 'storks', 'murmuration'],
+    pois: [['hamlet', 1], ['stones', 0.35], ['find', 1]], foxes: 3, fauna: { deer: 'red_deer', snakes: ['grass_snake', 'adder'] }, herds: ['horses', 'storks', 'murmuration'],
   },
   heath: {
     title: 'Old Heath', nouns: ['Heath', 'Barrows', 'Wastes'],
@@ -60,25 +60,25 @@ export const SCENARIOS = {
     weathers: [['hazy', 2], ['clear', 2], ['overcast', 1.5], ['mist', 0.8], ['windy', 1.2], ['storm', 0.3]], times: [[7.5, 1], [13, 1], [16.9, 3], [17.6, 1]],
     eco: { fungi: 0.9, flora: 0.9, fungiW: { earthball: 1.5, fly_agaric: 1.5 }, floraW: { lingonberry: 1.8, bilberry: 1.4 }, lilies: 0.4, treeDensity: 0.02, conifer: 0.85, broad: 0.15, snag: 0.06, fern: 0.4, grass: 0.9, flowers: 0.3, rocks: 0.9, logs: 0.5, minerals: ['quartz', 'iron'] },
     fish: { river: ['trout'], lake: ['perch', 'pike'] },
-    pois: [['ruins', 1], ['stones', 0.6], ['cabin', 0.3], ['find', 1]], foxes: 2, herds: ['horses', 'murmuration'],
+    pois: [['ruins', 1], ['stones', 0.6], ['cabin', 0.3], ['find', 1]], foxes: 2, fauna: { deer: 'red_deer', bear: 'brown_bear', snakes: ['adder', 'adder', 'grass_snake'] }, herds: ['horses', 'murmuration'],
   },
   coast: {
     title: 'The Coast', nouns: ['Shore', 'Strand', 'Sands', 'Bay'], region: 'coast',
     blurb: 'The road runs out of the trees, over the dunes — and there is the sea. Rock pools, gulls, and whatever the tide brings in.',
-    terrain: { kind: 'coast', base: 5, hills: 10, rivers: 0.35, lakes: 0.05, forest: -0.1, moisture: 0.05, streams: 0.5, ponds: 0.3, coastAt: 430 },
+    terrain: { kind: 'coast', base: 5, hills: 10, rivers: 0.35, lakes: 0.05, forest: -0.1, moisture: 0.05, streams: 0.5, ponds: 0.3, coastAt: 255 },
     layers: { ground: 'rocky_terrain_02', rock: 'aerial_rocks_02', shore: 'aerial_beach_01' }, mode: 'dry', shoreTint: 0xe8d8b8, sea: true,
     weathers: [['clear', 3], ['windy', 2], ['hazy', 1], ['overcast', 1], ['storm', 1], ['mist', 0.8]], times: [[9, 1], [13, 1], [17, 1]],
     eco: { region: 'coast', fungi: 0.6, flora: 1.0, lilies: 0.1, treeDensity: 0.016, trees: { conifer: 1, broad: 0.3, snag: 0.05 }, windswept: true, fern: 0.2, grass: 1.2, grassTint: [0.95, 1.05, 0.95], marram: true, flowers: 0.6, rocks: 0.6, logs: 0.3, minerals: [], driftwood: true },
-    pois: [['wreck', 1], ['cabin', 0.3], ['find', 1]], foxes: 1, herds: ['gulls', 'geese'],
+    pois: [['wreck', 1], ['cabin', 0.3], ['find', 1]], foxes: 1, fauna: { deer: 'red_deer', snakes: ['adder'], crabs: true, seals: true, whales: true, dolphins: true }, herds: ['gulls', 'geese'],
   },
   canyon: {
     title: 'Canyon Country', nouns: ['Canyon', 'Mesa', 'Breaks', 'Gorge'], region: 'canyon',
     blurb: 'The forest thins, the soil turns red, and the land opens into a vast canyon of layered stone with a green river far below.',
-    terrain: { kind: 'canyon', base: 6, hills: 9, rivers: 0, lakes: 0, forest: -0.35, moisture: -0.38, streams: 0, ponds: 0, plateau: 34, canyonWidth: 0.11, roughness: 1.2, treeLine: 999 },
+    terrain: { kind: 'canyon', base: 6, hills: 9, rivers: 0, lakes: 0, forest: -0.35, moisture: -0.38, streams: 0, ponds: 0, plateau: 34, canyonWidth: 0.11, canyonAt: 290, roughness: 1.2, treeLine: 999 },
     layers: { ground: 'dry_ground_rocks', rock: 'sandstone_cracks', shore: 'red_dirt_mud_01' }, mode: 'desert', strata: true, forestTint: 0xc89a78,
     weathers: [['clear', 4], ['hazy', 2], ['windy', 1.5], ['storm', 0.5]], times: [[8, 1], [12, 1], [17, 2]],
     eco: { region: 'canyon', fungi: 0.25, flora: 1.0, lilies: 0, treeDensity: 0.012, trees: { juniper: 1.4, pinyon: 0.8, cottonwood: 0.2 }, fern: 0, grass: 0.55, grassTint: [1.35, 1.15, 0.7], flowers: 0.4, rocks: 1.4, logs: 0.15, minerals: ['quartz', 'copper', 'iron'], sage: true, yucca: true },
-    pois: [['alcove', 1], ['carvings', 0.7], ['find', 1]], foxes: 2, herds: ['horses', 'ravens'],
+    pois: [['alcove', 1], ['carvings', 0.7], ['find', 1]], foxes: 2, fauna: { deer: 'mule_deer', bear: 'black_bear', snakes: ['rattlesnake', 'rattlesnake', 'gopher_snake'] }, herds: ['horses', 'ravens'],
   },
   tropics: {
     title: 'The Tropics', nouns: ['Jungle', 'Lagoon', 'Wilds'], region: 'tropics',
@@ -87,7 +87,7 @@ export const SCENARIOS = {
     layers: { ground: 'rocky_terrain_02', rock: 'aerial_rocks_02', shore: 'red_dirt_mud_01' }, mode: 'wet', groundTint: 0xb8d8a0, forestTint: 0xb4a688,
     weathers: [['hazy', 2], ['rain', 2], ['clear', 1.5], ['storm', 0.8], ['mist', 1]], times: [[8, 1], [13, 1], [17, 1]],
     eco: { region: 'tropics', fungi: 1.0, flora: 1.2, lilies: 0.8, treeDensity: 0.03, trees: { broad: 1.2, palm: 0.8, treefern: 0.5 }, lush: true, fern: 1.4, grass: 0.9, grassTint: [0.85, 1.1, 0.8], flowers: 0.5, rocks: 0.2, logs: 0.9, minerals: [], bananas: true, fireflies: true },
-    pois: [['ruins', 1], ['find', 1], ['cabin', 0.2]], foxes: 0, herds: ['parrots', 'flamingos'],
+    pois: [['ruins', 1], ['find', 1], ['cabin', 0.2]], foxes: 0, fauna: { snakes: ['fer_de_lance', 'boa'], crabs: true }, herds: ['parrots', 'flamingos'],
   },
   lakeland: {
     title: 'Lake Country', nouns: ['Lakes', 'Waters', 'Isles'], region: 'temperate',
@@ -96,7 +96,7 @@ export const SCENARIOS = {
     layers: { ground: 'rocky_terrain_02', rock: 'aerial_rocks_02', shore: 'coast_sand_rocks_02' }, mode: 'wet',
     weathers: [['clear', 3], ['mist', 1.5], ['overcast', 1], ['windy', 1], ['rain', 0.6], ['storm', 0.3]], times: [[7, 1], [12, 1], [18, 1]],
     eco: { fungi: 1, flora: 1, lilies: 0.8, treeDensity: 0.024, conifer: 0.65, broad: 0.35, snag: 0.04, fern: 0.6, grass: 1.0, flowers: 0.4, rocks: 0.5, logs: 0.6, minerals: [] },
-    pois: [['cabin', 0.8], ['stones', 0.3], ['find', 1]], foxes: 2, herds: ['geese', 'storks'],
+    pois: [['cabin', 0.8], ['stones', 0.3], ['find', 1]], foxes: 2, fauna: { deer: 'red_deer', bear: 'brown_bear', snakes: ['grass_snake', 'adder'] }, herds: ['geese', 'storks'],
   },
 };
 
@@ -124,7 +124,7 @@ export function generateExpedition(no, seed, prevScenario = null, force = null) 
   const pois = [];
   const ahead = rng.range(-0.9, 0.9); // landmarks lie roughly ahead along the road, in the new land
   for (const [type, p] of S.pois) if (rng.chance(p)) {
-    pois.push({ type, angle: 0, dist: type === 'find' ? rng.range(170, 300) : rng.range(300, 470), seed: Math.floor(rng.next() * 1e9), name: type === 'find' ? null : placeName(rng, region), specialty: rng.pick(SPECIALTIES) });
+    pois.push({ type, angle: 0, dist: type === 'find' ? rng.range(110, 240) : rng.range(200, 420), seed: Math.floor(rng.next() * 1e9), name: type === 'find' ? null : placeName(rng, region), specialty: rng.pick(SPECIALTIES) });
   }
   pois.forEach((p, i) => { p.side = (i / Math.max(1, pois.length - 1) - 0.5) * 1.5 + rng.range(-0.25, 0.25) + ahead * 0.25; });
   const main = pois.find((p) => p.type !== 'find');
@@ -141,7 +141,7 @@ export function generateExpedition(no, seed, prevScenario = null, force = null) 
   return {
     no, seed, scenario: id, region, title: S.title, name, place, weather, autumn,
     terrain, layers: S.layers, mode: S.mode, tints: { ground: S.groundTint, forest: S.forestTint, shore: S.shoreTint }, strata: !!S.strata, sea: !!S.sea,
-    eco: { region, ...S.eco }, herds: S.herds || [], foxes: S.foxes, weathers: S.weathers,
+    eco: { region, ...S.eco }, herds: S.herds || [], fauna: S.fauna || {}, foxes: S.foxes, weathers: S.weathers,
     pois, rumor: main ? rumors[main.type](main) : 'No one you know has walked this land before.',
     blurb: S.blurb,
   };

@@ -13,6 +13,7 @@ import { KIND_INFO } from './vegetation.js';
 import { ITEMS } from '../game/items.js';
 import { makeHomeGen, homeRoadCurve, HOME_R, ROAD_START } from './generator.js';
 import { buildRoadMesh } from './road.js';
+import { buildPiece } from '../game/building.js';
 
 export const HOME_LAYERS = { home: 'rocky_terrain_02', forest: 'forest_leaves_03', rock: 'aerial_rocks_02', shore: 'coast_sand_rocks_02', dest: 'rocky_terrain_02' };
 export const HOME_ECO = { treeDensity: 0.026, conifer: 0.55, broad: 0.45, snag: 0.02, fern: 0.5, grass: 1.1, flowers: 0.6, rocks: 0.3, logs: 0.3, minerals: [], fungi: 0.6, flora: 0.8 };
@@ -159,8 +160,37 @@ export class Village extends World {
 
     this.hall = { x: 14, z: -11, ry: Math.atan2(-14, 11) };
     this.store = { x: stP.x, z: stP.z, ry: stRy };
+    this.baseColliders = [...this.colliders.items.values()].map((c) => ({ ...c }));
     this.buildDynamic();
+    this.buildPlaced();
     this.emitters.add(chimneySmoke(this.herbChimney.clone().setY(this.herbChimney.y + h0), 0.8));
+  }
+
+  // everything the player has built and placed (rebuilt whenever something changes)
+  buildPlaced() {
+    if (this.placedGroup) { this.scene.remove(this.placedGroup); this.objects = this.objects.filter((o) => o !== this.placedGroup); this.placedGroup.traverse((m) => { if (m.isMesh && m.userData.disposable) m.geometry.dispose(); }); }
+    for (const id of this.placedColliders || []) this.colliders.remove(id);
+    for (const e of this.placedEmitters || []) this.emitters.remove?.(e);
+    this.statics = this.statics.filter((s) => !s.placed);
+    this.placedColliders = []; this.placedEmitters = [];
+    const save = this.game.save, h0 = this.h0, b = new Builder(), extras = [];
+    this.placedNoGrass = [];
+    for (const piece of save.builds || []) {
+      const r = buildPiece(b, piece, h0, save); if (!r) continue;
+      if (r.def?.snap === 'cell' && !r.def.roof) this.placedNoGrass.push({ x: piece.x, z: piece.z, r: 1.05 });
+      if (piece.t === 'pelt_rug' || piece.t === 'stone_path') this.placedNoGrass.push({ x: piece.x, z: piece.z, r: 0.8 });
+      for (const c of r.colliders) this.placedColliders.push(this.colliders.add(c));
+      for (const x of r.extra || []) extras.push(x);
+      const at = new THREE.Vector3(piece.x, h0 + 1, piece.z);
+      if (r.def?.use === 'rest') this.statics.push({ type: 'rest', placed: true, pos: at, radius: 2, label: 'Rest in your bed' });
+      if (r.def?.use === 'store') this.statics.push({ type: 'store', placed: true, pos: at, radius: 1.8, label: 'Open your chest (the storehouse)' });
+      if (r.def?.use === 'hearth') { this.statics.push({ type: 'hearth', placed: true, pos: at, radius: 2, label: 'Cook at your hearth' }); const f = campfire(new THREE.Vector3(piece.x, h0, piece.z)); this.emitters.add(f); this.placedEmitters.push(f); }
+      if (piece.t === 'artifact') { const a = save.artifacts.find((q) => q.uid === piece.uid); if (a) this.statics.push({ type: 'artifact-view', placed: true, artifact: a, pos: new THREE.Vector3(piece.x, h0 + 1.1, piece.z), radius: 1.4, label: `Examine: ${a.name}` }); }
+    }
+    const grp = b.finish('placed');
+    for (const x of extras) grp.add(x.obj);
+    this.placedGroup = grp; this.add(grp);
+    if (this.grass) this.grass.clear(); // regrow grass around the new floors
   }
 
   // parts that depend on the save: Hall pedestals + artifacts, store piles, upgrades
@@ -236,7 +266,8 @@ export class Village extends World {
     const bg = b.finish('village-dyn'); bg.position.y = h0; dyn.add(bg);
     for (const col of b.colliders) this.dynColliders.push(this.colliders.add({ ...col }));
     // ---- artifacts on pedestals (most recent first)
-    const arts = save.artifacts.slice().reverse().slice(0, slots.length);
+    const placedArts = new Set((save.builds || []).filter((q) => q.t === 'artifact').map((q) => q.uid));
+    const arts = save.artifacts.filter((a) => !placedArts.has(a.uid)).reverse().slice(0, slots.length);
     arts.forEach((a, i) => {
       const m = buildArtifactMesh(a);
       m.scale.multiplyScalar(1.9);

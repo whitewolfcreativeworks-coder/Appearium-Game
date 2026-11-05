@@ -103,7 +103,7 @@ function horseGeometry() {
   const tail = merge([vc(new THREE.ConeGeometry(0.11, 0.8, 7).rotateX(Math.PI).translate(0, -0.4, 0), dark)]);
   return { body, neckHead, leg, tail };
 }
-const COATS = [[0.42, 0.24, 0.13], [0.55, 0.3, 0.14], [0.2, 0.14, 0.1], [0.72, 0.7, 0.66], [0.6, 0.48, 0.32], [0.12, 0.1, 0.09]];
+const COATS = [[0.45, 0.27, 0.16], [0.6, 0.34, 0.18], [0.24, 0.18, 0.14], [0.78, 0.76, 0.72], [0.66, 0.54, 0.38], [0.15, 0.13, 0.12]].map((c) => c.map((v) => v ** 2.2));
 
 // ------------------------------------------------------------------
 export class Herds {

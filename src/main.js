@@ -7,6 +7,7 @@ import { defineKinds, windUniforms, KIND_INFO } from './world/vegetation.js';
 import { createWaterMaterial } from './world/water.js';
 import { SkySystem } from './world/sky.js';
 import { loadProps } from './world/structures.js';
+import { BuildMode } from './game/buildmode.js';
 import { Village } from './world/village.js';
 import { Wilderness } from './world/wilderness.js';
 import { generateExpedition, SCENARIOS } from './world/scenarios.js';
@@ -145,12 +146,14 @@ class Game {
     });
     $('btn-home').onclick = () => this.confirmReturnHome();
     $('btn-pack').onclick = () => this.openPack();
+    $('btn-build').onclick = () => this.buildMode.open();
+    this.buildMode = new BuildMode(this);
     $('btn-journal').onclick = () => this.openJournal();
     $('btn-menu').onclick = () => this.openMenu();
     $('btn-light').onclick = () => this.toggleLantern();
     $('btn-jump').onpointerdown = (e) => { e.preventDefault(); this.input.pressed.add('Space'); };
     $('btn-interact').onpointerdown = (e) => { e.preventDefault(); this.interact(); };
-    this.input.dom.addEventListener('mousedown', (e) => { if (this.input.locked && e.button === 0 && !this.fishing.active) this.interact(); });
+    this.input.dom.addEventListener('mousedown', (e) => { if (this.input.locked && e.button === 0 && !this.fishing.active) { if (this.buildMode.active) this.buildMode.commit(); else this.interact(); } });
   }
 
   start() {
@@ -174,6 +177,7 @@ class Game {
 
   // ------------------------------------------------------------------ world transitions
   async loadWorld(world, spawn) {
+    this.buildMode?.stop();
     if (this.world) this.world.dispose();
     this.traps = [];
     this.world = world;
@@ -199,6 +203,7 @@ class Game {
     else { this.sky.setWeather(homeW, true); this.sky.time = this.save.time; }
     this.ui.region('Home', `Your village · ${this.save.expeditionCount} expedition${this.save.expeditionCount === 1 ? '' : 's'} so far`);
     $('btn-home').classList.add('hidden');
+    $('btn-build').classList.remove('hidden');
     $('packmeter').classList.add('hidden');
     $('btn-light').classList.toggle('hidden', !this.save.upgrades.lantern);
     this.lantern.intensity = 0;
@@ -215,7 +220,7 @@ class Game {
     this.ui.showPanel(`<button class="close" data-act="close">Not yet</button><h2>Expedition ${n}</h2>
       <div class="sub">Beyond the North Gate lies land no one has walked before — it will exist only for this journey.
       Gather what you can; whatever you carry home will be kept forever. You can return home at any time.</div>
-      <div class="kv">Pack capacity <b>${this.save.upgrades.pack}</b> · Rod <b>${this.save.upgrades.rod >= 2 ? 'sturdy' : 'simple'}</b> · Snares <b>${this.save.tools.snare || 0}</b>${this.save.upgrades.lantern ? ' · Lantern' : ''}</div>
+      <div class="kv">Rod <b>${this.save.upgrades.rod >= 2 ? 'sturdy' : 'simple'}</b> · Snares <b>${this.save.tools.snare || 0}</b>${this.save.upgrades.lantern ? ' · Lantern' : ''}</div>
       <div class="actions"><button class="btn ghost" data-act="close">Stay home</button><button class="btn primary" data-act="go">Set out</button></div>`,
     (act) => { if (act === 'go') { this.ui.closePanel(); this.startExpedition(); } });
   }
@@ -239,6 +244,7 @@ class Game {
       exp.arrived = false; this.weatherClock = 0;
       this.ui.region('The road north', `Expedition ${no} · the village is behind you`);
       $('btn-home').classList.remove('hidden');
+      $('btn-build').classList.add('hidden');
       $('packmeter').classList.remove('hidden');
       this.updatePackMeter();
       await new Promise((r) => setTimeout(r, 1200));
@@ -275,9 +281,11 @@ class Game {
       this.traps = [];
       writeSave(this.save);
       await this.enterVillage({ fromExpedition: true });
+      if (this.body.conds.some((c) => c.type === 'envenomed')) { this.body.conds = this.body.conds.filter((c) => c.type !== 'envenomed'); setTimeout(() => this.ui.toast('Maren cleans and dresses the snakebite, and gives you something for the pain. You made it home in time.', true), 900); }
       const parts = Object.entries(brought).map(([k, v]) => `${v} ${itemInfo(k).name.toLowerCase()}`);
       if (parts.length || arts.length) setTimeout(() => this.ui.toast(`Brought home: ${[...parts, ...arts].slice(0, 6).join(', ')}${parts.length + arts.length > 6 ? '…' : ''}`, true), 400);
       if (arts.length) setTimeout(() => this.ui.toast('Your new discoveries are on display in the <b>Hall of Discoveries</b>.'), 3800);
+      if (!this.save.tutorial.build && Object.keys(this.save.store).some((k) => ['shell', 'driftwood', 'sandstone', 'frond', 'sea_glass'].includes(k) || (this.save.store.wood || 0) >= 6)) { this.save.tutorial.build = true; setTimeout(() => this.ui.toast('You can build your own house and decorate it with what you bring home — tap <b>Build</b> (or press B).', true), 10500); }
       if (Object.keys(brought).some((k) => k.startsWith('f:'))) setTimeout(() => this.ui.toast('Take your foraged finds to <b>Maren the herbalist</b> — she will check your identifications.'), 7000);
     } finally { this.transitioning = false; }
   }
@@ -295,10 +303,10 @@ class Game {
     let n = 0; for (const [k, v] of Object.entries(this.pack.items)) n += (half && (k.startsWith('f:') || k.startsWith('v:'))) ? v * 0.5 : v;
     return Math.ceil(n) + this.pack.artifacts.length * 2;
   }
-  updatePackMeter() { this.ui.pack(this.packCount(), this.save.upgrades.pack); }
+  updatePackMeter() { this.ui.pack(this.packCount()); }
   addToPack(item, qty, partial = false) {
     const per = this.save.upgrades.basket && (item.startsWith('f:') || item.startsWith('v:')) ? 0.5 : 1;
-    const room = Math.floor((this.save.upgrades.pack - this.packCount()) / per + 1e-6);
+    const room = Infinity; // carry as much as you like
     if (room <= 0 || (!partial && room < qty)) return 0;
     const n = Math.min(qty, room);
     this.pack.items[item] = (this.pack.items[item] || 0) + n;
@@ -321,6 +329,7 @@ class Game {
   }
 
   findInteraction() {
+    if (this.buildMode?.active) return null;
     if (!this.world || this.ui.panelOpen || this.fishing.active || this.transitioning) return null;
     const p = this.player.pos, f = this.player.forward(new THREE.Vector3());
     let best = null, bestScore = Infinity;
@@ -346,6 +355,13 @@ class Game {
         const dir = new THREE.Vector3(dx, nf.fox.pos.y + 0.3 - this.camera.position.y, dz).normalize();
         if (look.dot(dir) > 0.93) return { type: 'observe', fox: nf.fox, label: `Observe the red fox (${Math.round(d)} m) — keep still` };
       }
+    }
+    if (this.world.fauna) {
+      const cr = this.world.fauna.nearestCrab(p, 1.8);
+      if (cr) return { type: 'crab', crab: cr, pos: cr.pos, label: 'Catch the crab (from behind!)' };
+      const look = new THREE.Vector3(); this.camera.getWorldDirection(look);
+      const ob = this.world.fauna.observable(p, look, this.camera.position);
+      if (ob) { const A = ANIMALS[ob.kind]; return { type: 'observe', herd: ob, label: `Observe the ${A.name.toLowerCase()} (${Math.round(ob.dist)} m)${A.danger ? ' — keep your distance' : ' — keep still'}` }; }
     }
     if (this.world.herds) {
       const look = new THREE.Vector3(); this.camera.getWorldDirection(look);
@@ -383,11 +399,10 @@ class Game {
       case 'artifact': {
         const a = i.artifact;
         this.ui.showPanel(`<div class="k" style="color:var(--accent);letter-spacing:.16em;font-size:12px;text-transform:uppercase">Discovery</div><h2>${this.ui.esc(a.name)}</h2>
-          <div class="sub" style="font-style:italic">${this.ui.esc(a.story)}</div><div class="kv">Takes 2 spaces in your pack. Once home, it will be displayed in the Hall of Discoveries.</div>
+          <div class="sub" style="font-style:italic">${this.ui.esc(a.story)}</div><div class="kv">Once home, it can go in the Hall of Discoveries — or in your own house.</div>
           <div class="actions"><button class="btn ghost" data-act="close">Leave it</button><button class="btn primary" data-act="take">Take it home</button></div>`,
         (act) => {
           if (act !== 'take') return;
-          if (this.save.upgrades.pack - this.packCount() < 2) { this.ui.toast('Not enough room in your pack (needs 2).'); return; }
           this.pack.artifacts.push(a); w.removeGatherable(i); this.updatePackMeter(); this.persist();
           this.ui.closePanel(); this.audio.discover(); this.ui.toast(`Taken: <b>${this.ui.esc(a.name)}</b>`, true);
         });
@@ -405,6 +420,11 @@ class Game {
       case 'camp': this.openCamp(); break;
       case 'signpost': this.ui.toast(`The fingerpost reads <b>${this.ui.esc(this.expedition.place)}</b> to the north, and <b>Home</b> back the way you came.`); break;
       case 'trap': checkTrap(this, i); break;
+      case 'crab': {
+        if (Math.random() < 0.6) { this.world.fauna.removeCrab(i.crab); this.addToPack('crab', 1); know(this.save, 'shore_crab').seen++; this.ui.toast('Got it — pinched from behind, claws waving harmlessly. (Cook it before eating.)'); }
+        else { i.crab.state = 'flee'; i.crab.timer = 3; i.crab.dir = Math.random() * 6.28; this.ui.toast('It darts sideways under the weed. Too slow!'); }
+        break;
+      }
       case 'observe': this.observing = i.fox ? { fox: i.fox, t: 0 } : i.herd ? { herd: i.herd, t: 0 } : { hare: i.hare, t: 0 }; break;
       case 'fish': this.fishing.prepare(i.spot); break;
       case 'forage': interactForage(this, i); break;
@@ -443,20 +463,25 @@ class Game {
     this.persist();
   }
 
-  onCollapse() {
-    // a deadly poisoning: the expedition ends and you wake at home, weakened
+  onCollapse(reason = 'poison') {
+    // a deadly poisoning, a snakebite left too long or a bear: the expedition ends and you wake at home, weakened
     if (this.collapsing) return; this.collapsing = true;
     (async () => {
       this.fishing.cancel(); this.ui.closePanel();
       const inExp = !!this.expedition;
-      await this.ui.fade(true, { kicker: 'Poisoned', title: 'Everything goes dark', sub: inExp ? 'You collapse in the wilderness. Travellers find you and carry you home. You lie in bed for days while Maren nurses you through it.' : 'You collapse at home. For days Maren nurses you through it.', rumor: 'Death cap and deadly nightshade poisonings begin hours after eating, when it is already too late to simply spit it out. Most real-world mushroom deaths are from death caps.' });
+      const T = {
+        poison: { kicker: 'Poisoned', title: 'Everything goes dark', sub: inExp ? 'You collapse in the wilderness. Travellers find you and carry you home. You lie in bed for days while Maren nurses you through it.' : 'You collapse at home. For days Maren nurses you through it.', rumor: 'Death cap and deadly nightshade poisonings begin hours after eating, when it is already too late to simply spit it out. Most real-world mushroom deaths are from death caps.' },
+        snake: { kicker: 'Snakebite', title: 'The venom takes hold', sub: 'Your leg swells, your vision swims, and you sink down. Travellers find you and carry you home, where Maren treats the bite.', rumor: 'With a venomous bite, time matters: keep still and calm, keep the limb below the heart, take off rings, and get to medical help for antivenom. Never cut, suck, ice or tourniquet a snakebite.' },
+        bear: { kicker: 'Attacked', title: 'The bear is on you', sub: 'You curl up, hands over your neck. After a terrible moment it leaves. Travellers find you hurt and carry you home.', rumor: 'Most bear charges are bluffs — running turns them into a chase. Back away slowly, talking calmly. If a brown bear makes contact, lie flat and play dead; if a black bear attacks, fight back.' },
+      }[reason] || {};
+      await this.ui.fade(true, T);
       this.body.clearAll(); this.body.satiety = 40; this.body.stamina = 40;
       if (inExp) {
         this.pack.items = Object.fromEntries(Object.entries(this.pack.items).filter(([k]) => !k.startsWith('f:') && !k.startsWith('v:') && !FISH[k]));
         this.transitioning = false; await new Promise((r) => setTimeout(r, 3500));
         await this.returnHome();
       } else { this.sky.time = 8; await new Promise((r) => setTimeout(r, 3500)); await this.ui.fade(false); }
-      this.ui.toast('You survived — barely. Your spoiled food was thrown away.', true);
+      this.ui.toast(reason === 'poison' ? 'You survived — barely. Your spoiled food was thrown away.' : reason === 'snake' ? 'Maren treated the bite. You will mend — slowly.' : 'Bruised and torn, but alive. Your food was lost.', true);
       this.collapsing = false;
     })();
   }
@@ -482,7 +507,7 @@ class Game {
     const bait = Object.entries(BAIT).map(([id, bt]) => `<span class="pill">${bt.name}: <b>${b[id] || 0}</b></span>`).join('');
     const body = this.body;
     const html = `<button class="close" data-act="close">Close</button><h2>Pack</h2>
-      <div class="sub">${inExp ? `${this.packCount()} of ${this.save.upgrades.pack} spaces used${this.save.upgrades.basket ? ' (forage takes half space in your basket)' : ''}. Everything here is kept once you return home.` : 'You are at home. Your belongings are in the storehouse.'}</div>
+      <div class="sub"> ${inExp ? `${this.packCount()} things carried. Everything here is kept once you return home.` : 'You are at home. Your belongings are in the storehouse.'}</div>
       <div class="kv">Hunger <b>${body.satiety > 70 ? 'satisfied' : body.satiety > 35 ? 'peckish' : body.satiety > 15 ? 'hungry' : 'starving'}</b>${body.chips().length ? ' · ' + body.chips().map((c) => CONDITIONS[c].label).join(', ') : ''}</div>
       ${inExp ? this.itemGrid(this.pack.items, 'Your pack is empty. Look around for things to gather.', { eat: true }) : ''}
       ${arts ? `<h3>Artifacts</h3>${arts}` : ''}
@@ -525,7 +550,8 @@ class Game {
       const needs = Object.entries(T.needs).map(([k, v]) => `<span class="${(s[k] || 0) >= v ? 'ok' : 'no'}">${v} ${itemInfo(k).name.toLowerCase()} (${s[k] || 0})</span>`).join(' · ');
       return `<div class="row"><div><div>${T.name} <span class="q">×${this.save.tools[id] || 0}</span></div><div class="need">${learned ? needs : 'Learn how it works first.'}</div></div>${learned ? `<button class="btn" data-act="maketrap" data-id="${id}" ${can ? '' : 'disabled'}>Make</button>` : `<button class="btn primary" data-act="lesson" data-id="${id}">Learn</button>`}</div>`;
     }).join('');
-    this.ui.showPanel(`<button class="close" data-act="close">Close</button><h2>Workshop</h2><div class="sub">Craft equipment and improve the village with what you have stored.</div>${rows}<h3>Bushcraft: traps</h3>${lessons}`, (act, d) => {
+    this.ui.showPanel(`<button class="close" data-act="close">Close</button><h2>Workshop</h2><div class="sub">Craft equipment and improve the village with what you have stored.</div><div class="actions" style="justify-content:flex-start"><button class="btn primary" data-act="build">Build &amp; decorate your place…</button></div>${rows}<h3>Bushcraft: traps</h3>${lessons}`, (act, d) => {
+      if (act === 'build') { this.buildMode.open(); return; }
       if (act === 'lesson') { lessonPanel(this, d.id, () => {}); return; }
       if (act === 'maketrap') { const T = TRAPS[d.id]; for (const [k, v] of Object.entries(T.needs)) s[k] -= v; this.save.tools[d.id] = (this.save.tools[d.id] || 0) + 1; writeSave(this.save); this.audio.craft(); this.ui.toast(`Made: <b>${T.name}</b>`); this.openWorkshop(); return; }
       if (act !== 'craft') return;
@@ -621,7 +647,7 @@ class Game {
         out += entry(id, f, `<li><b>Look:</b> ${e(f.look)}</li><li><b>Water:</b> ${where} · <b>Best at:</b> ${best} · <b>Bait:</b> ${baits} · ${f.size[0]}–${f.size[1]} cm</li><li>${e(f.facts)}</li>`, true);
       }
     } else if (sec === 'animals') {
-      for (const [id, a] of Object.entries(ANIMALS)) out += entry(id, a, `${a.track ? `<li><b>Tracks:</b> ${e(a.track)}</li>` : ''}<li>${e(a.facts)}</li>`, false);
+      for (const [id, a] of Object.entries(ANIMALS)) out += entry(id, { ...a, status: a.danger ? (a.danger === 'venomous' ? 'deadly' : 'toxic') : null }, `${a.track ? `<li><b>Tracks:</b> ${e(a.track)}</li>` : ''}<li>${e(a.facts)}</li>${a.safety ? `<li><b>${a.danger ? 'Staying safe' : 'Good to know'}:</b> ${e(a.safety)}</li>` : ''}`, false);
     } else if (sec === 'bush') {
       for (const [id, T] of Object.entries(TRAPS)) out += `<div class="art guide"><div class="n">${e(T.name)} ${this.save.lessons[id] ? '<span class="st" style="color:#9fc27a">Learned</span>' : '<span class="st dim">Learn at the workshop</span>'}</div><ol class="obs">${T.steps.map(([h, b]) => `<li><b>${e(h)}.</b> ${e(b)}</li>`).join('')}</ol><div class="o">${e(T.where)} ${e(T.note)}</div></div>`;
       out += `<div class="art guide"><div class="n">Bait for fishing</div><ul class="obs">${Object.values(BAIT).map((b) => `<li><b>${e(b.name)}:</b> ${e(b.desc)}</li>`).join('')}</ul></div>`;
@@ -694,6 +720,20 @@ class Game {
     this.lantern.intensity = this.lantern.intensity > 0 ? 0 : 7;
   }
 
+  onSnakeBite(id) {
+    const A = ANIMALS[id]; const venom = ['adder', 'rattlesnake', 'fer_de_lance'].includes(id);
+    this.audio.call?.('bite'); this.ui.flash?.('hurt');
+    know(this.save, id).seen++;
+    if (venom) this.body.add('envenomed', { sev: 2, dur: id === 'adder' ? 420 : 300 });
+    else this.body.add('bitten', { dur: 15 });
+    this.showCard(`<div class="k">${venom ? 'Snakebite!' : 'Bitten'}</div><div class="n">${this.ui.esc(A.name)}</div><div class="s">${venom ? 'Keep calm. Do not run — it spreads the venom. Return home; Maren can treat it.' : 'Not venomous. It only wanted you to go away.'}</div><div class="o">${this.ui.esc(A.safety)}</div>`, 9000);
+    this.persist();
+  }
+  onBearAttack(id) {
+    know(this.save, id).seen++; this.audio.call?.('bear_roar'); this.ui.flash?.('hurt');
+    this.body.fx.collapse = 1; this.onCollapse('bear');
+  }
+
   // how close the open sea is (for the sound of the surf)
   seaNear(p) {
     const g = this.world.gen; if (g.p.kind !== 'coast') return 0;
@@ -748,12 +788,14 @@ class Game {
     const input = this.input;
     if (this.state === 'play' && !this.transitioning) {
       if (!this.ui.panelOpen) {
-        if (input.wasPressed('KeyE') && !this.fishing.active) this.interact();
+        if (this.buildMode.active) this.buildMode.update();
+        else if (input.wasPressed('KeyE') && !this.fishing.active) this.interact();
+        if (input.wasPressed('KeyB') && this.world?.kind === 'village' && !this.buildMode.active) this.buildMode.open();
         if (input.wasPressed('KeyI') || input.wasPressed('Tab')) this.openPack();
         if (input.wasPressed('KeyJ')) this.openJournal();
         if (input.wasPressed('KeyH') && this.expedition) this.confirmReturnHome();
         if (input.wasPressed('KeyL')) this.toggleLantern();
-        if (input.wasPressed('Escape') && !this.fishing.active && !input.locked) this.openMenu();
+        if (input.wasPressed('Escape') && !this.fishing.active && !input.locked && !this.buildMode.active) this.openMenu();
       } else if (input.wasPressed('Escape')) this.ui.closePanel();
       this.player.update(dt, input, this.world, this.save.settings);
       this.body.update(dt, this.player.running, this.player.speed > 0.5);
@@ -761,13 +803,19 @@ class Game {
       // wildlife observation
       if (this.observing) {
         const o = this.observing, a = o.fox || o.hare || o.herd.ref, d = a.pos.distanceTo(this.player.pos);
-        if (a.state === 'flee' || a.state === 'fly' || d > (o.herd ? 65 : 32) || this.player.speed > 0.6) { this.ui.observe(null); this.observing = null; if (a.state === 'flee' || a.state === 'fly') this.ui.toast(o.fox ? 'The fox noticed you and bolted.' : o.hare ? 'The hare bolts away in a zig-zag.' : o.herd.kind === 'horse' ? 'The herd wheels away at a gallop.' : 'They lift off, legs trailing.'); }
+        if (a.state === 'flee' || a.state === 'fly' || a.state === 'charge' || d > (o.herd ? 95 : 32) || this.player.speed > 0.6) { this.ui.observe(null); this.observing = null; if (a.state === 'flee' || a.state === 'fly') this.ui.toast(o.fox ? 'The fox noticed you and bolted.' : o.hare ? 'The hare bolts away in a zig-zag.' : o.herd.kind === 'horse' ? 'The herd wheels away at a gallop.' : /deer/.test(o.herd.kind) ? 'They bound away, white rumps flashing.' : ANIMALS[o.herd.kind]?.group === 'snake' ? 'It slides away into cover.' : 'They lift off, legs trailing.'); }
         else if (o.herd && o.t > 3) {
           this.ui.observe(null); this.observing = null; const kind = o.herd.kind, k = know(this.save, kind); const first = !k.seen; k.seen++;
-          const notes = { horse: ['The lead mare lifts her head, ears on you, then goes back to grazing.', 'A foal sticks close to its mother\'s flank.', 'Two of them stand nose to tail, flicking flies off each other\'s faces.'],
+          const notes = {
+            red_deer: ['A hind lifts her head, ears swivelling, nose working the wind.', 'They browse along the edge of the trees, tails flicking.'], mule_deer: ['Huge ears turn towards you. It stamps a forefoot.'],
+            brown_bear: ['It rips at a rotten log for grubs, then lifts its nose to the wind.', 'A great hump of muscle over the shoulders — the digging muscle of a brown bear.'], black_bear: ['It rakes berries off a bush with its lips, unhurried.'],
+            harbour_seal: ['They lie in banana shapes, heads and tails raised off the warm rock.', 'One scratches its belly with a front flipper, eyes half closed.'],
+            adder: ['Coiled flat to soak up the sun, the zigzag plain along its back.'], grass_snake: ['The yellow collar shows clearly as it lifts its head.'], rattlesnake: ['The rattle — a column of dry, hollow segments — is held up, ready.'],
+            gopher_snake: ['Narrow head, round pupils, no rattle — a harmless mimic.'], fer_de_lance: ['Motionless among the leaves, the spearhead pattern almost invisible.'], boa: ['Thick and slow, tongue flickering, tail turning reddish.'],
+            horse: ['The lead mare lifts her head, ears on you, then goes back to grazing.', 'A foal sticks close to its mother\'s flank.', 'Two of them stand nose to tail, flicking flies off each other\'s faces.'],
             flamingo: ['They feed with their heads upside down, sieving the water through their bills.', 'One stands on a single leg, the other tucked up under its body.'],
             stork: ['It stalks slowly through the grass, then stabs down at something.', 'It clatters its long red bill.'] }[kind] || ['You watch quietly.'];
-          this.showCard(`<div class="k">Field note${first ? ' — new species' : ''}</div><div class="n">${this.ui.esc(ANIMALS[kind].name)}</div><div class="s">${notes[Math.floor(Math.random() * notes.length)]}</div><div class="o">${this.ui.esc(ANIMALS[kind].facts)}</div>`, 5000);
+          this.showCard(`<div class="k">Field note${first ? ' — new species' : ''}</div><div class="n">${this.ui.esc(ANIMALS[kind].name)}</div><div class="s">${notes[Math.floor(Math.random() * notes.length)]}</div><div class="o">${this.ui.esc(ANIMALS[kind].facts)}${ANIMALS[kind].safety ? `<br><b>${ANIMALS[kind].danger ? 'Staying safe' : 'Good to know'}:</b> ${this.ui.esc(ANIMALS[kind].safety)}` : ''}</div>`, 9000);
           this.persist();
         }
         else if (o.hare && o.t > 2.6) {

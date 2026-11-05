@@ -74,8 +74,9 @@ export class WorldGen {
     if (!this.home) return 1;
     const dx = x - this.start.x, dz = z - this.start.z;
     const u = dx * this.dir.x + dz * this.dir.z, r = Math.hypot(dx, dz);
-    const v = Math.max(u, r * 0.72) + this.nBiome.fbm(x * 0.006, z * 0.006, 2) * 45;
-    return smoothstep(this.blend[0], this.blend[1], v);
+    const v = Math.max(u, r * 0.72) + this.nBiome.fbm(x * 0.006, z * 0.006, 2) * 35;
+    // the village itself and its yard always stay home
+    return smoothstep(this.blend[0], this.blend[1], v) * smoothstep(48, 85, Math.hypot(x, z));
   }
   // coordinates along / across the road direction
   roadCoords(x, z) { const dx = x - this.start.x, dz = z - this.start.z; return [dx * this.dir.x + dz * this.dir.z, dx * this.dir.z - dz * this.dir.x]; }
@@ -181,7 +182,10 @@ export class WorldGen {
       const plateau = top + (h - p.base) * 0.35;
       const wx = x + 40 * this.nWarp.fbm(x * 0.003, z * 0.003, 2), wz = z + 40 * this.nWarp.fbm(x * 0.003 + 9, z * 0.003, 2);
       const cn = this.nRiver.fbm(wx * 0.0021, wz * 0.0021, 3);
-      const d = Math.abs(cn), W = p.canyonWidth;
+      // a main canyon always crosses the way ahead; side canyons come from the noise
+      const [u, lat] = this.roadCoords(x, z);
+      const main = Math.abs(u - (p.canyonAt || 290) - 70 * this.nMask.fbm(lat * 0.003 + 4, 1.3, 2)) / 900;
+      const d = Math.min(Math.abs(cn), main), W = p.canyonWidth;
       const f = 1 - smoothstep(0, W, d);
       const S = 6, ramp = smoothstep(0.35, 0.75, this.nMask.noise(x * 0.004, z * 0.004));
       const q = smoothstep(0, 1, f) * S;
@@ -231,7 +235,7 @@ export class WorldGen {
     for (let i = 0; i < pts.length; i++) {
       const p = pts[i], q = pts[Math.min(pts.length - 1, i + 1)], r = pts[Math.max(0, i - 1)];
       let dx = q[0] - r[0], dz = q[1] - r[1]; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
-      const c = this.baseHeight(p[0], p[1]), L = this.baseHeight(p[0] - dz * 6, p[1] + dx * 6), R = this.baseHeight(p[0] + dz * 6, p[1] - dx * 6);
+      const c = this.groundNoRoad(p[0], p[1]), L = this.groundNoRoad(p[0] - dz * 6, p[1] + dx * 6), R = this.groundNoRoad(p[0] + dz * 6, p[1] - dx * 6);
       p[2] = Math.max((c * 2 + L + R) / 4, this.p.water + 0.9);
     }
     for (let pass = 0; pass < 8; pass++) for (let i = 1; i < pts.length - 1; i++) pts[i][2] = (pts[i - 1][2] + pts[i][2] * 2 + pts[i + 1][2]) / 4;
@@ -258,6 +262,9 @@ export class WorldGen {
     }
     return { d: bd, y: by, i: bi + bt };
   }
+
+  // terrain including flatten zones (the village yard) but not the road
+  groundNoRoad(x, z) { const r = this.road; this.road = null; const h = this.height(x, z); this.road = r; return h; }
 
   height(x, z) {
     let h = this._base(x, z, null);

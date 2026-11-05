@@ -721,8 +721,10 @@ export async function defineKinds(pools, quality) {
 
   // procedural props ----------------------------------------------------------
   const crystalMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.12, metalness: 0.05, emissive: 0x111111, envMapIntensity: 1.6 });
+  KIND_INFO.crystalGeo = {};
   for (const [name, c] of [['quartz', 0xe8eef2], ['copper', 0x3fa27c], ['amethyst', 0x7a48b0], ['iron', 0x6b5a50]]) {
-    pools.defineKind(`crystal_${name}`, [{ geometry: buildCrystals(40 + name.length, c), material: name === 'iron' ? new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, metalness: 0.6 }) : crystalMat }], 300);
+    const cg = buildCrystals(40 + name.length, c); KIND_INFO.crystalGeo[name] = cg;
+    pools.defineKind(`crystal_${name}`, [{ geometry: cg, material: name === 'iron' ? new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6, metalness: 0.6 }) : crystalMat }], 300);
   }
   pools.defineKind('branches0', [{ geometry: buildBranches(9), material: barkBroad }], 600);
   pools.defineKind('branches1', [{ geometry: buildBranches(19), material: barkConifer }], 600);
