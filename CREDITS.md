@@ -42,6 +42,10 @@ ceramic_vase_01, antique_ceramic_vase_01, brass_vase_01, wooden_axe.
 **Foliage cards** (`assets/tex/foliage/`) are composites made by the pipeline from the CC0
 twig/leaf textures of Poly Haven's `fir_tree_01` and `island_tree_02` models.
 
+## Cover art
+
+The Appearium cover art (`assets/ui/cover.*`, the app icons and the title-screen background) was provided by the game's creator.
+
 ## Other assets
 
 | Asset | Source | Licence |

@@ -8,8 +8,15 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0d0f0e">
   <title>Appearium</title>
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="favicon.svg">
+  <link rel="icon" href="assets/ui/favicon-64.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/ui/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-title" content="Appearium">
+  <meta name="description" content="Explore · Gather · Build · Return. A wilderness that is new every time you set out, and a village that keeps everything you bring home.">
+  <meta property="og:title" content="Appearium">
+  <meta property="og:description" content="Explore · Gather · Build · Return — every journey, a world of its own.">
+  <meta property="og:image" content="assets/ui/cover.jpg">
+  <link rel="preload" as="image" href="assets/ui/cover.webp">
   <link rel="stylesheet" href="src/style.css">
   <script type="importmap">
   { "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
@@ -61,7 +68,8 @@
 
   <div id="title">
     <div class="title-inner">
-      <h1>APPEARIUM</h1>
+      <h1 class="sr">Appearium</h1>
+      <img id="cover" src="assets/ui/cover.webp" alt="Appearium — Explore, Gather, Build, Return: a traveller and a wolf look out over a valley of forests, canyons, mountains, waterfalls and the sea, with a palisaded village below." draggable="false">
       <p class="tag">Every journey, a world of its own.</p>
       <div id="loadbar"><div id="loadfill"></div></div>
       <div id="loadtext">Gathering the world…</div>
@@ -71,8 +79,8 @@
           <button data-q="low">Low</button><button data-q="medium">Medium</button><button data-q="high">High</button></div>
       </div>
       <div class="controls">
-        <div class="desk">WASD move · Mouse look (click to capture) · Shift run · Space jump · E interact · I pack · J journal · H return home</div>
-        <div class="tch">Left thumb: move · Right thumb: look · ✋ interact · Push the stick fully to run</div>
+        <div class="desk">WASD move · Mouse look (click to capture) · R run · Shift sprint · Space jump · E interact · I pack · J journal · H return home</div>
+        <div class="tch">Left thumb: move · Right thumb: look · ✋ interact · Run &amp; Sprint buttons</div>
       </div>
       <p class="credits-link"><a href="CREDITS.md" target="_blank" rel="noopener">Credits &amp; licences</a></p>
     </div>

@@ -1,5 +1,7 @@
 # Appearium
 
+![Appearium cover art](assets/ui/cover.jpg)
+
 *Every journey, a world of its own.*
 
 A realistic first-person wilderness-exploration game that runs in the browser (desktop and
@@ -399,5 +401,11 @@ choose *Low* in the ≡ menu; dynamic resolution also kicks in below ~27 fps.
 - Distant terrain beyond ~200–250 m is hidden by fog; a far-terrain impostor ring would open up
   mountain vistas.
 - Grotto "caves" are rock shelters, not true underground spaces (height-field terrain).
+
+### Planned
+
+- **Taming a wolf**: once trapping larger animals is in, trap a young wolf and train it over
+  time into a companion that helps you hunt and gather.
+- Mounts: catching and taming wild horses.
 
 Credits and licences for all third-party components are in [CREDITS.md](CREDITS.md).
